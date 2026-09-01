@@ -525,7 +525,7 @@ const CASES = [
 function Detective({ setField, go }: Ctx) {
   const [stage, setStage] = useState<[number, number]>([0, 0]);
   const [i, step] = stage;
-  const c = CASES[i];
+  const c = CASES[i] ?? CASES[0]!;
   const acts = [c.bug, c.ask, c.fixLabel];
 
   return (
