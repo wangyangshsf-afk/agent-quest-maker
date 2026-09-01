@@ -132,6 +132,17 @@
   --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
+@theme inline {
+  --color-sun: var(--sun);
+  --color-sun-foreground: var(--sun-foreground);
+  --color-sky: var(--sky);
+  --color-grass: var(--grass);
+  --color-berry: var(--berry);
+  --color-ink: var(--ink);
+  --font-display: "Baloo 2", "Noto Sans SC", system-ui, sans-serif;
+  --font-sans: "Noto Sans SC", system-ui, sans-serif;
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
@@ -140,5 +151,33 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
+    background-image:
+      radial-gradient(circle at 12% 8%, oklch(0.93 0.09 230 / 0.55), transparent 42%),
+      radial-gradient(circle at 88% 4%, oklch(0.94 0.09 80 / 0.55), transparent 40%),
+      radial-gradient(circle at 70% 92%, oklch(0.93 0.08 150 / 0.5), transparent 45%);
+    background-attachment: fixed;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
   }
 }
+
+@utility card-pop {
+  border-radius: var(--radius-3xl);
+  background-color: var(--color-card);
+  border: 3px solid var(--color-ink);
+  box-shadow: 6px 6px 0 0 var(--color-ink);
+}
+
+@utility card-soft {
+  border-radius: var(--radius-2xl);
+  background-color: var(--color-card);
+  border: 2px solid oklch(0.2 0.03 260 / 0.12);
+  box-shadow: 0 10px 30px -14px oklch(0.2 0.05 260 / 0.35);
+}
+
