@@ -893,7 +893,7 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
   // 6. 缺时间
   pool.push({
     key: "time",
-    score: hasTime ? 35 : 92,
+    score: hasTime ? 10 : 100,
     make: () => ({
       title: "案件：糊涂的时间表",
       ai: `${activity}：先做准备工作，然后开始活动，做完就结束，${count}都参加。`,
