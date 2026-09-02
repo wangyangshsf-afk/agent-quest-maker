@@ -636,8 +636,12 @@ export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
           <button
             disabled={!filled}
             onClick={() => {
-              if (!filled) return toast.error("至少填写一项再出发哦");
+              if (!filled) {
+                toast.error("至少填写一项再出发哦");
+                return;
+              }
               setFlow(
+
                 flow.baseline
                   ? { state: flow.approved ? "approved" : "rerunning" }
                   : { baseline: { ...fields }, state: "running" },
