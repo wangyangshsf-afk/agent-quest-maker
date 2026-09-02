@@ -459,16 +459,25 @@ const QUIZ = [
 
 function ConceptQuiz({ go }: Ctx) {
   const [answers, setAnswers] = useState<(number | null)[]>(QUIZ.map(() => null));
-  const done = answers.every((a) => a !== null);
+  const done = answers.every((a, i) => a === QUIZ[i]!.correct);
 
   return (
     <Big>
       <SlideTitle kicker="概念小测" title="🤔 来测一测：你真的懂了吗？" />
+      <p className="mb-4 text-center text-sm font-bold text-muted-foreground">
+        选错没关系，可以点「再试一次」重新选。
+      </p>
       <div className="mx-auto grid max-w-3xl gap-5">
         {QUIZ.map((item, qi) => {
           const picked = answers[qi];
           const isDone = picked !== null;
           const isCorrect = picked === item.correct;
+          const pick = (oi: number | null) =>
+            setAnswers((prev) => {
+              const next = [...prev];
+              next[qi] = oi;
+              return next;
+            });
           return (
             <motion.div
               key={qi}
@@ -477,32 +486,40 @@ function ConceptQuiz({ go }: Ctx) {
               transition={{ delay: qi * 0.15 }}
               className="card-pop p-6"
             >
-              <p className="mb-4 text-xl font-extrabold">
-                {qi + 1}. {item.q}
-              </p>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xl font-extrabold">
+                  {qi + 1}. {item.q}
+                </p>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-extrabold ${
+                    !isDone
+                      ? "bg-secondary text-muted-foreground"
+                      : isCorrect
+                        ? "bg-grass/25 text-grass"
+                        : "bg-destructive/15 text-destructive"
+                  }`}
+                >
+                  {!isDone ? "待作答" : isCorrect ? "已答对 ✅" : "再试一次 🔁"}
+                </span>
+              </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 {item.options.map((opt, oi) => {
-                  const status = isDone
-                    ? oi === item.correct
-                      ? "correct"
-                      : oi === picked
-                        ? "wrong"
+                  const status =
+                    isDone && isCorrect
+                      ? oi === item.correct
+                        ? "correct"
                         : "idle"
-                    : "idle";
+                      : isDone && oi === picked
+                        ? "wrong"
+                        : "idle";
                   return (
                     <motion.button
                       key={oi}
-                      disabled={isDone}
-                      onClick={() =>
-                        setAnswers((prev) => {
-                          const next = [...prev];
-                          next[qi] = oi;
-                          return next;
-                        })
-                      }
-                      whileTap={{ scale: !isDone ? 0.95 : 1 }}
-                      whileHover={{ scale: !isDone ? 1.03 : 1 }}
-                      className={`rounded-2xl border-2 px-4 py-4 text-left text-sm font-bold transition-colors ${
+                      disabled={isCorrect}
+                      onClick={() => pick(oi)}
+                      whileTap={{ scale: isCorrect ? 1 : 0.95 }}
+                      whileHover={{ scale: isCorrect ? 1 : 1.03 }}
+                      className={`whitespace-normal break-words rounded-2xl border-2 px-4 py-4 text-left text-sm font-bold transition-colors ${
                         status === "correct"
                           ? "border-grass bg-grass/20 text-grass-foreground"
                           : status === "wrong"
@@ -537,7 +554,17 @@ function ConceptQuiz({ go }: Ctx) {
                         </>
                       )}
                     </p>
-                    <p className="mt-1 text-sm text-muted-foreground">{item.explain}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {isCorrect ? item.explain : "提示：想一想「会不会自己判断、会不会自己行动」。"}
+                    </p>
+                    {!isCorrect && (
+                      <button
+                        onClick={() => pick(null)}
+                        className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-extrabold text-primary-foreground"
+                      >
+                        <RefreshCw className="size-4" /> 再试一次
+                      </button>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -554,7 +581,6 @@ function ConceptQuiz({ go }: Ctx) {
               <p className="text-2xl font-extrabold">🎉 太棒了！你已经准备好了，去指挥台下达任务吧！</p>
               <motion.button
                 onClick={() => go(SLIDE.commandCenter)}
-
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-4 text-lg font-extrabold text-primary-foreground shadow"
@@ -568,6 +594,7 @@ function ConceptQuiz({ go }: Ctx) {
     </Big>
   );
 }
+
 
 /* ---------- 7. Command center ---------- */
 
