@@ -57,10 +57,11 @@ function CoursePage() {
   const initialTheme = findTheme(saved?.themeId);
 
   const [i, setI] = useState(0);
+  const [teacherMode, setTeacherMode] = useState(false);
   const [fields, setFields] = useState<Fields>({
-    activity: saved?.fields?.activity ?? initialTheme.activity,
-    count: saved?.fields?.count ?? initialTheme.count,
-    limits: saved?.fields?.limits ?? initialTheme.limits,
+    activity: saved?.fields?.activity ?? "",
+    count: saved?.fields?.count ?? "",
+    limits: saved?.fields?.limits ?? "",
   });
   const [card, setCard] = useState<AgentCard>({
     name: saved?.card?.name ?? initialTheme.card.name,
@@ -93,6 +94,9 @@ function CoursePage() {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
   }, [fields, card, theme.id, flow]);
+
+  const maxSlide = teacherMode ? SLIDES.length - 1 : Math.min(SLIDES.length - 1, flow.unlocked);
+
 
 
   const go = useCallback((n: number) => {
