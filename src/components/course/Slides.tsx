@@ -909,10 +909,10 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
   return pool
     .map((c, idx) => ({ ...c, idx }))
     .sort((a, b) => b.score - a.score || a.idx - b.idx)
-    .slice(0, 3)
+    .slice(0, 2)
     .map((c, k) => {
       const d = c.make();
-      return { ...d, title: `案件${["一", "二", "三"][k]}：${d.title.replace(/^案件[：:]/, "")}` };
+      return { ...d, title: `案件${["一", "二"][k]}：${d.title.replace(/^案件[：:]/, "")}` };
     });
 }
 
@@ -932,9 +932,7 @@ function Detective({ fields, theme, setField, go }: Ctx) {
     <Big>
       <SlideTitle kicker="侦探模式" title="🕵️ 抓出 AI 的毛病" />
       <p className="mb-4 text-center text-sm font-bold text-muted-foreground">
-        案情、破绽与三步提示都会跟着指挥台的「{fields.activity.trim() || theme.activity}｜
-        {fields.count.trim() || theme.count}｜{fields.limits.trim() || theme.limits}」实时重算 ·
-        每一步点两次：先想，再看答案
+        今天我们抓 2 个案件。每一步点两次：先想，再看答案。课后可以自己挑战更多案件。
       </p>
 
       <div className="mb-4 flex flex-wrap justify-center gap-2">
