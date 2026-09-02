@@ -62,6 +62,7 @@ export function AgentFactory({
   const [approved, setApproved] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
   const [replay, setReplay] = useState(0);
+  const [booting, setBooting] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // 主题切换时跟随（场景创作页选主题后进入本页）
@@ -254,15 +255,32 @@ export function AgentFactory({
           <div className="flex justify-center">
             <button
               onClick={() => {
-                setStage(1);
-                boot();
+                setBooting(true);
+                setTimeout(() => {
+                  setBooting(false);
+                  setStage(1);
+                  boot();
+                }, 3000);
               }}
-              disabled={busy}
+              disabled={busy || booting}
               className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 font-extrabold text-primary-foreground disabled:opacity-50"
             >
               <Rocket className="size-5" /> 启动智能体，去对话
             </button>
           </div>
+
+          <AnimatePresence>
+            {booting && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-4"
+              >
+                <GeneratingOverlay emoji={T.emoji} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
@@ -373,7 +391,7 @@ const GEN_STEPS = [
 function GeneratingOverlay({ emoji }: { emoji: string }) {
   const [i, setI] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setI((x) => (x + 1) % GEN_STEPS.length), 833);
+    const t = setInterval(() => setI((x) => (x + 1) % GEN_STEPS.length), 500);
     return () => clearInterval(t);
   }, []);
   return (
