@@ -54,22 +54,27 @@ function CoursePage() {
   }, []);
 
   const applyTheme = (t: AgentTheme) => {
-    setTheme(t);
+    // 只要当前内容为空、或者还是「上一个主题自带的默认值」，就换成新主题的内容；
+    // 学生自己写过的内容才保留。
+    const keep = (cur: string, prevDefault: string, next: string) =>
+      cur.trim() && cur.trim() !== prevDefault.trim() ? cur : next;
+
     setFields((f) => ({
-      activity: f.activity.trim() || t.activity,
-      count: f.count.trim() || t.count,
-      limits: f.limits.trim() || t.limits,
+      activity: keep(f.activity, theme.activity, t.activity),
+      count: keep(f.count, theme.count, t.count),
+      limits: keep(f.limits, theme.limits, t.limits),
     }));
     setCard((c) => ({
-      name: c.name.trim() || t.card.name,
-      goal: c.goal.trim() || t.card.goal,
+      name: keep(c.name, theme.card.name, t.card.name),
+      goal: keep(c.goal, theme.card.goal, t.card.goal),
       steps: [
-        c.steps[0].trim() || t.card.steps[0],
-        c.steps[1].trim() || t.card.steps[1],
-        c.steps[2].trim() || t.card.steps[2],
+        keep(c.steps[0], theme.card.steps[0], t.card.steps[0]),
+        keep(c.steps[1], theme.card.steps[1], t.card.steps[1]),
+        keep(c.steps[2], theme.card.steps[2], t.card.steps[2]),
       ],
-      check: c.check.trim() || t.card.check,
+      check: keep(c.check, theme.card.check, t.card.check),
     }));
+    setTheme(t);
   };
 
   const ctx: Ctx = {
