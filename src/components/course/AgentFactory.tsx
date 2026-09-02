@@ -50,6 +50,7 @@ export function AgentFactory({
   theme,
   initialAction = "",
   initialTypeId,
+  startAtChat = false,
 }: {
   card: AgentCard;
   setCard: (c: AgentCard) => void;
@@ -57,6 +58,8 @@ export function AgentFactory({
   theme: AgentTheme;
   initialAction?: string;
   initialTypeId?: string;
+  /** 分享链接打开时：跳过指令卡，直接孵化并进入对话 */
+  startAtChat?: boolean;
 }) {
   const chat = useServerFn(agentChat);
 
@@ -170,7 +173,23 @@ export function AgentFactory({
     setMsgs([{ role: "assistant", content: greet }]);
   };
 
-  const [stage, setStage] = useState<0 | 1 | 2>(0);
+  const [stage, setStage] = useState<0 | 1 | 2>(startAtChat ? 1 : 0);
+
+  // 分享链接打开：自动孵化 3 秒后直接开始对话
+  const autoBooted = useRef(false);
+  useEffect(() => {
+    if (!startAtChat || autoBooted.current) return;
+    autoBooted.current = true;
+    setBooting(true);
+    const t = setTimeout(() => {
+      setBooting(false);
+      setStage(1);
+      boot();
+    }, 3000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startAtChat]);
+
 
   const STAGES = [
     { emoji: "🧾", label: "指令卡" },
@@ -300,20 +319,21 @@ export function AgentFactory({
             </button>
           </div>
 
-          <AnimatePresence>
-            {booting && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-4"
-              >
-                <GeneratingOverlay emoji={T.emoji} />
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       )}
+
+      <AnimatePresence>
+        {booting && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-4"
+          >
+            <GeneratingOverlay emoji={T.emoji} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {stage === 1 && (
         <div className="space-y-4">

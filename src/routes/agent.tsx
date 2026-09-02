@@ -56,6 +56,7 @@ function SharedAgentPage() {
             theme={theme}
             initialAction={data.a}
             initialTypeId={data.t}
+            startAtChat
           />
         ) : (
           <div className="card-pop max-w-md p-8 text-center">
