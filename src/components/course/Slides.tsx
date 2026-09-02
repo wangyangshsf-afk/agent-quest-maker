@@ -54,13 +54,15 @@ export const SLIDE = {
   homework: 14,
 } as const;
 
-export type FlowState = "draft" | "running" | "needs_fix" | "rerunning" | "approved";
+export type FlowState = "draft" | "running" | "needs_fix" | "detective" | "rerunning" | "approved";
 
 export type Flow = {
   state: FlowState;
   baseline: Fields | null;
   approved: boolean;
   checks: string[];
+  /** 学生主流程解锁到第几页（教师演示模式可无视） */
+  unlocked: number;
 };
 
 export const EMPTY_FLOW: Flow = {
@@ -68,7 +70,9 @@ export const EMPTY_FLOW: Flow = {
   baseline: null,
   approved: false,
   checks: [],
+  unlocked: 7,
 };
+
 
 export type Ctx = {
   fields: Fields;
