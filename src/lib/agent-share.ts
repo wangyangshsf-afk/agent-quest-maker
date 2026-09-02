@@ -47,5 +47,10 @@ export function buildShareUrl(data: SharedAgent): string {
 }
 
 export function cardFrom(d: SharedAgent): AgentCard {
-  return { name: d.n, goal: d.g, steps: [d.a, "", ""], check: d.c };
+  return {
+    name: d.n,
+    goal: d.g,
+    steps: [d.s1 || d.a || "", d.s2 || "", d.s3 || ""],
+    check: d.c,
+  };
 }
