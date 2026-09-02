@@ -118,15 +118,26 @@ export const agentChat = createServerFn({ method: "POST" })
       choices?: { message?: { content?: string } }[];
     };
     const raw = json.choices?.[0]?.message?.content ?? "";
+
+    // 清洗：去掉 markdown 代码块包裹，提取第一个 { 到最后一个 }
+    let clean = raw.trim();
+    clean = clean.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
+    const firstBrace = clean.indexOf("{");
+    const lastBrace = clean.lastIndexOf("}");
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+      clean = clean.slice(firstBrace, lastBrace + 1);
+    }
+
     let reply = raw;
     let card: CardPayload | null = null;
     try {
-      const parsed = JSON.parse(raw) as { reply?: string; card?: CardPayload };
+      const parsed = JSON.parse(clean) as { reply?: string; card?: CardPayload };
       if (parsed && typeof parsed === "object") {
         reply = typeof parsed.reply === "string" ? parsed.reply : raw;
         card = parsed.card ?? null;
       }
     } catch {
+      console.warn("JSON parse failed after cleanup:", clean);
       /* 模型偶尔不返回 json，就直接用原文 */
     }
 
