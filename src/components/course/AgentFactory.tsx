@@ -368,7 +368,7 @@ const GEN_STEPS = [
 function GeneratingOverlay({ emoji }: { emoji: string }) {
   const [i, setI] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setI((x) => (x + 1) % GEN_STEPS.length), 1100);
+    const t = setInterval(() => setI((x) => (x + 1) % GEN_STEPS.length), 833);
     return () => clearInterval(t);
   }, []);
   return (
