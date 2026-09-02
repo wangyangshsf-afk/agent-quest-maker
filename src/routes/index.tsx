@@ -214,7 +214,7 @@ function CoursePage() {
         </AnimatePresence>
       </section>
 
-      <footer className="sticky bottom-0 z-30 flex items-center justify-center gap-3 border-t-2 border-border bg-card/85 px-4 py-3 backdrop-blur">
+      <footer className="sticky bottom-0 z-30 flex items-center justify-center gap-3 border-t-2 border-border bg-card/85 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
         <button
           onClick={() => go(i - 1)}
           disabled={i === 0}
@@ -223,28 +223,52 @@ function CoursePage() {
         >
           <ChevronLeft className="size-5" />
         </button>
-        <div className="flex flex-wrap items-center justify-center gap-1.5">
-          {SLIDES.map((s, k) => (
-            <button
-              key={s.title}
-              onClick={() => go(k)}
-              title={`${k + 1}. ${s.title}`}
-              aria-label={`第 ${k + 1} 页 ${s.title}`}
-              className={`h-3 rounded-full transition-all ${
-                k === i ? "w-8 bg-primary" : "w-3 bg-border hover:bg-primary/50"
-              }`}
-            />
-          ))}
+        <div className="flex max-w-[60vw] flex-wrap items-center justify-center gap-1.5">
+          {SLIDES.map((s, k) => {
+            const locked = k > maxSlide;
+            return (
+              <button
+                key={s.title}
+                onClick={() => {
+                  if (locked) {
+                    toast.info("这一页还没解锁：先完成指挥台 → 办事 → 侦探 → 验收", {
+                      description: "老师演示可以打开右上角「教师演示」模式。",
+                    });
+                    return;
+                  }
+                  go(k);
+                }}
+                title={`${k + 1}. ${s.title}${locked ? "（未解锁）" : ""}`}
+                aria-label={`第 ${k + 1} 页 ${s.title}${locked ? "，未解锁" : ""}`}
+                className={`h-3 rounded-full transition-all ${
+                  k === i
+                    ? "w-8 bg-primary"
+                    : locked
+                      ? "w-3 bg-border/40"
+                      : "w-3 bg-border hover:bg-primary/50"
+                }`}
+              />
+            );
+          })}
         </div>
         <button
-          onClick={() => go(i + 1)}
+          onClick={() => {
+            if (i + 1 > maxSlide) {
+              toast.info("先在这一页完成任务，下一页才会解锁 🔒");
+              return;
+            }
+            go(i + 1);
+          }}
           disabled={i === SLIDES.length - 1}
           aria-label="下一页"
-          className="rounded-full bg-primary p-3 text-primary-foreground disabled:opacity-30"
+          className={`rounded-full bg-primary p-3 text-primary-foreground disabled:opacity-30 ${
+            i + 1 > maxSlide ? "opacity-40" : ""
+          }`}
         >
           <ChevronRight className="size-5" />
         </button>
       </footer>
+
 
       <AgentModal
         open={agentOpen}
