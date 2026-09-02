@@ -62,6 +62,7 @@ export function AgentFactory({
   const [approved, setApproved] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
   const [replay, setReplay] = useState(0);
+  const [booting, setBooting] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // 主题切换时跟随（场景创作页选主题后进入本页）
