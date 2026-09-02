@@ -54,13 +54,15 @@ export const SLIDE = {
   homework: 14,
 } as const;
 
-export type FlowState = "draft" | "running" | "needs_fix" | "rerunning" | "approved";
+export type FlowState = "draft" | "running" | "needs_fix" | "detective" | "rerunning" | "approved";
 
 export type Flow = {
   state: FlowState;
   baseline: Fields | null;
   approved: boolean;
   checks: string[];
+  /** 学生主流程解锁到第几页（教师演示模式可无视） */
+  unlocked: number;
 };
 
 export const EMPTY_FLOW: Flow = {
@@ -68,7 +70,9 @@ export const EMPTY_FLOW: Flow = {
   baseline: null,
   approved: false,
   checks: [],
+  unlocked: 7,
 };
+
 
 export type Ctx = {
   fields: Fields;
@@ -197,16 +201,17 @@ function Situation({ go }: Ctx) {
           </p>
           <ul className="mt-4 space-y-2 text-lg">
             {[
-              "去哪儿？怎么去？几点集合？",
-              "50 个人怎么分组，谁带队？",
-              "60 元要包含车费、门票还是午饭？",
-              "有同学晕车、有同学过敏，怎么办？",
+              "去科技馆还是公园？地铁几号线？几点在校门口集合？",
+              "要不要提前预约？学生票多少钱？开放时间到几点？",
+              "50 个人怎么分组，谁带队，中午在哪吃？",
+              "下雨怎么办？有同学晕车、过敏、走丢了怎么办？",
             ].map((x) => (
               <li key={x} className="flex gap-2">
                 <AlertTriangle className="mt-1 size-5 shrink-0 text-accent" /> {x}
               </li>
             ))}
           </ul>
+
         </div>
         <div className="card-soft flex flex-col justify-center gap-4 bg-secondary/60 p-6">
           <p className="text-2xl font-extrabold">
@@ -254,8 +259,15 @@ const ROLES = [
   },
 ];
 
+const VOTE_KEY = "agent-course-vote-reason";
+
 function RoleVote() {
   const [picked, setPicked] = useState<number | null>(null);
+  const [reason, setReason] = useState("");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setReason(window.localStorage.getItem(VOTE_KEY) ?? "");
+  }, []);
   return (
     <Big>
       <SlideTitle kicker="角色投票" title="🗳️ 你想要哪一种帮手？" />
@@ -285,12 +297,24 @@ function RoleVote() {
           </motion.button>
         ))}
       </div>
-      <p className="mt-6 text-center text-lg text-muted-foreground">
-        投票没有对错，先说说你为什么这样选？
-      </p>
+      <div className="card-soft mx-auto mt-6 max-w-2xl p-5">
+        <p className="text-base font-extrabold">✍️ 一句话说说：你为什么这样选？</p>
+        <input
+          value={reason}
+          onChange={(e) => {
+            setReason(e.target.value);
+            if (typeof window !== "undefined")
+              window.localStorage.setItem(VOTE_KEY, e.target.value);
+          }}
+          placeholder="例如：我想要一个会自己检查的帮手"
+          className="mt-3 w-full rounded-2xl border-2 border-border bg-card px-4 py-3 text-base outline-none focus:border-primary"
+        />
+        <p className="mt-2 text-xs text-muted-foreground">只保存在你自己的浏览器里。</p>
+      </div>
     </Big>
   );
 }
+
 
 /* ---------- 5. Chat vs Agent ---------- */
 
@@ -333,10 +357,15 @@ function Compare() {
             </motion.div>
           </div>
 
-          <div className="mt-5 flex justify-center gap-3 text-center">
+          <div className="mt-5 flex flex-wrap justify-center gap-3 text-center">
             <MiniTag emoji="🤷" text="没说的它就猜" />
-            <MiniTag emoji="📄" text="做不做随你" />
+            <MiniTag emoji="📄" text="只回答，不动手" />
           </div>
+          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+            这一页的聊天 AI 只负责回答问题；智能体还会追问、规划、执行和检查。
+            现实中的聊天 AI 也可能连上工具去做事，这里只是用「只聊天模式」来做对比。
+          </p>
+
         </div>
 
         {/* 智能体：目标→追问→步骤→人类拍板 */}
@@ -455,16 +484,25 @@ const QUIZ = [
 
 function ConceptQuiz({ go }: Ctx) {
   const [answers, setAnswers] = useState<(number | null)[]>(QUIZ.map(() => null));
-  const done = answers.every((a) => a !== null);
+  const done = answers.every((a, i) => a === QUIZ[i]!.correct);
 
   return (
     <Big>
       <SlideTitle kicker="概念小测" title="🤔 来测一测：你真的懂了吗？" />
+      <p className="mb-4 text-center text-sm font-bold text-muted-foreground">
+        选错没关系，可以点「再试一次」重新选。
+      </p>
       <div className="mx-auto grid max-w-3xl gap-5">
         {QUIZ.map((item, qi) => {
           const picked = answers[qi];
           const isDone = picked !== null;
           const isCorrect = picked === item.correct;
+          const pick = (oi: number | null) =>
+            setAnswers((prev) => {
+              const next = [...prev];
+              next[qi] = oi;
+              return next;
+            });
           return (
             <motion.div
               key={qi}
@@ -473,32 +511,40 @@ function ConceptQuiz({ go }: Ctx) {
               transition={{ delay: qi * 0.15 }}
               className="card-pop p-6"
             >
-              <p className="mb-4 text-xl font-extrabold">
-                {qi + 1}. {item.q}
-              </p>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xl font-extrabold">
+                  {qi + 1}. {item.q}
+                </p>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-extrabold ${
+                    !isDone
+                      ? "bg-secondary text-muted-foreground"
+                      : isCorrect
+                        ? "bg-grass/25 text-grass"
+                        : "bg-destructive/15 text-destructive"
+                  }`}
+                >
+                  {!isDone ? "待作答" : isCorrect ? "已答对 ✅" : "再试一次 🔁"}
+                </span>
+              </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 {item.options.map((opt, oi) => {
-                  const status = isDone
-                    ? oi === item.correct
-                      ? "correct"
-                      : oi === picked
-                        ? "wrong"
+                  const status =
+                    isDone && isCorrect
+                      ? oi === item.correct
+                        ? "correct"
                         : "idle"
-                    : "idle";
+                      : isDone && oi === picked
+                        ? "wrong"
+                        : "idle";
                   return (
                     <motion.button
                       key={oi}
-                      disabled={isDone}
-                      onClick={() =>
-                        setAnswers((prev) => {
-                          const next = [...prev];
-                          next[qi] = oi;
-                          return next;
-                        })
-                      }
-                      whileTap={{ scale: !isDone ? 0.95 : 1 }}
-                      whileHover={{ scale: !isDone ? 1.03 : 1 }}
-                      className={`rounded-2xl border-2 px-4 py-4 text-left text-sm font-bold transition-colors ${
+                      disabled={isCorrect}
+                      onClick={() => pick(oi)}
+                      whileTap={{ scale: isCorrect ? 1 : 0.95 }}
+                      whileHover={{ scale: isCorrect ? 1 : 1.03 }}
+                      className={`whitespace-normal break-words rounded-2xl border-2 px-4 py-4 text-left text-sm font-bold transition-colors ${
                         status === "correct"
                           ? "border-grass bg-grass/20 text-grass-foreground"
                           : status === "wrong"
@@ -533,7 +579,17 @@ function ConceptQuiz({ go }: Ctx) {
                         </>
                       )}
                     </p>
-                    <p className="mt-1 text-sm text-muted-foreground">{item.explain}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {isCorrect ? item.explain : "提示：想一想「会不会自己判断、会不会自己行动」。"}
+                    </p>
+                    {!isCorrect && (
+                      <button
+                        onClick={() => pick(null)}
+                        className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-extrabold text-primary-foreground"
+                      >
+                        <RefreshCw className="size-4" /> 再试一次
+                      </button>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -550,7 +606,6 @@ function ConceptQuiz({ go }: Ctx) {
               <p className="text-2xl font-extrabold">🎉 太棒了！你已经准备好了，去指挥台下达任务吧！</p>
               <motion.button
                 onClick={() => go(SLIDE.commandCenter)}
-
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-4 text-lg font-extrabold text-primary-foreground shadow"
@@ -565,41 +620,94 @@ function ConceptQuiz({ go }: Ctx) {
   );
 }
 
+
 /* ---------- 7. Command center ---------- */
 
+
+const SAMPLE: Fields = {
+  activity: "五年级春游：去上海科技馆",
+  count: "50 人（2 位老师带队）",
+  limits: "每人 60 元，当天往返，地铁 2 号线，需提前预约学生票，下雨要有备选",
+};
 
 export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
   const warnings = detectConflicts(fields);
   const filled = Object.values(fields).some((v) => v.trim());
+  const complete = fields.activity.trim() && fields.count.trim() && fields.limits.trim();
+
+  const submit = () => {
+    if (!fields.activity.trim()) {
+      toast.error("请先写清楚活动是什么");
+      return;
+    }
+    if (!fields.count.trim()) {
+      toast.error("请写上一共有多少人");
+      return;
+    }
+    if (!fields.limits.trim()) {
+      toast.error("请写一条限制条件，比如预算或时间");
+      return;
+    }
+    setFlow(
+      flow.baseline
+        ? {
+            state: flow.approved ? "approved" : "rerunning",
+            unlocked: Math.max(flow.unlocked, SLIDE.execution),
+          }
+        : {
+            baseline: { ...fields },
+            state: "running",
+            unlocked: Math.max(flow.unlocked, SLIDE.execution),
+          },
+    );
+    go(SLIDE.execution);
+  };
+
   return (
     <Big>
       <SlideTitle kicker="指挥台 Command Center" title="🎛️ 轮到你来下达任务" />
       <div className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
         <div className="card-pop space-y-5 p-6">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-secondary/70 p-3">
+            <p className="text-sm font-bold">
+              灰色的字只是<b>示例</b>，下面三格要写<b>你自己的任务</b>。
+            </p>
+            <button
+              onClick={() => {
+                setField("activity", SAMPLE.activity);
+                setField("count", SAMPLE.count);
+                setField("limits", SAMPLE.limits);
+                toast.success("已载入示例任务，可以随便改成你自己的 ✏️");
+              }}
+              className="rounded-full bg-card px-4 py-2 text-sm font-extrabold shadow"
+            >
+              加载示例任务
+            </button>
+          </div>
           <VoiceInput
             emoji="🎪"
             label="活动是什么"
-            placeholder="例如：五年级春游 / 班级义卖日"
+            placeholder="示例：五年级春游：去上海科技馆"
             value={fields.activity}
             onChange={(v) => setField("activity", v)}
           />
           <VoiceInput
             emoji="👥"
             label="有多少人"
-            placeholder="例如：50 人"
+            placeholder="示例：50 人（2 位老师带队）"
             value={fields.count}
             onChange={(v) => setField("count", v)}
           />
           <VoiceInput
             emoji="🚧"
             label="限制条件 / 预算"
-            placeholder="例如：每人 60 元，当天往返，去森林公园"
+            placeholder="示例：每人 60 元，当天往返，地铁 2 号线，需要预约"
             value={fields.limits}
             onChange={(v) => setField("limits", v)}
             multiline
           />
           <p className="text-sm text-muted-foreground">
-            🎙️ 课堂上建议直接打字。课后在家可以点麦克风用说的。
+            🎙️ 课堂上建议直接打字。课后在家可以点麦克风用说的；没有麦克风或不给权限时，打字一样能完成。
           </p>
         </div>
 
@@ -634,34 +742,37 @@ export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
               )}
             </AnimatePresence>
           </div>
-          <button
-            disabled={!filled}
-            onClick={() => {
-              if (!filled) {
-                toast.error("至少填写一项再出发哦");
-                return;
-              }
-              setFlow(
 
-                flow.baseline
-                  ? { state: flow.approved ? "approved" : "rerunning" }
-                  : { baseline: { ...fields }, state: "running" },
-              );
-              go(SLIDE.execution);
-            }}
-            className="w-full rounded-3xl bg-primary px-6 py-5 text-2xl font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)] transition enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+          {filled && (
+            <div className="card-soft p-5">
+              <p className="text-sm font-extrabold text-primary">我的任务摘要</p>
+              <p className="mt-2 text-sm font-medium">
+                🎪 {fields.activity || "（还没写活动）"}
+                <br />👥 {fields.count || "（还没写人数）"}
+                <br />🚧 {fields.limits || "（还没写限制）"}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">写错了可以直接在左边改。</p>
+            </div>
+          )}
+
+          <button
+            onClick={submit}
+            className="w-full rounded-3xl bg-primary px-6 py-5 text-2xl font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)] transition hover:brightness-110"
           >
             🚀 交给智能体办事
           </button>
 
-          {!filled && (
-            <p className="text-center text-sm text-muted-foreground">至少填写 1 项才能继续</p>
+          {!complete && (
+            <p className="text-center text-sm text-muted-foreground">
+              三格都写上，智能体才知道要做什么
+            </p>
           )}
         </div>
       </div>
     </Big>
   );
 }
+
 
 /* ---------- 8. Execution animation ---------- */
 
@@ -788,13 +899,17 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
 
   const holes = steps[1]!.lines.filter((l) => !l.includes("✅"));
   const badChecks = steps[3]!.lines.filter((l) => l.startsWith("❌") || l.startsWith("⚠️"));
-  const isRerun = flow.state === "rerunning" || flow.approved;
+  // 进入本页时的版本判定，跑完后不会把第一版误标成第二版
+  const [isRerun] = useState(flow.state === "rerunning" || flow.approved);
   const done = n >= steps.length;
 
   useEffect(() => {
     if (!done) return;
     if (flow.approved) return;
-    setFlow({ state: holes.length + badChecks.length > 0 ? "needs_fix" : "rerunning" });
+    setFlow({
+      state: holes.length + badChecks.length > 0 ? "needs_fix" : "rerunning",
+      unlocked: Math.max(flow.unlocked, isRerun ? SLIDE.review : SLIDE.detective),
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [done, sig]);
 
@@ -1144,7 +1259,10 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
 
 function Detective({ fields, theme, setField, go, setFlow }: Ctx) {
   const sig = `${fields.activity}|${fields.count}|${fields.limits}|${theme.id}`;
-  const cases: DCase[] = useMemo(() => makeCases(fields, theme), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
+  const live: DCase[] = useMemo(() => makeCases(fields, theme), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 一旦开始破案就冻结案件，避免写回指挥台后案件被重算、进度丢失
+  const [frozen, setFrozen] = useState<DCase[] | null>(null);
+  const cases = frozen ?? live;
   const [i, setI] = useState(0);
   // progress: 每一步两次点击（0=未开始, 奇数=看到提示, 偶数=看到答案）
   const [p, setP] = useState(0);
@@ -1152,20 +1270,24 @@ function Detective({ fields, theme, setField, go, setFlow }: Ctx) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   useEffect(() => {
+    if (frozen) return;
     setI(0);
     setP(0);
     setDone({});
     setEditing(false);
-  }, [cases]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live]);
   const c = cases[i] ?? cases[0]!;
   const allDone = cases.every((_, k) => done[k]);
 
   const apply = (value: string, label: string) => {
+    setFrozen(cases);
     setField(c.fixField, value);
     setDone((d) => ({ ...d, [i]: label }));
     setEditing(false);
     toast.success("已写回指挥台 ✅");
   };
+
 
   return (
     <Big>
@@ -1325,7 +1447,7 @@ function Detective({ fields, theme, setField, go, setFlow }: Ctx) {
             {allDone && (
               <button
                 onClick={() => {
-                  setFlow({ state: "rerunning" });
+                  setFlow({ state: "rerunning", unlocked: SLIDE.review });
                   go(SLIDE.execution);
                 }}
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)]"
@@ -1426,7 +1548,7 @@ function Review({ fields, flow, setFlow, go }: Ctx) {
               toast.error("先把 5 项都检查一遍再通过哦");
               return;
             }
-            setFlow({ approved: true, state: "approved" });
+            setFlow({ approved: true, state: "approved", unlocked: SLIDE.homework });
             toast.success("已完成人类验收 🎉");
             go(SLIDE.scenes);
           }}
@@ -1616,7 +1738,33 @@ function Recap() {
 
 /* ---------- 14. 课程收束 + 出口任务 ---------- */
 
-function Homework({ card, fields, openAgent }: Ctx) {
+function Homework({ card, fields, flow, openAgent }: Ctx) {
+  const sheet = [
+    `# ${card.name || "我的智能体"}｜人类签字版方案`,
+    "",
+    `- 活动：${fields.activity || "（未填写）"}`,
+    `- 人数：${fields.count || "（未填写）"}`,
+    `- 限制条件：${fields.limits || "（未填写）"}`,
+    "",
+    "## 目标",
+    card.goal,
+    "",
+    "## 行动三步",
+    ...card.steps.map((s, i) => `${i + 1}. ${s}`),
+    "",
+    "## 检查与风险",
+    card.check,
+    "",
+    "## 还需要人类确认的事",
+    "- [ ] 时间地点已确认",
+    "- [ ] 预算算得过来",
+    "- [ ] 安全预案已写清",
+    `- [ ] 人类验收：${flow.approved ? "已完成 ✅" : "未完成"}`,
+    "",
+    "学生姓名：____________　日期：____________",
+    "家长 / 老师签字：____________",
+  ].join("\n");
+
   return (
     <Big>
       <SlideTitle kicker="出口任务" title="🎁 今天只有一个作业" />
@@ -1630,10 +1778,16 @@ function Homework({ card, fields, openAgent }: Ctx) {
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <button
-            onClick={() => copy(buildPrompt(card, fields))}
+            onClick={() => copy(buildPrompt(card, fields), "提示词已复制 ✅ 可以粘贴给 AI 用啦")}
             className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 font-extrabold text-primary-foreground"
           >
             <Copy className="size-5" /> 复制提示词
+          </button>
+          <button
+            onClick={() => download(`${card.name || "我的智能体"}-人类签字版.md`, sheet)}
+            className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 font-extrabold text-accent-foreground"
+          >
+            <ClipboardCheck className="size-5" /> 下载 / 打印方案
           </button>
           <button
             onClick={openAgent}
@@ -1642,6 +1796,9 @@ function Homework({ card, fields, openAgent }: Ctx) {
             <Rocket className="size-5" /> 再试一次智能体
           </button>
         </div>
+        <p className="mt-4 text-xs text-muted-foreground">
+          所有内容只保存在你自己的浏览器里，不用注册、不会上传。
+        </p>
       </div>
       <p className="mt-6 flex items-center justify-center gap-2 text-xl font-extrabold">
         <MapPin className="size-6 text-berry" /> 下课啦！记得：能干的是 AI，负责的是你。
@@ -1649,6 +1806,7 @@ function Homework({ card, fields, openAgent }: Ctx) {
     </Big>
   );
 }
+
 
 export const SLIDES: { title: string; C: (ctx: Ctx) => React.ReactElement }[] = [
   { title: "封面", C: Cover },

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Home, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { EMPTY_FLOW, SLIDES, type Ctx, type Flow } from "@/components/course/Slides";
 import { AgentModal } from "@/components/course/AgentModal";
@@ -57,10 +58,11 @@ function CoursePage() {
   const initialTheme = findTheme(saved?.themeId);
 
   const [i, setI] = useState(0);
+  const [teacherMode, setTeacherMode] = useState(false);
   const [fields, setFields] = useState<Fields>({
-    activity: saved?.fields?.activity ?? initialTheme.activity,
-    count: saved?.fields?.count ?? initialTheme.count,
-    limits: saved?.fields?.limits ?? initialTheme.limits,
+    activity: saved?.fields?.activity ?? "",
+    count: saved?.fields?.count ?? "",
+    limits: saved?.fields?.limits ?? "",
   });
   const [card, setCard] = useState<AgentCard>({
     name: saved?.card?.name ?? initialTheme.card.name,
@@ -93,6 +95,9 @@ function CoursePage() {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
   }, [fields, card, theme.id, flow]);
+
+  const maxSlide = teacherMode ? SLIDES.length - 1 : Math.min(SLIDES.length - 1, flow.unlocked);
+
 
 
   const go = useCallback((n: number) => {
@@ -154,7 +159,7 @@ function CoursePage() {
 
   return (
     <main className="flex min-h-screen flex-col">
-      <header className="flex items-center justify-between gap-3 px-4 py-3">
+      <header className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
         <button
           onClick={() => go(0)}
           className="inline-flex items-center gap-2 rounded-full bg-card px-4 py-2 text-sm font-extrabold shadow"
@@ -164,23 +169,35 @@ function CoursePage() {
         <span className="rounded-full bg-card px-4 py-2 text-sm font-bold shadow">
           {i + 1} / {SLIDES.length} · {slide.title}
         </span>
-        <button
-          onClick={() => {
-            if (!confirm("确定要清空所有内容重新开始吗？")) return;
-            window.localStorage.removeItem(STORAGE_KEY);
-            const t = THEMES[0]!;
-            setFields({ activity: t.activity, count: t.count, limits: t.limits });
-            setCard(t.card);
-            setTheme(t);
-            setFlowState(EMPTY_FLOW);
-            setI(0);
-          }}
-          className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-2 text-xs font-bold text-muted-foreground shadow hover:text-foreground"
-          title="清空所有内容重新开始"
-        >
-          <RotateCcw className="size-3.5" /> 重新开始
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setTeacherMode((v) => !v)}
+            className={`rounded-full px-3 py-2 text-xs font-extrabold shadow ${
+              teacherMode ? "bg-accent text-accent-foreground" : "bg-card text-muted-foreground"
+            }`}
+            title="教师演示模式：可以自由跳到任意一页"
+          >
+            {teacherMode ? "🎓 教师演示模式（可自由跳页）" : "🎓 教师演示"}
+          </button>
+          <button
+            onClick={() => {
+              if (!confirm("确定要清空所有内容重新开始吗？")) return;
+              window.localStorage.removeItem(STORAGE_KEY);
+              const t = THEMES[0]!;
+              setFields({ activity: "", count: "", limits: "" });
+              setCard(t.card);
+              setTheme(t);
+              setFlowState(EMPTY_FLOW);
+              setI(0);
+            }}
+            className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-2 text-xs font-bold text-muted-foreground shadow hover:text-foreground"
+            title="清空所有内容重新开始"
+          >
+            <RotateCcw className="size-3.5" /> 重新开始
+          </button>
+        </div>
       </header>
+
 
 
       <section className="flex flex-1 items-center justify-center px-4 py-6">
@@ -198,7 +215,7 @@ function CoursePage() {
         </AnimatePresence>
       </section>
 
-      <footer className="sticky bottom-0 z-30 flex items-center justify-center gap-3 border-t-2 border-border bg-card/85 px-4 py-3 backdrop-blur">
+      <footer className="sticky bottom-0 z-30 flex items-center justify-center gap-3 border-t-2 border-border bg-card/85 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur">
         <button
           onClick={() => go(i - 1)}
           disabled={i === 0}
@@ -207,28 +224,52 @@ function CoursePage() {
         >
           <ChevronLeft className="size-5" />
         </button>
-        <div className="flex flex-wrap items-center justify-center gap-1.5">
-          {SLIDES.map((s, k) => (
-            <button
-              key={s.title}
-              onClick={() => go(k)}
-              title={`${k + 1}. ${s.title}`}
-              aria-label={`第 ${k + 1} 页 ${s.title}`}
-              className={`h-3 rounded-full transition-all ${
-                k === i ? "w-8 bg-primary" : "w-3 bg-border hover:bg-primary/50"
-              }`}
-            />
-          ))}
+        <div className="flex max-w-[60vw] flex-wrap items-center justify-center gap-1.5">
+          {SLIDES.map((s, k) => {
+            const locked = k > maxSlide;
+            return (
+              <button
+                key={s.title}
+                onClick={() => {
+                  if (locked) {
+                    toast.info("这一页还没解锁：先完成指挥台 → 办事 → 侦探 → 验收", {
+                      description: "老师演示可以打开右上角「教师演示」模式。",
+                    });
+                    return;
+                  }
+                  go(k);
+                }}
+                title={`${k + 1}. ${s.title}${locked ? "（未解锁）" : ""}`}
+                aria-label={`第 ${k + 1} 页 ${s.title}${locked ? "，未解锁" : ""}`}
+                className={`h-3 rounded-full transition-all ${
+                  k === i
+                    ? "w-8 bg-primary"
+                    : locked
+                      ? "w-3 bg-border/40"
+                      : "w-3 bg-border hover:bg-primary/50"
+                }`}
+              />
+            );
+          })}
         </div>
         <button
-          onClick={() => go(i + 1)}
+          onClick={() => {
+            if (i + 1 > maxSlide) {
+              toast.info("先在这一页完成任务，下一页才会解锁 🔒");
+              return;
+            }
+            go(i + 1);
+          }}
           disabled={i === SLIDES.length - 1}
           aria-label="下一页"
-          className="rounded-full bg-primary p-3 text-primary-foreground disabled:opacity-30"
+          className={`rounded-full bg-primary p-3 text-primary-foreground disabled:opacity-30 ${
+            i + 1 > maxSlide ? "opacity-40" : ""
+          }`}
         >
           <ChevronRight className="size-5" />
         </button>
       </footer>
+
 
       <AgentModal
         open={agentOpen}
