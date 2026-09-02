@@ -1155,52 +1155,30 @@ function Recap() {
 function Export({ card, fields, openAgent }: Ctx) {
   return (
     <Big>
-      <SlideTitle kicker="出口任务" title="🎁 把你的智能体带回家" />
-      <div className="grid gap-5 lg:grid-cols-2">
-        <div className="card-pop p-6">
-          <h3 className="text-2xl font-extrabold">📋 今天的作业</h3>
-          <ol className="mt-3 space-y-2 text-lg">
-            <li>1. 复制你的系统提示词，回家贴进任意一个 AI 里试一试。</li>
-            <li>2. 让它帮你完成一件真实的小事（写计划、整理书、办活动）。</li>
-            <li>3. <b>亲自检查</b>它的方案，找出至少 1 个需要修改的地方。</li>
-            <li>4. 明天带着你的「人类签字版」方案来分享。</li>
-          </ol>
-          <div className="mt-5 flex flex-wrap gap-3">
-            <button
-              onClick={() => copy(buildPrompt(card, fields))}
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 font-extrabold text-primary-foreground"
-            >
-              <Copy className="size-5" /> 复制提示词
-            </button>
-            <button
-              onClick={() => download(`${card.name || "agent"}-成果卡.md`, cardToMarkdown(card, fields))}
-              className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-3 font-extrabold"
-            >
-              <Download className="size-5" /> 下载成果卡
-            </button>
-            <button
-              onClick={openAgent}
-              className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 font-extrabold text-accent-foreground"
-            >
-              <Rocket className="size-5" /> 再试一次智能体
-            </button>
-            <a
-              href="/智能体工厂.html"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-2 rounded-full border-2 border-border px-5 py-3 font-extrabold"
-            >
-              <ExternalLink className="size-5" /> 打开智能体工厂
-            </a>
-          </div>
-        </div>
-        <div className="card-soft bg-secondary/50 p-6">
-          <h3 className="flex items-center gap-2 text-2xl font-extrabold">
-            <Brain className="size-7 text-primary" /> 你的成果卡
-          </h3>
-          <pre className="mt-3 max-h-[46vh] overflow-auto whitespace-pre-wrap rounded-2xl bg-card p-4 text-base">
-            {cardToMarkdown(card, fields)}
-          </pre>
+      <SlideTitle kicker="出口任务" title="🎁 今天只有一个作业" />
+      <div className="card-pop mx-auto max-w-2xl p-8 text-center">
+        <p className="text-5xl">📝</p>
+        <p className="mt-4 text-2xl font-extrabold leading-relaxed">
+          回家用你的智能体办成一件真实的小事，
+          <br />
+          并<span className="text-destructive">亲自找出 1 处要改的地方</span>。
+        </p>
+        <p className="mt-3 text-lg text-muted-foreground">
+          明天带着你的「人类签字版」方案来分享。
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <button
+            onClick={() => copy(buildPrompt(card, fields))}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 font-extrabold text-primary-foreground"
+          >
+            <Copy className="size-5" /> 复制提示词
+          </button>
+          <button
+            onClick={openAgent}
+            className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-3 font-extrabold"
+          >
+            <Rocket className="size-5" /> 再试一次智能体
+          </button>
         </div>
       </div>
       <p className="mt-6 flex items-center justify-center gap-2 text-xl font-extrabold">
@@ -1209,6 +1187,7 @@ function Export({ card, fields, openAgent }: Ctx) {
     </Big>
   );
 }
+
 
 export const SLIDES: { title: string; C: (ctx: Ctx) => React.ReactElement }[] = [
   { title: "封面", C: Cover },
