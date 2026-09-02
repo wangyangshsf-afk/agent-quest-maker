@@ -112,10 +112,13 @@ export function AgentFactory({
         n: card.name || T.label,
         g: card.goal || T.defaultGoal,
         a: actionText,
+        s1: card.steps[0] || "",
+        s2: card.steps[1] || "",
+        s3: card.steps[2] || "",
         c: card.check || T.defaultCheck,
         f: fields,
       }),
-    [typeId, theme.id, card.name, card.goal, card.check, actionText, fields, T],
+    [typeId, theme.id, card.name, card.goal, card.check, actionText, card.steps, fields, T],
   );
 
   useEffect(() => {
