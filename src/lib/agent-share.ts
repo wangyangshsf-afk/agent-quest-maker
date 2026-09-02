@@ -5,7 +5,10 @@ export type SharedAgent = {
   th: string; // theme id
   n: string; // name
   g: string; // goal
-  a: string; // action
+  a: string; // action (legacy compat)
+  s1: string; // step 1
+  s2: string; // step 2
+  s3: string; // step 3
   c: string; // check
   f: Fields;
 };
@@ -44,5 +47,10 @@ export function buildShareUrl(data: SharedAgent): string {
 }
 
 export function cardFrom(d: SharedAgent): AgentCard {
-  return { name: d.n, goal: d.g, steps: [d.a, "", ""], check: d.c };
+  return {
+    name: d.n,
+    goal: d.g,
+    steps: [d.s1 || d.a || "", d.s2 || "", d.s3 || ""],
+    check: d.c,
+  };
 }
