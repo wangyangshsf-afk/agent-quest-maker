@@ -33,12 +33,12 @@ import type { AgentCard, Fields, AgentTheme } from "@/lib/agent-themes";
 type Msg = { role: "user" | "assistant"; content: string };
 
 const THEME_TO_TYPE: Record<string, FactoryTypeId> = {
-  spring: "spring",
-  books: "books",
-  science: "science",
-  study: "study",
-  story: "story",
-  charity: "charity",
+  campus: "campus",
+  money: "money",
+  fan: "fan",
+  weekend: "weekend",
+  studyTour: "studyTour",
+  anime: "anime",
   sports: "sports",
   custom: "custom",
 };
