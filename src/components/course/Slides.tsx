@@ -548,7 +548,8 @@ function ConceptQuiz({ go }: Ctx) {
             >
               <p className="text-2xl font-extrabold">🎉 太棒了！你已经准备好了，去指挥台下达任务吧！</p>
               <motion.button
-                onClick={() => go(7)}
+                onClick={() => go(SLIDE.commandCenter)}
+
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-4 text-lg font-extrabold text-primary-foreground shadow"
