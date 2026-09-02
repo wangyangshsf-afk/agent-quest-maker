@@ -51,6 +51,7 @@ export const SLIDE = {
   scenes: 11,
   factory: 12,
   wrap: 13,
+  homework: 14,
 } as const;
 
 export type FlowState = "draft" | "running" | "needs_fix" | "rerunning" | "approved";
@@ -1615,43 +1616,37 @@ function Recap() {
 
 /* ---------- 14. 课程收束 + 出口任务 ---------- */
 
-function Wrap({ card, fields, openAgent }: Ctx) {
+function Homework({ card, fields, openAgent }: Ctx) {
   return (
-    <div className="space-y-6">
-      <Recap />
-      <Big>
-        <div className="card-pop mx-auto max-w-2xl p-8 text-center">
-          <p className="text-sm font-extrabold uppercase tracking-[0.2em] text-primary">
-            出口任务
-          </p>
-          <p className="mt-2 text-3xl font-extrabold">🎁 今天只有一个作业</p>
-          <p className="mt-4 text-xl font-extrabold leading-relaxed">
-            回家用你的智能体办成一件真实的小事，
-            <br />并<span className="text-destructive">亲自找出 1 处要改的地方</span>。
-          </p>
-          <p className="mt-3 text-base text-muted-foreground">
-            明天带着你的「人类签字版」方案来分享。
-          </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <button
-              onClick={() => copy(buildPrompt(card, fields))}
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 font-extrabold text-primary-foreground"
-            >
-              <Copy className="size-5" /> 复制提示词
-            </button>
-            <button
-              onClick={openAgent}
-              className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-3 font-extrabold"
-            >
-              <Rocket className="size-5" /> 再试一次智能体
-            </button>
-          </div>
-        </div>
-        <p className="mt-6 flex items-center justify-center gap-2 text-xl font-extrabold">
-          <MapPin className="size-6 text-berry" /> 下课啦！记得：能干的是 AI，负责的是你。
+    <Big>
+      <SlideTitle kicker="出口任务" title="🎁 今天只有一个作业" />
+      <div className="card-pop mx-auto max-w-2xl p-8 text-center">
+        <p className="text-xl font-extrabold leading-relaxed">
+          回家用你的智能体办成一件真实的小事，
+          <br />并<span className="text-destructive">亲自找出 1 处要改的地方</span>。
         </p>
-      </Big>
-    </div>
+        <p className="mt-3 text-base text-muted-foreground">
+          明天带着你的「人类签字版」方案来分享。
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <button
+            onClick={() => copy(buildPrompt(card, fields))}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 font-extrabold text-primary-foreground"
+          >
+            <Copy className="size-5" /> 复制提示词
+          </button>
+          <button
+            onClick={openAgent}
+            className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-3 font-extrabold"
+          >
+            <Rocket className="size-5" /> 再试一次智能体
+          </button>
+        </div>
+      </div>
+      <p className="mt-6 flex items-center justify-center gap-2 text-xl font-extrabold">
+        <MapPin className="size-6 text-berry" /> 下课啦！记得：能干的是 AI，负责的是你。
+      </p>
+    </Big>
   );
 }
 
@@ -1669,6 +1664,7 @@ export const SLIDES: { title: string; C: (ctx: Ctx) => React.ReactElement }[] = 
   { title: "验收台", C: Review },
   { title: "场景创作", C: Scenes },
   { title: "智能体工厂", C: Factory },
-  { title: "课程收束 + 作业", C: Wrap },
+  { title: "课程收束", C: () => <Recap /> },
+  { title: "出口任务", C: Homework },
 ];
 
