@@ -258,8 +258,15 @@ const ROLES = [
   },
 ];
 
+const VOTE_KEY = "agent-course-vote-reason";
+
 function RoleVote() {
   const [picked, setPicked] = useState<number | null>(null);
+  const [reason, setReason] = useState("");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setReason(window.localStorage.getItem(VOTE_KEY) ?? "");
+  }, []);
   return (
     <Big>
       <SlideTitle kicker="角色投票" title="🗳️ 你想要哪一种帮手？" />
@@ -289,12 +296,24 @@ function RoleVote() {
           </motion.button>
         ))}
       </div>
-      <p className="mt-6 text-center text-lg text-muted-foreground">
-        投票没有对错，先说说你为什么这样选？
-      </p>
+      <div className="card-soft mx-auto mt-6 max-w-2xl p-5">
+        <p className="text-base font-extrabold">✍️ 一句话说说：你为什么这样选？</p>
+        <input
+          value={reason}
+          onChange={(e) => {
+            setReason(e.target.value);
+            if (typeof window !== "undefined")
+              window.localStorage.setItem(VOTE_KEY, e.target.value);
+          }}
+          placeholder="例如：我想要一个会自己检查的帮手"
+          className="mt-3 w-full rounded-2xl border-2 border-border bg-card px-4 py-3 text-base outline-none focus:border-primary"
+        />
+        <p className="mt-2 text-xs text-muted-foreground">只保存在你自己的浏览器里。</p>
+      </div>
     </Big>
   );
 }
+
 
 /* ---------- 5. Chat vs Agent ---------- */
 
