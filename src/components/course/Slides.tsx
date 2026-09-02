@@ -201,16 +201,17 @@ function Situation({ go }: Ctx) {
           </p>
           <ul className="mt-4 space-y-2 text-lg">
             {[
-              "去哪儿？怎么去？几点集合？",
-              "50 个人怎么分组，谁带队？",
-              "60 元要包含车费、门票还是午饭？",
-              "有同学晕车、有同学过敏，怎么办？",
+              "去科技馆还是公园？地铁几号线？几点在校门口集合？",
+              "要不要提前预约？学生票多少钱？开放时间到几点？",
+              "50 个人怎么分组，谁带队，中午在哪吃？",
+              "下雨怎么办？有同学晕车、过敏、走丢了怎么办？",
             ].map((x) => (
               <li key={x} className="flex gap-2">
                 <AlertTriangle className="mt-1 size-5 shrink-0 text-accent" /> {x}
               </li>
             ))}
           </ul>
+
         </div>
         <div className="card-soft flex flex-col justify-center gap-4 bg-secondary/60 p-6">
           <p className="text-2xl font-extrabold">
