@@ -265,39 +265,91 @@ function Compare() {
     <Big>
       <SlideTitle kicker="角色对比" title="💬 聊天 AI vs 🤖 智能体" />
       <div className="grid gap-5 md:grid-cols-2">
+        {/* 普通聊天 AI：一问一答就结束 */}
         <div className="card-soft border-t-8 border-t-muted-foreground/40 p-6">
           <h3 className="flex items-center gap-2 text-2xl font-extrabold">
             <MessageSquare className="size-7" /> 普通聊天 AI
           </h3>
-          <p className="mt-1 text-sm font-bold text-muted-foreground">被动的答案生成器</p>
-          <ul className="mt-4 space-y-3 text-lg">
-            <li>🗣️ 你问一句，它答一句</li>
-            <li>🤷 你没说的，它就自己猜</li>
-            <li>📄 给你一大段文字，做不做随你</li>
-            <li>🔚 回答完 = 结束</li>
-          </ul>
-          <div className="mt-4 rounded-xl bg-muted p-3 text-base">
-            <b>它说：</b>“春游可以去公园、博物馆、动物园……”（然后没了）
+          <p className="mt-1 text-sm font-bold text-muted-foreground">你问一句，它答一句</p>
+
+          <div className="mt-5 space-y-3">
+            <motion.div
+              initial={{ opacity: 0, x: 16 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+              className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground"
+            >
+              🙋 帮我安排春游
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.6 }}
+              className="w-fit max-w-[90%] rounded-2xl rounded-bl-sm bg-muted px-4 py-2.5 text-sm"
+            >
+              🤖 可以去公园、博物馆、动物园……
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 1 }}
+              className="flex items-center justify-center gap-2 pt-1 text-lg font-extrabold text-muted-foreground"
+            >
+              🔚 然后……就结束了
+            </motion.div>
+          </div>
+
+          <div className="mt-5 flex justify-center gap-3 text-center">
+            <MiniTag emoji="🤷" text="没说的它就猜" />
+            <MiniTag emoji="📄" text="做不做随你" />
           </div>
         </div>
+
+        {/* 智能体：目标→追问→步骤→人类拍板 */}
         <div className="card-pop border-t-8 border-t-primary p-6">
           <h3 className="flex items-center gap-2 text-2xl font-extrabold">
             <Bot className="size-7 text-primary" /> AI 智能体 Agent
           </h3>
-          <p className="mt-1 text-sm font-bold text-primary">主动的任务执行者</p>
-          <ul className="mt-4 space-y-3 text-lg">
-            <li>🎯 先确认目标：你到底要什么结果</li>
-            <li>❓ 主动追问：人数？预算？时间？安全？</li>
-            <li>🪜 拆成步骤，一步步做</li>
-            <li>🛡️ 检查限制条件，发现矛盾会喊停</li>
-            <li>🙋 最后交给<b>人类拍板</b></li>
-          </ul>
-          <div className="mt-4 rounded-xl bg-primary/10 p-3 text-base">
-            <b>它说：</b>“50 人、人均 60 元，我先算车费再选地点。请先告诉我出发时间。”
+          <p className="mt-1 text-sm font-bold text-primary">主动把事办完，最后你拍板</p>
+
+          <div className="mt-5 space-y-2.5">
+            {[
+              { emoji: "🎯", text: "先问清：要什么结果？", c: "bg-sky/15" },
+              { emoji: "❓", text: "主动追问：人数？预算？时间？", c: "bg-sun/25" },
+              { emoji: "🪜", text: "拆步骤，一步步做", c: "bg-grass/15" },
+              { emoji: "🛡️", text: "发现矛盾会喊停", c: "bg-berry/15" },
+            ].map((s, i) => (
+              <motion.div
+                key={s.emoji}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 + i * 0.25 }}
+                className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-extrabold ${s.c}`}
+              >
+                <span className="text-2xl">{s.emoji}</span>
+                {s.text}
+              </motion.div>
+            ))}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 1.3 }}
+              className="flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-base font-extrabold text-primary-foreground"
+            >
+              <Gavel className="size-5" /> 最后交给人类拍板
+            </motion.div>
           </div>
         </div>
       </div>
     </Big>
+  );
+}
+
+function MiniTag({ emoji, text }: { emoji: string; text: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground">
+      <span className="text-base">{emoji}</span> {text}
+    </span>
   );
 }
 
