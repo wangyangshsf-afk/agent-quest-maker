@@ -37,6 +37,8 @@ import {
   type Fields,
 } from "@/lib/agent-themes";
 
+import { AgentFactory } from "@/components/course/AgentFactory";
+
 export type Ctx = {
   fields: Fields;
   setField: (k: keyof Fields, v: string) => void;
@@ -1003,91 +1005,12 @@ function Scenes({ theme, applyTheme, go }: Ctx) {
   );
 }
 
-/* ---------- 11. Workbench ---------- */
+/* ---------- 11. 智能体工厂（实时生成） ---------- */
 
-function Workbench({ card, setCard, fields, theme, openAgent }: Ctx) {
-  const [prompt, setPrompt] = useState("");
-  const set = (k: keyof AgentCard, v: string) => setCard({ ...card, [k]: v } as AgentCard);
-  const setStep = (i: number, v: string) => {
-    const steps = [...card.steps] as AgentCard["steps"];
-    steps[i] = v;
-    setCard({ ...card, steps });
-  };
-
+function Factory({ card, setCard, fields, theme }: Ctx) {
   return (
     <Big>
-      <SlideTitle kicker="成果卡 & 智能体生成" title="🛠️ 智能体工作台" />
-      <div className="grid gap-5 lg:grid-cols-2">
-        <div className="card-pop space-y-4 p-6">
-          <p className="text-sm font-bold text-muted-foreground">
-            当前主题：{theme.emoji} {theme.name}（可随意修改）
-          </p>
-          <Field label="🏷️ 智能体名字" value={card.name} onChange={(v) => set("name", v)} />
-          <Field label="🎯 主要目标" value={card.goal} onChange={(v) => set("goal", v)} area />
-          <div>
-            <p className="mb-2 text-lg font-bold">🪜 三步行动计划</p>
-            <div className="space-y-2">
-              {card.steps.map((s, i) => (
-                <input
-                  key={i}
-                  value={s}
-                  onChange={(e) => setStep(i, e.target.value)}
-                  placeholder={`第 ${i + 1} 步`}
-                  className="w-full rounded-2xl border-2 border-border px-4 py-3 outline-none focus:border-primary"
-                />
-              ))}
-            </div>
-          </div>
-          <Field
-            label="🛡️ 检查机制与护栏"
-            value={card.check}
-            onChange={(v) => set("check", v)}
-            area
-          />
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={() => {
-                setPrompt(buildPrompt(card, fields));
-                toast.success("系统提示词已生成 ✨");
-              }}
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 font-extrabold text-primary-foreground"
-            >
-              <Sparkle className="size-5" /> 生成系统提示词
-            </button>
-            <button
-              onClick={openAgent}
-              className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 font-extrabold text-accent-foreground"
-            >
-              <Rocket className="size-5" /> 启动智能体
-            </button>
-          </div>
-          <div className="card-soft p-4">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="font-extrabold">📜 System Prompt</p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => copy(prompt || buildPrompt(card, fields))}
-                  className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-sm font-bold"
-                >
-                  <Copy className="size-4" /> 复制
-                </button>
-                <button
-                  onClick={() => download(`${card.name || "agent"}.md`, cardToMarkdown(card, fields))}
-                  className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-sm font-bold"
-                >
-                  <Download className="size-4" /> 下载成果卡
-                </button>
-              </div>
-            </div>
-            <pre className="max-h-[46vh] overflow-auto whitespace-pre-wrap rounded-xl bg-muted p-4 text-sm leading-relaxed">
-              {prompt || "点「生成系统提示词」，这里会出现可以直接复制到任何 AI 里的指令。"}
-            </pre>
-          </div>
-        </div>
-      </div>
+      <AgentFactory card={card} setCard={setCard} fields={fields} theme={theme} />
     </Big>
   );
 }
@@ -1246,7 +1169,7 @@ export const SLIDES: { title: string; C: (ctx: Ctx) => React.ReactElement }[] = 
   { title: "办事过程", C: Execution },
   { title: "侦探模式", C: Detective },
   { title: "八大主题", C: Scenes },
-  { title: "智能体工作台", C: Workbench },
+  { title: "智能体工厂", C: Factory },
   { title: "课程收束", C: () => <Recap /> },
   { title: "出口任务", C: Export },
 ];
