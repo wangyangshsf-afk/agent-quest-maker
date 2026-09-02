@@ -1540,7 +1540,7 @@ function Review({ fields, flow, setFlow, go }: Ctx) {
               toast.error("先把 5 项都检查一遍再通过哦");
               return;
             }
-            setFlow({ approved: true, state: "approved" });
+            setFlow({ approved: true, state: "approved", unlocked: SLIDE.homework });
             toast.success("已完成人类验收 🎉");
             go(SLIDE.scenes);
           }}
