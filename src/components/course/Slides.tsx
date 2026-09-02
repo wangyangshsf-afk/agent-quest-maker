@@ -739,7 +739,7 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
 
 function Detective({ fields, theme, setField, go }: Ctx) {
   const sig = `${fields.activity}|${fields.count}|${fields.limits}|${theme.id}`;
-  const cases = useMemo(() => makeCases(fields, theme), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
+  const cases: DCase[] = useMemo(() => makeCases(fields, theme), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
   const [i, setI] = useState(0);
   // progress: 每一步两次点击（0=未开始, 奇数=看到提示, 偶数=看到答案）
   const [p, setP] = useState(0);
