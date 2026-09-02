@@ -881,31 +881,25 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
       steps: [
         {
           hint: aiTreatedPerHeadAsTotal
-            ? `线索藏在单位里。把${q(count)}和${q(`总预算 ${fakeTotal} 元`)}放一起，动手算一算人均是多少。`
-            : `线索藏在数字里。把${q(count)}和${q(`总预算 ${fakeTotal} 元`)}放一起，动手算一算人均是多少。`,
+            ? "线索藏在单位里。把人数和预算放一起，算一算人均多少。"
+            : "线索藏在数字里。把人数和预算放一起，算一算人均多少。",
           answer: aiTreatedPerHeadAsTotal
-            ? `🔍 找出来：${count}有 ${num > 0 ? num : "?"} 人，总预算却只有 ${fakeTotal} 元，人均约 ${num > 0 ? (fakeTotal / num).toFixed(2) : "?"} 元。而你在指挥台写的是${q(limits)}，AI 把「每人预算」当成了「总预算」，两边差了一个数量级。`
-            : `🔍 找出来：${count}只有 ${fakeTotal} 元${
-                num > 0 ? `，人均约 ${(fakeTotal / num).toFixed(2)} 元` : ""
-              }，连一瓶水都买不到，却要覆盖门票 + 午餐 + 交通。${
-                perHead > 0
-                  ? `而你在指挥台写的是${q(limits)}，相当于人均 ${perHead.toFixed(1)} 元，两边对不上。`
-                  : `而且${src}，里面并没有写清预算，AI 就自己编了一个数。`
-              }`,
+            ? `🔍 ${count}有 ${num > 0 ? num : "?"} 人，总预算才 ${fakeTotal} 元，人均约 ${num > 0 ? (fakeTotal / num).toFixed(2) : "?"} 元。📉 AI 把「每人预算」当成了「总预算」。`
+            : `🔍 ${count}只有 ${fakeTotal} 元${num > 0 ? `，人均约 ${(fakeTotal / num).toFixed(2)} 元` : ""}。💸 这点钱连水都买不到。`,
         },
         {
-          hint: "别直接说「你算错了」。想想：怎么问才能让 AI 把账目摊开给你看？",
+          hint: aiTreatedPerHeadAsTotal
+            ? "别直接说「你算错了」。让 AI 自己把账目摊开。"
+            : "让 AI 列出花费清单，比让它道歉有用。",
           answer: aiTreatedPerHeadAsTotal
-            ? `❓ 问一句：「${fakeTotal} 元是每人预算还是全班总预算？请按 ${count} 重新核算：如果是每人 ${perHead.toFixed(0)} 元，总预算应该是多少？并列出人均花费清单。」——让 AI 自己把单位对清楚。`
-            : `❓ 问一句：「${fakeTotal} 元是每人预算还是总预算？请按 ${count} 列一张人均花费清单：门票 / 午餐 / 交通各多少，合计不能超过${
-                perHead > 0 ? `每人 ${perHead.toFixed(0)} 元` : "我给的预算"
-              }。」——让 AI 列清单，比让它道歉有用。`,
+            ? `❓ 问：「这是每人预算还是全班总预算？请按 ${count} 重新核算并列出清单。」`
+            : `❓ 问：「这是每人还是总预算？请列出门票/午餐/交通各多少。」`,
         },
         {
-          hint: "确认真实预算后，回指挥台把这条限制写死，之后每一步 AI 都要守着它。",
+          hint: "把真实预算写回指挥台，AI 才会守着它。",
           answer: aiTreatedPerHeadAsTotal
-            ? `✏️ 改一改：把${q(`每人预算 ${perHead.toFixed(0)} 元，全班总预算约 ${num > 0 ? (perHead * num).toFixed(0) : "?"} 元`)}写进限制条件，并注明单位，这是给 AI 的硬规则。`
-            : `✏️ 改一改：把${q(`每人预算 ${perHead > 0 ? perHead.toFixed(0) : 60} 元`)}写进限制条件，这是给 AI 的硬规则。`,
+            ? `✏️ 写进限制条件：每人 ${perHead.toFixed(0)} 元，全班约 ${num > 0 ? (perHead * num).toFixed(0) : "?"} 元。`
+            : `✏️ 写进限制条件：每人预算 ${perHead > 0 ? perHead.toFixed(0) : 60} 元。`,
         },
       ],
       fixField: "limits",
