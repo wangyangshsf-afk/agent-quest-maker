@@ -122,15 +122,20 @@ export function AgentFactory({
     }
   };
 
+  // 启动：智能体先打招呼，从 0 开始一步一步问
   const boot = () => {
-    const ctx = [
-      fields.activity && `活动：${fields.activity}`,
-      fields.count && `人数：${fields.count}`,
-      fields.limits && `限制条件：${fields.limits}`,
+    const name = card.name || T.label;
+    const known = [
+      fields.activity && `活动是「${fields.activity}」`,
+      fields.count && `人数是「${fields.count}」`,
+      fields.limits && `限制是「${fields.limits}」`,
     ]
       .filter(Boolean)
-      .join("；");
-    void send(ctx ? `${ctx}。请开始帮我办这件事。` : "请开始帮我办这件事，缺什么就问我。");
+      .join("，");
+    const greet = known
+      ? `你好！我是你的「${name}」专属智能体 ${T.emoji}\n\n我已经知道：${known}。\n接下来我会一步一步问你几个小问题，问齐了才给方案。\n准备好了吗？回复我「开始」吧！`
+      : `你好！我是你的「${name}」专属智能体 ${T.emoji}\n\n我们从 0 开始：先告诉我，你想让我帮你办的那件事是什么？`;
+    setMsgs([{ role: "assistant", content: greet }]);
   };
 
   const [stage, setStage] = useState<0 | 1 | 2>(0);
@@ -378,6 +383,7 @@ function GeneratingOverlay({ emoji }: { emoji: string }) {
       exit={{ opacity: 0 }}
       className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-3xl bg-background/85 backdrop-blur-sm"
     >
+      <p className="text-lg font-extrabold text-primary">🥚 你的专属智能体正在孵化中…</p>
       <div className="relative flex size-24 items-center justify-center">
         <motion.span
           animate={{ rotate: 360 }}
