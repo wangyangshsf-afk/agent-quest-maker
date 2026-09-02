@@ -1620,7 +1620,33 @@ function Recap() {
 
 /* ---------- 14. 课程收束 + 出口任务 ---------- */
 
-function Homework({ card, fields, openAgent }: Ctx) {
+function Homework({ card, fields, flow, openAgent }: Ctx) {
+  const sheet = [
+    `# ${card.name || "我的智能体"}｜人类签字版方案`,
+    "",
+    `- 活动：${fields.activity || "（未填写）"}`,
+    `- 人数：${fields.count || "（未填写）"}`,
+    `- 限制条件：${fields.limits || "（未填写）"}`,
+    "",
+    "## 目标",
+    card.goal,
+    "",
+    "## 行动三步",
+    ...card.steps.map((s, i) => `${i + 1}. ${s}`),
+    "",
+    "## 检查与风险",
+    card.check,
+    "",
+    "## 还需要人类确认的事",
+    "- [ ] 时间地点已确认",
+    "- [ ] 预算算得过来",
+    "- [ ] 安全预案已写清",
+    `- [ ] 人类验收：${flow.approved ? "已完成 ✅" : "未完成"}`,
+    "",
+    "学生姓名：____________　日期：____________",
+    "家长 / 老师签字：____________",
+  ].join("\n");
+
   return (
     <Big>
       <SlideTitle kicker="出口任务" title="🎁 今天只有一个作业" />
@@ -1634,10 +1660,16 @@ function Homework({ card, fields, openAgent }: Ctx) {
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <button
-            onClick={() => copy(buildPrompt(card, fields))}
+            onClick={() => copy(buildPrompt(card, fields), "提示词已复制 ✅ 可以粘贴给 AI 用啦")}
             className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 font-extrabold text-primary-foreground"
           >
             <Copy className="size-5" /> 复制提示词
+          </button>
+          <button
+            onClick={() => download(`${card.name || "我的智能体"}-人类签字版.md`, sheet)}
+            className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 font-extrabold text-accent-foreground"
+          >
+            <ClipboardCheck className="size-5" /> 下载 / 打印方案
           </button>
           <button
             onClick={openAgent}
@@ -1646,6 +1678,9 @@ function Homework({ card, fields, openAgent }: Ctx) {
             <Rocket className="size-5" /> 再试一次智能体
           </button>
         </div>
+        <p className="mt-4 text-xs text-muted-foreground">
+          所有内容只保存在你自己的浏览器里，不用注册、不会上传。
+        </p>
       </div>
       <p className="mt-6 flex items-center justify-center gap-2 text-xl font-extrabold">
         <MapPin className="size-6 text-berry" /> 下课啦！记得：能干的是 AI，负责的是你。
@@ -1653,6 +1688,7 @@ function Homework({ card, fields, openAgent }: Ctx) {
     </Big>
   );
 }
+
 
 export const SLIDES: { title: string; C: (ctx: Ctx) => React.ReactElement }[] = [
   { title: "封面", C: Cover },
