@@ -714,7 +714,7 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
   // 1. 缺地点
   pool.push({
     key: "place",
-    score: hasPlace ? 30 : 100,
+    score: hasPlace ? 10 : 100,
     make: () => ({
       title: "案件：消失的地点",
       ai: `${activity}方案：${hasTime ? "按你说的时间" : "早上 8:00"}集合出发，中途休息用餐，结束后原路返回。参加人数 ${count}。`,
