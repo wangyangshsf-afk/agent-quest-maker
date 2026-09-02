@@ -263,7 +263,7 @@ export function AgentFactory({
 
       {stage === 1 && (
         <div className="space-y-4">
-          <div className="card-soft flex h-[52vh] flex-col p-5">
+          <div className="card-soft relative flex h-[52vh] flex-col p-5">
             <div ref={scrollRef} className="flex-1 space-y-3 overflow-auto pr-1">
               {msgs.length === 0 && (
                 <p className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground">
