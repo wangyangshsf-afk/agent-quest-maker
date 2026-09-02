@@ -51,6 +51,7 @@ export const SLIDE = {
   scenes: 11,
   factory: 12,
   wrap: 13,
+  homework: 14,
 } as const;
 
 export type FlowState = "draft" | "running" | "needs_fix" | "rerunning" | "approved";
