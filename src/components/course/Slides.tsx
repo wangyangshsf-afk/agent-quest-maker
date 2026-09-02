@@ -1439,7 +1439,7 @@ function Detective({ fields, theme, setField, go, setFlow }: Ctx) {
             {allDone && (
               <button
                 onClick={() => {
-                  setFlow({ state: "rerunning" });
+                  setFlow({ state: "rerunning", unlocked: SLIDE.review });
                   go(SLIDE.execution);
                 }}
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)]"
