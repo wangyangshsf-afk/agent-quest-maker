@@ -73,10 +73,7 @@ export function AgentFactory({
 
   const T = FACTORY_TYPES[typeId];
 
-  const actionText =
-    action.trim() ||
-    card.steps.filter(Boolean).join("；") ||
-    T.defaultAction;
+  const actionText = action.trim() || card.steps.filter(Boolean).join("；") || T.defaultAction;
 
   const prompt = useMemo(
     () =>
@@ -195,7 +192,8 @@ export function AgentFactory({
               placeholder={T.defaultCheck}
             />
             <p className="text-xs font-bold text-muted-foreground">
-              识别到的类型：{FACTORY_TYPES[detectFactoryType(card.name, card.goal, actionText, card.check)].label}
+              识别到的类型：
+              {FACTORY_TYPES[detectFactoryType(card.name, card.goal, actionText, card.check)].label}
               （已加载这一类的专属领域知识）
             </p>
             <div className="flex flex-wrap gap-2">
@@ -546,16 +544,22 @@ function downloadPng(d: CardPayload, approved: boolean) {
     lines.push({ text, size, ...(bold !== undefined ? { bold } : {}), gap });
 
   push(`${d.mood || "🤖"} ${d.title || "智能体成果卡"}`, 34, true, 14);
-  push(`${d.tagline || ""}　完成度 ${d.progress || 0}%`, 18, false, 22);
+  push(`${d.tagline || ""}  完成度 ${d.progress || 0}%`, 18, false, 22);
   const sec = (t: string, arr: string[]) => {
     if (!arr.length) return;
     push(t, 22, true, 10);
     arr.forEach((x) => push("· " + x, 18, false, 8));
     lines.push({ text: "", size: 6, gap: 6 });
   };
-  sec("已经问到的信息", (d.collected ?? []).map((c) => `${c.key}：${c.value}`));
+  sec(
+    "已经问到的信息",
+    (d.collected ?? []).map((c) => `${c.key}：${c.value}`),
+  );
   sec("还缺什么", d.missing ?? []);
-  sec("行动步骤", (d.plan ?? []).map((s, i) => `${i + 1}. ${s}`));
+  sec(
+    "行动步骤",
+    (d.plan ?? []).map((s, i) => `${i + 1}. ${s}`),
+  );
   sec("检查结论", d.checks ?? []);
   sec("风险与冲突", d.risks ?? []);
   sec("人类最终决定", [

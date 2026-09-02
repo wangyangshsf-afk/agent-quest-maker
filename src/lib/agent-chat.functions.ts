@@ -54,7 +54,13 @@ export const agentChat = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<AgentChatResult> => {
     const apiKey = process.env["LOVABLE_API_KEY"];
     if (!apiKey) {
-      return { ok: false, status: 401, error: "AI 服务未配置（缺少密钥）。", reply: "", card: null };
+      return {
+        ok: false,
+        status: 401,
+        error: "AI 服务未配置（缺少密钥）。",
+        reply: "",
+        card: null,
+      };
     }
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
