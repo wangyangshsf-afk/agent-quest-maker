@@ -144,13 +144,14 @@ function Cover({ go }: Ctx) {
 /* ---------- 2. Journey map ---------- */
 
 const MILESTONES = [
-  { emoji: "🎒", t: "遇到难题", d: "春游要怎么安排？", s: 2 },
-  { emoji: "🆚", t: "分清角色", d: "聊天 AI ≠ 智能体", s: 4 },
-  { emoji: "🔁", t: "工作循环", d: "目标→行动→检查→改进", s: 5 },
-  { emoji: "🎛️", t: "亲手指挥", d: "填写指挥台并纠错", s: 7 },
-  { emoji: "🕵️", t: "侦探挑战", d: "找出 AI 的错误", s: 9 },
-  { emoji: "🚀", t: "造一个它", d: "生成专属智能体", s: 10 },
+  { emoji: "🎒", t: "遇到难题", d: "春游要怎么安排？", s: SLIDE.situation },
+  { emoji: "🆚", t: "分清角色", d: "聊天 AI ≠ 智能体", s: SLIDE.compare },
+  { emoji: "🎛️", t: "亲手指挥", d: "填写指挥台下达任务", s: SLIDE.commandCenter },
+  { emoji: "🕵️", t: "侦探挑战", d: "找出 AI 的错误并修改", s: SLIDE.detective },
+  { emoji: "✅", t: "人类验收", d: "第二版能执行吗？", s: SLIDE.review },
+  { emoji: "🚀", t: "造一个它", d: "生成专属智能体", s: SLIDE.factory },
 ];
+
 
 function Journey({ go }: Ctx) {
   return (
