@@ -511,13 +511,16 @@ function ResultCard({
   approved,
   onApprove,
   onReplay,
+  shareUrl,
 }: {
   data: CardPayload | null;
   typeEmoji: string;
   approved: boolean;
   onApprove: () => void;
   onReplay: () => void;
+  shareUrl: string;
 }) {
+
   if (!data) {
     return (
       <div className="card-pop flex min-h-[50vh] flex-col items-center justify-center gap-3 p-8 text-center">
