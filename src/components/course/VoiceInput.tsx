@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Mic, MicOff } from "lucide-react";
 import { toast } from "sonner";
 
@@ -13,7 +13,15 @@ type Props = {
 
 export function VoiceInput({ label, emoji, placeholder, value, onChange, multiline }: Props) {
   const [listening, setListening] = useState(false);
+  const [supported, setSupported] = useState(true);
   const recRef = useRef<any>(null);
+
+  useEffect(() => {
+    const ok =
+      typeof window !== "undefined" &&
+      !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+    setSupported(ok);
+  }, []);
 
   const start = () => {
     const SR =
@@ -82,14 +90,18 @@ export function VoiceInput({ label, emoji, placeholder, value, onChange, multili
         <button
           type="button"
           onClick={start}
-          aria-label={`语音输入${label}`}
-          className={`flex w-14 shrink-0 items-center justify-center rounded-2xl border-2 transition ${
-            listening
-              ? "animate-pulse border-destructive bg-destructive text-destructive-foreground"
-              : "border-border bg-secondary text-secondary-foreground hover:border-primary hover:bg-primary/10"
+          disabled={!supported}
+          title={supported ? `语音输入${label}` : "当前浏览器不支持语音输入，请用打字"}
+          aria-label={supported ? `语音输入${label}` : "当前浏览器不支持语音输入"}
+          className={`flex w-11 shrink-0 items-center justify-center rounded-2xl border-2 transition ${
+            !supported
+              ? "cursor-not-allowed opacity-30"
+              : listening
+                ? "animate-pulse border-destructive bg-destructive text-destructive-foreground"
+                : "border-border bg-secondary text-secondary-foreground hover:border-primary hover:bg-primary/10"
           }`}
         >
-          {listening ? <MicOff className="size-6" /> : <Mic className="size-6" />}
+          {listening ? <MicOff className="size-5" /> : <Mic className="size-5" />}
         </button>
       </div>
     </div>
