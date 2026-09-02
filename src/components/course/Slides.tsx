@@ -501,41 +501,122 @@ function Execution({ fields }: Ctx) {
 
 /* ---------- 9. Detective ---------- */
 
-const CASES = [
-  {
-    title: "案件一：消失的地点",
-    ai: "春游方案：早上 8:00 集合，坐大巴出发，中午野餐，下午 4:00 返回学校。",
-    bug: "🔍 找出来：全程没有说去哪里！没有地点就算不出车程和门票。",
-    ask: "❓ 问一句：我们到底去哪个地点？有几个备选？",
-    fixField: "limits" as const,
-    fixValue: "地点：城郊森林公园（车程 40 分钟）",
-    fixLabel: "✏️ 补上地点：城郊森林公园",
-  },
-  {
-    title: "案件二：算不过来的钱",
-    ai: "50 位同学春游，总预算 20 元，安排门票 + 午餐 + 大巴往返。",
-    bug: "🔍 找出来：50 人总共 20 元，人均 0.4 元，明显矛盾。",
-    ask: "❓ 问一句：20 元是每人预算还是总预算？能不能提高到人均 60 元？",
-    fixField: "limits" as const,
-    fixValue: "每人预算 60 元（含车费与门票）",
-    fixLabel: "✏️ 改成：每人预算 60 元",
-  },
-];
+type DCase = {
+  title: string;
+  ai: string;
+  steps: [
+    { hint: string; answer: string },
+    { hint: string; answer: string },
+    { hint: string; answer: string },
+  ];
+  fixField: keyof Fields;
+  fixValue: string;
+  fixLabel: string;
+};
 
-function Detective({ setField, go }: Ctx) {
-  const [stage, setStage] = useState<[number, number]>([0, 0]);
-  const [i, step] = stage;
-  const c = CASES[i] ?? CASES[0]!;
-  const acts = [c.bug, c.ask, c.fixLabel];
+function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
+  const activity = fields.activity.trim() || theme.activity;
+  const count = fields.count.trim() || theme.count;
+  const limits = fields.limits.trim() || theme.limits;
+  const hasPlace = /地点|去|公园|馆|校|室|场/.test(limits + activity);
+  const num = Number((count.match(/\d+/) ?? ["0"])[0]);
+  const money = Number((limits.match(/(\d+)\s*元/) ?? [, "0"])[1]);
+  const perHead = money > 0 && num > 0 ? (money / num).toFixed(1) : null;
+
+  return [
+    {
+      title: "案件一：消失的地点",
+      ai: `${activity}方案：早上 8:00 集合出发，中午休息用餐，下午 4:00 结束返回。参加人数 ${count}。`,
+      steps: [
+        {
+          hint: "先别急着说答案。把 AI 的这句话从头读一遍，问自己：时间有了吗？人数有了吗？那「在哪里做」写了吗？",
+          answer: `🔍 找出来：全程只说了时间和人数，一次都没说「${activity}到底在哪里进行」。${
+            hasPlace ? "你在指挥台写过地点，但 AI 的方案里漏掉了它。" : "你在指挥台里也还没写地点，AI 只能靠猜。"
+          }没有地点，就算不出路程、门票和安全预案。`,
+        },
+        {
+          hint: "现在轮到你当提问的人。想一想：要让 AI 补上地点，你的问题要具体到什么程度？只问「去哪」够不够？",
+          answer: `❓ 问一句：「${activity}具体在哪个地点进行？给我 2 个备选，并写清各自的路程时间和是否要门票。」——问题里要带上「几个备选 + 判断依据」，AI 才不会随口给一个。`,
+        },
+        {
+          hint: "最后一步：把你和 AI 谈好的结果写回指挥台，方案才算真的被改过。准备好了就点开。",
+          answer: "✏️ 改一改：把地点连同路程时间一起补进「限制条件」，指挥台的信息就完整了。",
+        },
+      ],
+      fixField: "limits",
+      fixValue: `${limits}${limits ? "；" : ""}地点：城郊森林公园（车程 40 分钟，无门票）`,
+      fixLabel: "补上地点：城郊森林公园",
+    },
+    {
+      title: "案件二：算不过来的钱",
+      ai: `${count}参加${activity}，总预算 20 元，安排门票 + 午餐 + 往返交通，保证人人都有份。`,
+      steps: [
+        {
+          hint: "这次线索藏在数字里。把「人数」和「钱」放在一起，动手算一算人均是多少。",
+          answer: `🔍 找出来：${count} 用总共 20 元${
+            num > 0 ? `，人均只有 ${(20 / num).toFixed(2)} 元` : ""
+          }，连一瓶水都买不到，却要覆盖门票 + 午餐 + 交通。${
+            perHead ? `而你在指挥台写的是「${limits}」，两边对不上。` : "AI 把「每人」和「总共」搞混了。"
+          }`,
+        },
+        {
+          hint: "别直接说「你算错了」。想想：怎么问才能让 AI 自己把账目摊开来给你看？",
+          answer: `❓ 问一句：「20 元是每人预算还是总预算？请按 ${count} 列一张人均花费清单：门票 / 午餐 / 交通各多少，合计不能超过每人 60 元。」——让 AI 列清单，比让它道歉有用。`,
+        },
+        {
+          hint: "确认真实预算之后，回到指挥台把这条限制写死，后面每一步 AI 都要守着它。",
+          answer: "✏️ 改一改：把「每人预算 60 元」写进限制条件，这是给 AI 的一条硬规则。",
+        },
+      ],
+      fixField: "limits",
+      fixValue: `每人预算 60 元（含交通与门票）${limits ? `；${limits}` : ""}`,
+      fixLabel: "改成：每人预算 60 元",
+    },
+    {
+      title: "案件三：没人负责的方案",
+      ai: `${activity}安排已生成，AI 将自动通知所有${count}同学、直接下单物资，并在活动当天自行调整流程，无需再确认。`,
+      steps: [
+        {
+          hint: "这一句读起来很顺，问题不在数字里。数一数：从头到尾，出现过「人」吗？谁在最后拍板？",
+          answer: `🔍 找出来：方案里写着「自动通知、直接下单、自行调整、无需再确认」——整段没有任何一个人类检查点。${activity}一旦出错，没人能提前拦住。`,
+        },
+        {
+          hint: "想一想你学过的口号：AI 很能干，但最终决定权归谁？把这句话变成对 AI 的一个要求。",
+          answer: "❓ 问一句：「哪一步必须由老师签字确认？请把方案拆成『AI 可以做』和『必须人类确认』两栏，下单和通知家长都要等我批准。」",
+        },
+        {
+          hint: "把「人类最终确认」这条规则也写进指挥台，让它跟着每一个方案走。",
+          answer: "✏️ 改一改：加上「所有对外通知与花钱的步骤，必须老师确认后才执行」。",
+        },
+      ],
+      fixField: "limits",
+      fixValue: `${limits}${limits ? "；" : ""}所有通知与花钱的步骤必须由老师确认后才执行`,
+      fixLabel: "补上：人类最终确认规则",
+    },
+  ];
+}
+
+function Detective({ fields, theme, setField, go }: Ctx) {
+  const cases = makeCases(fields, theme);
+  const [i, setI] = useState(0);
+  // progress: 每一步两次点击（0=未开始, 奇数=看到提示, 偶数=看到答案）
+  const [p, setP] = useState(0);
+  const c = cases[i] ?? cases[0]!;
 
   return (
     <Big>
       <SlideTitle kicker="侦探模式" title="🕵️ 抓出 AI 的毛病" />
-      <div className="mb-4 flex justify-center gap-2">
-        {CASES.map((x, k) => (
+      <p className="mb-4 text-center text-sm font-bold text-muted-foreground">
+        案件内容会跟着你在指挥台写的「{fields.activity.trim() || theme.activity}」实时变化 · 每一步要点两次：先想，再看答案
+      </p>
+      <div className="mb-4 flex flex-wrap justify-center gap-2">
+        {cases.map((x, k) => (
           <button
             key={x.title}
-            onClick={() => setStage([k, 0])}
+            onClick={() => {
+              setI(k);
+              setP(0);
+            }}
             className={`rounded-full px-4 py-2 font-bold ${
               k === i ? "bg-primary text-primary-foreground" : "bg-secondary"
             }`}
@@ -552,47 +633,74 @@ function Detective({ setField, go }: Ctx) {
           <p className="text-lg">{c.ai}</p>
         </div>
         <div className="mt-4 grid gap-3 md:grid-cols-3">
-          {[Search, MessageSquare, Wand2].map((Icon, k) => (
-            <motion.button
-              key={k}
-              disabled={k > step}
-              onClick={() => {
-                if (k === 2) {
-                  setField(c.fixField, c.fixValue);
-                  toast.success("已自动填回指挥台 ✅");
-                }
-                setStage([i, Math.max(step, k + 1)]);
-              }}
-              whileHover={{ y: k <= step ? -4 : 0 }}
-              className={`rounded-2xl border-2 p-4 text-left transition ${
-                k < step
-                  ? "border-grass bg-grass/15"
-                  : k === step
-                    ? "border-primary bg-primary/10"
-                    : "border-border opacity-40"
-              }`}
-            >
-              <Icon className="mb-2 size-6" />
-              <p className="font-extrabold">
-                {["第 1 步 找出来 🔍", "第 2 步 问一问 ❓", "第 3 步 改一改 ✏️"][k]}
-              </p>
-              {k <= step && <p className="mt-1 text-sm">{acts[k]}</p>}
-            </motion.button>
-          ))}
+          {[Search, MessageSquare, Wand2].map((Icon, k) => {
+            const seenHint = p >= k * 2 + 1;
+            const seenAnswer = p >= k * 2 + 2;
+            const active = p === k * 2 || p === k * 2 + 1;
+            return (
+              <motion.button
+                key={k}
+                disabled={!active}
+                onClick={() => {
+                  const next = p + 1;
+                  if (next === k * 2 + 2 && k === 2) {
+                    setField(c.fixField, c.fixValue);
+                    toast.success("已自动填回指挥台 ✅");
+                  }
+                  setP(next);
+                }}
+                whileHover={{ y: active ? -4 : 0 }}
+                className={`rounded-2xl border-2 p-4 text-left transition ${
+                  seenAnswer
+                    ? "border-grass bg-grass/15"
+                    : active
+                      ? "border-primary bg-primary/10"
+                      : "border-border opacity-40"
+                }`}
+              >
+                <Icon className="mb-2 size-6" />
+                <p className="font-extrabold">
+                  {["第 1 步 找出来 🔍", "第 2 步 问一问 ❓", "第 3 步 改一改 ✏️"][k]}
+                </p>
+                {seenHint && <p className="mt-2 rounded-xl bg-card/70 p-2 text-sm">💭 {c.steps[k]!.hint}</p>}
+                {seenAnswer ? (
+                  <p className="mt-2 text-sm font-bold">{c.steps[k]!.answer}</p>
+                ) : (
+                  active && (
+                    <p className="mt-2 text-xs font-extrabold text-primary">
+                      {seenHint ? "👉 再点一次，看看答案" : "👉 点一下，先看思考提示"}
+                    </p>
+                  )
+                )}
+              </motion.button>
+            );
+          })}
         </div>
-        {step >= 3 && (
+        {p >= 6 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl bg-grass/15 p-4">
             <ClipboardCheck className="size-6 text-grass" />
-            <p className="font-bold">修正内容已经写回指挥台，你就是那个「负责检查的人类」！</p>
+            <p className="font-bold">「{c.fixLabel}」已经写回指挥台，你就是那个「负责检查的人类」！</p>
             <button onClick={() => go(6)} className="rounded-full bg-primary px-4 py-2 font-bold text-primary-foreground">
               回指挥台看看
             </button>
+            {i < cases.length - 1 && (
+              <button
+                onClick={() => {
+                  setI(i + 1);
+                  setP(0);
+                }}
+                className="rounded-full bg-secondary px-4 py-2 font-bold"
+              >
+                下一个案件 →
+              </button>
+            )}
           </motion.div>
         )}
       </div>
     </Big>
   );
 }
+
 
 /* ---------- 10. Scene creator ---------- */
 
