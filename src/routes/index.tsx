@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Home } from "lucide-react";
+import { ChevronLeft, ChevronRight, Home, RotateCcw } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 import { SLIDES, type Ctx } from "@/components/course/Slides";
 import { AgentModal } from "@/components/course/AgentModal";
@@ -28,12 +28,66 @@ export const Route = createFileRoute("/")({
   component: CoursePage,
 });
 
+const STORAGE_KEY = "agent-course-progress-v1";
+
+type SavedProgress = {
+  fields: Fields;
+  card: AgentCard;
+  themeId: string;
+};
+
+function loadProgress(): Partial<SavedProgress> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as Partial<SavedProgress>;
+  } catch {
+    return null;
+  }
+}
+
+function findTheme(id?: string) {
+  return THEMES.find((t) => t.id === id) ?? THEMES[0]!;
+}
+
 function CoursePage() {
+  const saved = loadProgress();
+  const initialTheme = findTheme(saved?.themeId);
+
   const [i, setI] = useState(0);
-  const [fields, setFields] = useState<Fields>({ activity: "", count: "", limits: "" });
-  const [card, setCard] = useState<AgentCard>(EMPTY_CARD);
-  const [theme, setTheme] = useState<AgentTheme>(THEMES[0]!);
+  const [fields, setFields] = useState<Fields>({
+    activity: saved?.fields?.activity ?? initialTheme.activity,
+    count: saved?.fields?.count ?? initialTheme.count,
+    limits: saved?.fields?.limits ?? initialTheme.limits,
+  });
+  const [card, setCard] = useState<AgentCard>({
+    name: saved?.card?.name ?? initialTheme.card.name,
+    goal: saved?.card?.goal ?? initialTheme.card.goal,
+    steps: [
+      saved?.card?.steps?.[0] ?? initialTheme.card.steps[0],
+      saved?.card?.steps?.[1] ?? initialTheme.card.steps[1],
+      saved?.card?.steps?.[2] ?? initialTheme.card.steps[2],
+    ],
+    check: saved?.card?.check ?? initialTheme.card.check,
+  });
+  const [theme, setTheme] = useState<AgentTheme>(initialTheme);
   const [agentOpen, setAgentOpen] = useState(false);
+
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      const payload: SavedProgress = { fields, card, themeId: theme.id };
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    }, 300);
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
+  }, [fields, card, theme.id]);
+
 
   const go = useCallback((n: number) => {
     setI(Math.max(0, Math.min(SLIDES.length - 1, n)));
@@ -102,7 +156,23 @@ function CoursePage() {
         <span className="rounded-full bg-card px-4 py-2 text-sm font-bold shadow">
           {i + 1} / {SLIDES.length} · {slide.title}
         </span>
+        <button
+          onClick={() => {
+            if (!confirm("确定要清空所有内容重新开始吗？")) return;
+            window.localStorage.removeItem(STORAGE_KEY);
+            const t = THEMES[0]!;
+            setFields({ activity: t.activity, count: t.count, limits: t.limits });
+            setCard(t.card);
+            setTheme(t);
+            setI(0);
+          }}
+          className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-2 text-xs font-bold text-muted-foreground shadow hover:text-foreground"
+          title="清空所有内容重新开始"
+        >
+          <RotateCcw className="size-3.5" /> 重新开始
+        </button>
       </header>
+
 
       <section className="flex flex-1 items-center justify-center px-4 py-6">
         <AnimatePresence mode="wait">
