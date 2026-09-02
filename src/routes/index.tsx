@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Home, RotateCcw } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
-import { SLIDES, type Ctx } from "@/components/course/Slides";
+import { EMPTY_FLOW, SLIDES, type Ctx, type Flow } from "@/components/course/Slides";
 import { AgentModal } from "@/components/course/AgentModal";
 import { EMPTY_CARD, THEMES, type AgentCard, type AgentTheme, type Fields } from "@/lib/agent-themes";
 
@@ -34,6 +34,7 @@ type SavedProgress = {
   fields: Fields;
   card: AgentCard;
   themeId: string;
+  flow: Flow;
 };
 
 function loadProgress(): Partial<SavedProgress> | null {
@@ -72,6 +73,11 @@ function CoursePage() {
     check: saved?.card?.check ?? initialTheme.card.check,
   });
   const [theme, setTheme] = useState<AgentTheme>(initialTheme);
+  const [flow, setFlowState] = useState<Flow>({ ...EMPTY_FLOW, ...(saved?.flow ?? {}) });
+  const setFlow = useCallback(
+    (patch: Partial<Flow>) => setFlowState((f) => ({ ...f, ...patch })),
+    [],
+  );
   const [agentOpen, setAgentOpen] = useState(false);
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,13 +86,13 @@ function CoursePage() {
     if (typeof window === "undefined") return;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      const payload: SavedProgress = { fields, card, themeId: theme.id };
+      const payload: SavedProgress = { fields, card, themeId: theme.id, flow };
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     }, 300);
     return () => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
-  }, [fields, card, theme.id]);
+  }, [fields, card, theme.id, flow]);
 
 
   const go = useCallback((n: number) => {
@@ -140,6 +146,8 @@ function CoursePage() {
     applyTheme,
     go,
     openAgent: () => setAgentOpen(true),
+    flow,
+    setFlow,
   };
 
   const slide = SLIDES[i]!;
@@ -164,6 +172,7 @@ function CoursePage() {
             setFields({ activity: t.activity, count: t.count, limits: t.limits });
             setCard(t.card);
             setTheme(t);
+            setFlowState(EMPTY_FLOW);
             setI(0);
           }}
           className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-2 text-xs font-bold text-muted-foreground shadow hover:text-foreground"

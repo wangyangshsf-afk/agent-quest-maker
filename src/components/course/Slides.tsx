@@ -35,6 +35,40 @@ import {
 
 import { AgentFactory } from "@/components/course/AgentFactory";
 
+/** 集中管理的页面索引，避免魔法数字 */
+export const SLIDE = {
+  cover: 0,
+  journey: 1,
+  situation: 2,
+  roleVote: 3,
+  compare: 4,
+  loop: 5,
+  quiz: 6,
+  commandCenter: 7,
+  execution: 8,
+  detective: 9,
+  review: 10,
+  scenes: 11,
+  factory: 12,
+  wrap: 13,
+} as const;
+
+export type FlowState = "draft" | "running" | "needs_fix" | "rerunning" | "approved";
+
+export type Flow = {
+  state: FlowState;
+  baseline: Fields | null;
+  approved: boolean;
+  checks: string[];
+};
+
+export const EMPTY_FLOW: Flow = {
+  state: "draft",
+  baseline: null,
+  approved: false,
+  checks: [],
+};
+
 export type Ctx = {
   fields: Fields;
   setField: (k: keyof Fields, v: string) => void;
@@ -44,7 +78,10 @@ export type Ctx = {
   applyTheme: (t: AgentTheme) => void;
   go: (i: number) => void;
   openAgent: () => void;
+  flow: Flow;
+  setFlow: (patch: Partial<Flow>) => void;
 };
+
 
 /* ---------- shared bits ---------- */
 
@@ -107,13 +144,14 @@ function Cover({ go }: Ctx) {
 /* ---------- 2. Journey map ---------- */
 
 const MILESTONES = [
-  { emoji: "🎒", t: "遇到难题", d: "春游要怎么安排？", s: 2 },
-  { emoji: "🆚", t: "分清角色", d: "聊天 AI ≠ 智能体", s: 4 },
-  { emoji: "🔁", t: "工作循环", d: "目标→行动→检查→改进", s: 5 },
-  { emoji: "🎛️", t: "亲手指挥", d: "填写指挥台并纠错", s: 7 },
-  { emoji: "🕵️", t: "侦探挑战", d: "找出 AI 的错误", s: 9 },
-  { emoji: "🚀", t: "造一个它", d: "生成专属智能体", s: 10 },
+  { emoji: "🎒", t: "遇到难题", d: "春游要怎么安排？", s: SLIDE.situation },
+  { emoji: "🆚", t: "分清角色", d: "聊天 AI ≠ 智能体", s: SLIDE.compare },
+  { emoji: "🎛️", t: "亲手指挥", d: "填写指挥台下达任务", s: SLIDE.commandCenter },
+  { emoji: "🕵️", t: "侦探挑战", d: "找出 AI 的错误并修改", s: SLIDE.detective },
+  { emoji: "✅", t: "人类验收", d: "第二版能执行吗？", s: SLIDE.review },
+  { emoji: "🚀", t: "造一个它", d: "生成专属智能体", s: SLIDE.factory },
 ];
+
 
 function Journey({ go }: Ctx) {
   return (
@@ -510,7 +548,8 @@ function ConceptQuiz({ go }: Ctx) {
             >
               <p className="text-2xl font-extrabold">🎉 太棒了！你已经准备好了，去指挥台下达任务吧！</p>
               <motion.button
-                onClick={() => go(7)}
+                onClick={() => go(SLIDE.commandCenter)}
+
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-4 text-lg font-extrabold text-primary-foreground shadow"
@@ -528,7 +567,7 @@ function ConceptQuiz({ go }: Ctx) {
 /* ---------- 7. Command center ---------- */
 
 
-export function CommandCenter({ fields, setField, go }: Ctx) {
+export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
   const warnings = detectConflicts(fields);
   const filled = Object.values(fields).some((v) => v.trim());
   return (
@@ -596,11 +635,24 @@ export function CommandCenter({ fields, setField, go }: Ctx) {
           </div>
           <button
             disabled={!filled}
-            onClick={() => (filled ? go(7) : toast.error("至少填写一项再出发哦"))}
+            onClick={() => {
+              if (!filled) {
+                toast.error("至少填写一项再出发哦");
+                return;
+              }
+              setFlow(
+
+                flow.baseline
+                  ? { state: flow.approved ? "approved" : "rerunning" }
+                  : { baseline: { ...fields }, state: "running" },
+              );
+              go(SLIDE.execution);
+            }}
             className="w-full rounded-3xl bg-primary px-6 py-5 text-2xl font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)] transition enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
           >
             🚀 交给智能体办事
           </button>
+
           {!filled && (
             <p className="text-center text-sm text-muted-foreground">至少填写 1 项才能继续</p>
           )}
@@ -722,7 +774,7 @@ function makeRun(fields: Fields, theme: AgentTheme): RunStep[] {
   ];
 }
 
-function Execution({ fields, theme }: Ctx) {
+function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
   const sig = `${fields.activity}|${fields.count}|${fields.limits}|${theme.id}`;
   const steps = useMemo(() => makeRun(fields, theme), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
   const [n, setN] = useState(0);
@@ -733,9 +785,24 @@ function Execution({ fields, theme }: Ctx) {
     return () => window.clearTimeout(id);
   }, [n, steps.length]);
 
+  const holes = steps[1]!.lines.filter((l) => !l.includes("✅"));
+  const badChecks = steps[3]!.lines.filter((l) => l.startsWith("❌") || l.startsWith("⚠️"));
+  const isRerun = flow.state === "rerunning" || flow.approved;
+  const done = n >= steps.length;
+
+  useEffect(() => {
+    if (!done) return;
+    if (flow.approved) return;
+    setFlow({ state: holes.length + badChecks.length > 0 ? "needs_fix" : "rerunning" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [done, sig]);
+
   return (
     <Big>
-      <SlideTitle kicker="办事过程" title="⚙️ 智能体正在办事…" />
+      <SlideTitle
+        kicker="办事过程"
+        title={isRerun ? "⚙️ 智能体正在跑第二版…" : "⚙️ 智能体正在办事…"}
+      />
       <div className="card-pop p-6">
         <p className="mb-4 rounded-xl bg-secondary p-3 text-base">
           任务：<b>{fields.activity || theme.activity || "（未填写活动）"}</b>｜人数：
@@ -777,27 +844,69 @@ function Execution({ fields, theme }: Ctx) {
             </motion.li>
           ))}
         </ol>
-        <div className="mt-5 flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => setN(0)}
-            className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 font-extrabold text-accent-foreground"
+
+        {done && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="card-soft mt-5 space-y-4 p-5"
           >
-            <RefreshCw className="size-5" /> 重播动画
-          </button>
-          {n >= steps.length && (
-            <motion.span
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="rounded-full bg-destructive px-4 py-2 text-sm font-extrabold text-destructive-foreground"
-            >
-              ⚖️ 方案已生成，等待人类检查
-            </motion.span>
-          )}
-        </div>
+            <p className="text-2xl font-extrabold">
+              {isRerun ? "🔁 第二版方案已生成" : "📄 第一版方案已生成，等待人类检查"}
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="rounded-2xl bg-destructive/10 p-3">
+                <p className="text-sm font-extrabold text-destructive">
+                  缺少的信息 {holes.length} 处
+                </p>
+                <ul className="mt-1 space-y-1 text-sm font-medium">
+                  {holes.length ? (
+                    holes.map((h) => <li key={h}>· {h}</li>)
+                  ) : (
+                    <li>· 关键信息都齐了 ✅</li>
+                  )}
+                </ul>
+              </div>
+              <div className="rounded-2xl bg-sun/25 p-3">
+                <p className="text-sm font-extrabold">检查没过的地方 {badChecks.length} 处</p>
+                <ul className="mt-1 space-y-1 text-sm font-medium">
+                  {badChecks.length ? (
+                    badChecks.map((h) => <li key={h}>· {h}</li>)
+                  ) : (
+                    <li>· 预算、人数、安全都算得过来 ✅</li>
+                  )}
+                </ul>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => go(SLIDE.detective)}
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)]"
+              >
+                <Search className="size-5" /> 去侦探模式找漏洞
+              </button>
+              {isRerun && (
+                <button
+                  onClick={() => go(SLIDE.review)}
+                  className="inline-flex items-center gap-2 rounded-full bg-grass px-6 py-3 text-lg font-extrabold text-ink"
+                >
+                  <ClipboardCheck className="size-5" /> 去验收台
+                </button>
+              )}
+              <button
+                onClick={() => setN(0)}
+                className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-3 font-extrabold"
+              >
+                <RefreshCw className="size-5" /> 重新播放
+              </button>
+            </div>
+          </motion.div>
+        )}
       </div>
     </Big>
   );
 }
+
 
 /* ---------- 9. Detective ---------- */
 
@@ -1032,23 +1141,36 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
     });
 }
 
-function Detective({ fields, theme, setField, go }: Ctx) {
+function Detective({ fields, theme, setField, go, setFlow }: Ctx) {
   const sig = `${fields.activity}|${fields.count}|${fields.limits}|${theme.id}`;
   const cases: DCase[] = useMemo(() => makeCases(fields, theme), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
   const [i, setI] = useState(0);
   // progress: 每一步两次点击（0=未开始, 奇数=看到提示, 偶数=看到答案）
   const [p, setP] = useState(0);
+  const [done, setDone] = useState<Record<number, string>>({});
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
   useEffect(() => {
     setI(0);
     setP(0);
-  }, [sig]);
+    setDone({});
+    setEditing(false);
+  }, [cases]);
   const c = cases[i] ?? cases[0]!;
+  const allDone = cases.every((_, k) => done[k]);
+
+  const apply = (value: string, label: string) => {
+    setField(c.fixField, value);
+    setDone((d) => ({ ...d, [i]: label }));
+    setEditing(false);
+    toast.success("已写回指挥台 ✅");
+  };
 
   return (
     <Big>
       <SlideTitle kicker="侦探模式" title="🕵️ 抓出 AI 的毛病" />
       <p className="mb-4 text-center text-sm font-bold text-muted-foreground">
-        今天我们抓 2 个案件。每一步点两次：先想，再看答案。课后可以自己挑战更多案件。
+        今天我们抓 2 个案件。每一步点两次：先想，再看答案。修改由你来决定要不要采纳。
       </p>
 
       <div className="mb-4 flex flex-wrap justify-center gap-2">
@@ -1058,11 +1180,13 @@ function Detective({ fields, theme, setField, go }: Ctx) {
             onClick={() => {
               setI(k);
               setP(0);
+              setEditing(false);
             }}
             className={`rounded-full px-4 py-2 font-bold ${
               k === i ? "bg-primary text-primary-foreground" : "bg-secondary"
             }`}
           >
+            {done[k] ? "✅ " : ""}
             {x.title}
           </button>
         ))}
@@ -1083,15 +1207,9 @@ function Detective({ fields, theme, setField, go }: Ctx) {
               <motion.button
                 key={k}
                 disabled={!active}
-                onClick={() => {
-                  const next = p + 1;
-                  if (next === k * 2 + 2 && k === 2) {
-                    setField(c.fixField, c.fixValue);
-                    toast.success("已自动填回指挥台 ✅");
-                  }
-                  setP(next);
-                }}
+                onClick={() => setP(p + 1)}
                 whileHover={{ y: active ? -4 : 0 }}
+                whileTap={{ scale: active ? 0.97 : 1 }}
                 className={`rounded-2xl border-2 p-4 text-left transition ${
                   seenAnswer
                     ? "border-grass bg-grass/15"
@@ -1120,7 +1238,63 @@ function Detective({ fields, theme, setField, go }: Ctx) {
             );
           })}
         </div>
-        {p >= 6 && (
+
+        {p >= 6 && !done[i] && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-4 space-y-3 rounded-2xl bg-sun/25 p-4"
+          >
+            <p className="flex items-center gap-2 text-lg font-extrabold">
+              <Lightbulb className="size-5" /> AI 的修改建议（要不要采纳，你说了算）
+            </p>
+            <p className="rounded-xl bg-card p-3 text-base font-medium">{c.fixValue}</p>
+            {editing ? (
+              <div className="space-y-3">
+                <textarea
+                  value={draft}
+                  rows={3}
+                  onChange={(e) => setDraft(e.target.value)}
+                  className="w-full resize-none rounded-2xl border-2 border-border bg-card px-4 py-3 outline-none focus:border-primary"
+                />
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={() => apply(draft, "你自己改的版本")}
+                    className="rounded-full bg-primary px-5 py-2.5 font-extrabold text-primary-foreground"
+                  >
+                    保存我的修改
+                  </button>
+                  <button
+                    onClick={() => setEditing(false)}
+                    className="rounded-full bg-secondary px-5 py-2.5 font-bold"
+                  >
+                    取消
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => apply(c.fixValue, c.fixLabel)}
+                  className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 font-extrabold text-primary-foreground"
+                >
+                  <CheckCircle2 className="size-5" /> 采纳这条修改
+                </button>
+                <button
+                  onClick={() => {
+                    setDraft(c.fixValue);
+                    setEditing(true);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-2.5 font-bold"
+                >
+                  <Wand2 className="size-5" /> 我自己编辑
+                </button>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {done[i] && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -1128,11 +1302,11 @@ function Detective({ fields, theme, setField, go }: Ctx) {
           >
             <ClipboardCheck className="size-6 text-grass" />
             <p className="font-bold">
-              「{c.fixLabel}」已经写回指挥台，你就是那个「负责检查的人类」！
+              变更摘要：{done[i]} —— 已写回指挥台，你就是那个「负责检查的人类」！
             </p>
             <button
-              onClick={() => go(6)}
-              className="rounded-full bg-primary px-4 py-2 font-bold text-primary-foreground"
+              onClick={() => go(SLIDE.commandCenter)}
+              className="rounded-full bg-secondary px-4 py-2 font-bold"
             >
               回指挥台看看
             </button>
@@ -1142,9 +1316,20 @@ function Detective({ fields, theme, setField, go }: Ctx) {
                   setI(i + 1);
                   setP(0);
                 }}
-                className="rounded-full bg-secondary px-4 py-2 font-bold"
+                className="rounded-full bg-primary px-4 py-2 font-bold text-primary-foreground"
               >
                 下一个案件 →
+              </button>
+            )}
+            {allDone && (
+              <button
+                onClick={() => {
+                  setFlow({ state: "rerunning" });
+                  go(SLIDE.execution);
+                }}
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)]"
+              >
+                <RefreshCw className="size-5" /> 带着修改结果去重新运行
               </button>
             )}
           </motion.div>
@@ -1154,12 +1339,135 @@ function Detective({ fields, theme, setField, go }: Ctx) {
   );
 }
 
-/* ---------- 10. Scene creator ---------- */
+/* ---------- 11. 验收台 ---------- */
 
-function Scenes({ theme, applyTheme, go }: Ctx) {
+const CHECKLIST = [
+  { id: "goal", t: "目标和人数是否一致？" },
+  { id: "when", t: "时间和地点是否明确？" },
+  { id: "money", t: "预算是否算得过来？" },
+  { id: "safe", t: "安全风险是否有预案？" },
+  { id: "human", t: "有没有老师 / 家长做最终确认？" },
+];
+
+function Review({ fields, flow, setFlow, go }: Ctx) {
+  const before = flow.baseline ?? { activity: "", count: "", limits: "" };
+  const toggle = (id: string) =>
+    setFlow({
+      checks: flow.checks.includes(id)
+        ? flow.checks.filter((x) => x !== id)
+        : [...flow.checks, id],
+    });
+  const allChecked = CHECKLIST.every((c) => flow.checks.includes(c.id));
+
+  const Row = ({ label, a, b }: { label: string; a: string; b: string }) => (
+    <div className="rounded-2xl border-2 border-border p-3">
+      <p className="text-xs font-extrabold text-muted-foreground">{label}</p>
+      <p className="mt-1 text-sm line-through opacity-60">{a || "（第一版没写）"}</p>
+      <p className="mt-1 text-sm font-bold text-grass">{b || "（还没补上）"}</p>
+    </div>
+  );
+
   return (
     <Big>
-      <SlideTitle kicker="场景创作" title="🎨 挑一个专属智能体主题" />
+      <SlideTitle kicker="验收台" title="✅ 这份方案能执行吗？" />
+      <div className="grid gap-5 lg:grid-cols-2">
+        <div className="card-pop space-y-3 p-6">
+          <p className="text-xl font-extrabold">修改前 → 修改后</p>
+          <Row label="活动" a={before.activity} b={fields.activity} />
+          <Row label="人数" a={before.count} b={fields.count} />
+          <Row label="限制条件" a={before.limits} b={fields.limits} />
+        </div>
+
+        <div className="card-pop space-y-3 p-6">
+          <p className="text-xl font-extrabold">人类检查清单</p>
+          {CHECKLIST.map((c) => {
+            const on = flow.checks.includes(c.id);
+            return (
+              <motion.button
+                key={c.id}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => toggle(c.id)}
+                className={`flex w-full items-center gap-3 rounded-2xl border-2 p-3 text-left font-bold transition ${
+                  on ? "border-grass bg-grass/15" : "border-border"
+                }`}
+              >
+                {on ? (
+                  <CheckCircle2 className="size-6 text-grass" />
+                ) : (
+                  <AlertTriangle className="size-6 text-muted-foreground" />
+                )}
+                {c.t}
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+        <button
+          onClick={() => go(SLIDE.commandCenter)}
+          className="rounded-full bg-secondary px-5 py-3 font-extrabold"
+        >
+          继续修改
+        </button>
+        <button
+          onClick={() => {
+            setFlow({ state: "rerunning" });
+            go(SLIDE.execution);
+          }}
+          className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 font-extrabold text-accent-foreground"
+        >
+          <RefreshCw className="size-5" /> 重新运行
+        </button>
+        <button
+          onClick={() => {
+            if (!allChecked) {
+              toast.error("先把 5 项都检查一遍再通过哦");
+              return;
+            }
+            setFlow({ approved: true, state: "approved" });
+            toast.success("已完成人类验收 🎉");
+            go(SLIDE.scenes);
+          }}
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)] disabled:opacity-50"
+        >
+          <Gavel className="size-5" /> 我检查过了，通过
+        </button>
+      </div>
+      <p className="mt-3 text-center text-sm font-bold text-muted-foreground">
+        {flow.approved ? "🎫 已完成人类验收" : `已检查 ${flow.checks.length} / ${CHECKLIST.length} 项`}
+      </p>
+    </Big>
+  );
+}
+
+
+/* ---------- 12. Scene creator / 方法封装 ---------- */
+
+const RULES = [
+  { k: "目标 Goal", v: "帮我完成一件具体的事。" },
+  { k: "行动 Action", v: "先收集信息，再拆成步骤。" },
+  { k: "检查 Check", v: "检查预算、人数、安全和遗漏。" },
+  { k: "人类决定 Sign-off", v: "花钱、通知、出行，必须老师或家长确认。" },
+];
+
+function Scenes({ theme, applyTheme, go, flow }: Ctx) {
+  return (
+    <Big>
+      <SlideTitle kicker="方法封装" title="🎨 把这套办事方法换到另一个场景" />
+      <div className="card-soft mb-5 p-5">
+        <p className="text-base font-bold">
+          刚才我们不只是完成了一次春游，而是教会了 AI 一套办事方法。现在把这套方法保存下来，以后可以重复使用。
+        </p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {RULES.map((r) => (
+            <div key={r.k} className="rounded-2xl bg-secondary p-3">
+              <p className="text-sm font-extrabold text-primary">{r.k}</p>
+              <p className="text-sm">{r.v}</p>
+            </div>
+          ))}
+        </div>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {THEMES.map((t, i) => (
           <motion.button
@@ -1188,25 +1496,41 @@ function Scenes({ theme, applyTheme, go }: Ctx) {
           当前主题：{theme.emoji} {theme.name}
         </span>
         <button
-          onClick={() => go(10)}
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground"
+          onClick={() => {
+            if (!flow.approved) {
+              toast.error("先去验收台点「我检查过了，通过」");
+              go(SLIDE.review);
+              return;
+            }
+            go(SLIDE.factory);
+          }}
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)]"
         >
-          去做成果卡 <ArrowRight className="size-5" />
+          {flow.approved ? "去创建智能体" : "🔒 先完成人类验收"} <ArrowRight className="size-5" />
         </button>
       </div>
     </Big>
   );
 }
 
-/* ---------- 11. 智能体工厂（实时生成） ---------- */
+/* ---------- 13. 智能体工厂（实时生成） ---------- */
 
-function Factory({ card, setCard, fields, theme }: Ctx) {
+function Factory({ card, setCard, fields, theme, flow }: Ctx) {
   return (
     <Big>
+      <div className="card-soft mb-4 flex flex-wrap items-center gap-3 p-4">
+        <Sparkle className="size-5 text-primary" />
+        <p className="text-sm font-bold">
+          {flow.approved
+            ? "指令卡已继承你刚才验收通过的任务：目标 → 行动 → 检查 → 人类决定。"
+            : "还没完成人类验收，指令卡先用当前指挥台的内容，验收后会更准确。"}
+        </p>
+      </div>
       <AgentFactory card={card} setCard={setCard} fields={fields} theme={theme} />
     </Big>
   );
 }
+
 
 function Field({
   label,
@@ -1289,38 +1613,45 @@ function Recap() {
   );
 }
 
-/* ---------- 13. Export ---------- */
+/* ---------- 14. 课程收束 + 出口任务 ---------- */
 
-function Export({ card, fields, openAgent }: Ctx) {
+function Wrap({ card, fields, openAgent }: Ctx) {
   return (
-    <Big>
-      <SlideTitle kicker="出口任务" title="🎁 今天只有一个作业" />
-      <div className="card-pop mx-auto max-w-2xl p-8 text-center">
-        <p className="text-5xl">📝</p>
-        <p className="mt-4 text-2xl font-extrabold leading-relaxed">
-          回家用你的智能体办成一件真实的小事，
-          <br />并<span className="text-destructive">亲自找出 1 处要改的地方</span>。
-        </p>
-        <p className="mt-3 text-lg text-muted-foreground">明天带着你的「人类签字版」方案来分享。</p>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <button
-            onClick={() => copy(buildPrompt(card, fields))}
-            className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 font-extrabold text-primary-foreground"
-          >
-            <Copy className="size-5" /> 复制提示词
-          </button>
-          <button
-            onClick={openAgent}
-            className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-3 font-extrabold"
-          >
-            <Rocket className="size-5" /> 再试一次智能体
-          </button>
+    <div className="space-y-6">
+      <Recap />
+      <Big>
+        <div className="card-pop mx-auto max-w-2xl p-8 text-center">
+          <p className="text-sm font-extrabold uppercase tracking-[0.2em] text-primary">
+            出口任务
+          </p>
+          <p className="mt-2 text-3xl font-extrabold">🎁 今天只有一个作业</p>
+          <p className="mt-4 text-xl font-extrabold leading-relaxed">
+            回家用你的智能体办成一件真实的小事，
+            <br />并<span className="text-destructive">亲自找出 1 处要改的地方</span>。
+          </p>
+          <p className="mt-3 text-base text-muted-foreground">
+            明天带着你的「人类签字版」方案来分享。
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <button
+              onClick={() => copy(buildPrompt(card, fields))}
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 font-extrabold text-primary-foreground"
+            >
+              <Copy className="size-5" /> 复制提示词
+            </button>
+            <button
+              onClick={openAgent}
+              className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-3 font-extrabold"
+            >
+              <Rocket className="size-5" /> 再试一次智能体
+            </button>
+          </div>
         </div>
-      </div>
-      <p className="mt-6 flex items-center justify-center gap-2 text-xl font-extrabold">
-        <MapPin className="size-6 text-berry" /> 下课啦！记得：能干的是 AI，负责的是你。
-      </p>
-    </Big>
+        <p className="mt-6 flex items-center justify-center gap-2 text-xl font-extrabold">
+          <MapPin className="size-6 text-berry" /> 下课啦！记得：能干的是 AI，负责的是你。
+        </p>
+      </Big>
+    </div>
   );
 }
 
@@ -1335,8 +1666,9 @@ export const SLIDES: { title: string; C: (ctx: Ctx) => React.ReactElement }[] = 
   { title: "指挥台", C: CommandCenter },
   { title: "办事过程", C: Execution },
   { title: "侦探模式", C: Detective },
-  { title: "八大主题", C: Scenes },
+  { title: "验收台", C: Review },
+  { title: "场景创作", C: Scenes },
   { title: "智能体工厂", C: Factory },
-  { title: "课程收束", C: () => <Recap /> },
-  { title: "出口任务", C: Export },
+  { title: "课程收束 + 作业", C: Wrap },
 ];
+
