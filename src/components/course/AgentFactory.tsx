@@ -50,6 +50,7 @@ export function AgentFactory({
   theme,
   initialAction = "",
   initialTypeId,
+  startAtChat = false,
 }: {
   card: AgentCard;
   setCard: (c: AgentCard) => void;
@@ -57,6 +58,8 @@ export function AgentFactory({
   theme: AgentTheme;
   initialAction?: string;
   initialTypeId?: string;
+  /** 分享链接打开时：跳过指令卡，直接孵化并进入对话 */
+  startAtChat?: boolean;
 }) {
   const chat = useServerFn(agentChat);
 
