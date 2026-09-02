@@ -390,7 +390,9 @@ export function AgentFactory({
               toast.success("你已完成人类最终决定 ✅");
             }}
             onReplay={() => setReplay((x) => x + 1)}
+            shareUrl={shareUrl}
           />
+
           <div className="flex justify-center">
             <button
               onClick={() => setStage(1)}
