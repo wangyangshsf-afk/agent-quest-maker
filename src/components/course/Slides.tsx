@@ -738,18 +738,24 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
 
 
 function Detective({ fields, theme, setField, go }: Ctx) {
-  const cases = makeCases(fields, theme);
+  const sig = `${fields.activity}|${fields.count}|${fields.limits}|${theme.id}`;
+  const cases = useMemo(() => makeCases(fields, theme), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
   const [i, setI] = useState(0);
   // progress: 每一步两次点击（0=未开始, 奇数=看到提示, 偶数=看到答案）
   const [p, setP] = useState(0);
+  useEffect(() => {
+    setI(0);
+    setP(0);
+  }, [sig]);
   const c = cases[i] ?? cases[0]!;
 
   return (
     <Big>
       <SlideTitle kicker="侦探模式" title="🕵️ 抓出 AI 的毛病" />
       <p className="mb-4 text-center text-sm font-bold text-muted-foreground">
-        案件内容会跟着你在指挥台写的「{fields.activity.trim() || theme.activity}」实时变化 · 每一步要点两次：先想，再看答案
+        案情、破绽与三步提示都会跟着指挥台的「{fields.activity.trim() || theme.activity}｜{fields.count.trim() || theme.count}｜{fields.limits.trim() || theme.limits}」实时重算 · 每一步点两次：先想，再看答案
       </p>
+
       <div className="mb-4 flex flex-wrap justify-center gap-2">
         {cases.map((x, k) => (
           <button
