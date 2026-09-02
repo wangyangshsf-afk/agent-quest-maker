@@ -541,60 +541,87 @@ function ResultCard({
       </div>
 
       <AnimatePresence>
-        <div className="space-y-3">
-          {data.collected?.length > 0 && (
-            <Block delay={0.05} title="✅ 已经问到的信息">
-              <div className="flex flex-wrap gap-2">
-                {data.collected.map((c, i) => (
-                  <span key={i} className="rounded-full bg-secondary px-3 py-1 text-sm font-bold">
-                    {c.key}：{c.value}
-                  </span>
-                ))}
-              </div>
-            </Block>
-          )}
-          {data.missing?.length > 0 && (
-            <Block delay={0.12} title="❓ 还缺什么">
-              <ul className="list-disc space-y-1 pl-5 text-sm">
-                {data.missing.map((m, i) => (
-                  <li key={i}>{m}</li>
-                ))}
-              </ul>
-            </Block>
-          )}
-          {data.plan?.length > 0 && (
-            <Block delay={0.19} title="🪜 目前定下来的行动">
-              <ol className="list-decimal space-y-1 pl-5 text-sm">
-                {data.plan.map((s, i) => (
-                  <li key={i}>{s}</li>
-                ))}
-              </ol>
-            </Block>
-          )}
-          {data.checks?.length > 0 && (
-            <Block delay={0.26} title="🛡️ 检查结论">
-              <ul className="space-y-1 text-sm">
-                {data.checks.map((c, i) => (
-                  <li key={i} className="flex gap-2">
-                    <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-grass" />
-                    <span>{c}</span>
-                  </li>
-                ))}
-              </ul>
-            </Block>
-          )}
-          {data.risks?.length > 0 && (
-            <Block delay={0.33} title="⚠️ 风险与冲突">
-              <ul className="space-y-1 text-sm">
-                {data.risks.map((c, i) => (
-                  <li key={i} className="flex gap-2">
-                    <AlertTriangle className="mt-0.5 size-4 shrink-0 text-berry" />
-                    <span>{c}</span>
-                  </li>
-                ))}
-              </ul>
-            </Block>
-          )}
+        <div className="space-y-4">
+          {/* 第一大板块：Agent 已完成 */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05, duration: 0.3 }}
+            className="rounded-3xl border-2 border-primary/20 bg-primary/5 p-5"
+          >
+            <p className="mb-3 flex items-center gap-2 text-base font-extrabold text-primary">
+              <Sparkle className="size-5" /> 你让 Agent 完成的
+            </p>
+            <div className="space-y-3">
+              {data.collected?.length > 0 && (
+                <Block delay={0.08} title="✅ 已经问到的信息">
+                  <div className="flex flex-wrap gap-2">
+                    {data.collected.map((c, i) => (
+                      <span key={i} className="rounded-full bg-white px-3 py-1 text-sm font-bold shadow-sm">
+                        {c.key}：{c.value}
+                      </span>
+                    ))}
+                  </div>
+                </Block>
+              )}
+              {data.checks?.length > 0 && (
+                <Block delay={0.14} title="🛡️ 检查结论">
+                  <ul className="space-y-1 text-sm">
+                    {data.checks.map((c, i) => (
+                      <li key={i} className="flex gap-2">
+                        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-grass" />
+                        <span>{c}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Block>
+              )}
+            </div>
+          </motion.div>
+
+          {/* 第二大板块：交给人类 */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.22, duration: 0.3 }}
+            className="rounded-3xl border-2 border-amber-300 bg-sun/20 p-5"
+          >
+            <p className="mb-3 flex items-center gap-2 text-base font-extrabold text-amber-700">
+              <UserCheck className="size-5" /> 剩下的就交给你啦
+            </p>
+            <div className="space-y-3">
+              {data.missing?.length > 0 && (
+                <Block delay={0.26} title="❓ 还缺什么">
+                  <ul className="list-disc space-y-1 pl-5 text-sm">
+                    {data.missing.map((m, i) => (
+                      <li key={i}>{m}</li>
+                    ))}
+                  </ul>
+                </Block>
+              )}
+              {data.plan?.length > 0 && (
+                <Block delay={0.32} title="🪜 目前定下来的行动">
+                  <ol className="list-decimal space-y-1 pl-5 text-sm">
+                    {data.plan.map((s, i) => (
+                      <li key={i}>{s}</li>
+                    ))}
+                  </ol>
+                </Block>
+              )}
+              {data.risks?.length > 0 && (
+                <Block delay={0.38} title="⚠️ 风险与冲突">
+                  <ul className="space-y-1 text-sm">
+                    {data.risks.map((c, i) => (
+                      <li key={i} className="flex gap-2">
+                        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-berry" />
+                        <span>{c}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Block>
+              )}
+            </div>
+          </motion.div>
         </div>
       </AnimatePresence>
 
@@ -616,12 +643,6 @@ function ResultCard({
             className="inline-flex items-center gap-2 rounded-full bg-secondary px-4 py-2 text-sm font-bold"
           >
             <Download className="size-4" /> 导出成果卡图片
-          </button>
-          <button
-            onClick={() => downloadMd(data, approved)}
-            className="inline-flex items-center gap-2 rounded-full bg-secondary px-4 py-2 text-sm font-bold"
-          >
-            <Download className="size-4" /> 导出 Markdown
           </button>
         </div>
       </div>
