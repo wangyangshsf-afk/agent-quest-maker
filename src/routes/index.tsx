@@ -156,7 +156,23 @@ function CoursePage() {
         <span className="rounded-full bg-card px-4 py-2 text-sm font-bold shadow">
           {i + 1} / {SLIDES.length} · {slide.title}
         </span>
+        <button
+          onClick={() => {
+            if (!confirm("确定要清空所有内容重新开始吗？")) return;
+            window.localStorage.removeItem(STORAGE_KEY);
+            const t = THEMES[0]!;
+            setFields({ activity: t.activity, count: t.count, limits: t.limits });
+            setCard(t.card);
+            setTheme(t);
+            setI(0);
+          }}
+          className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-2 text-xs font-bold text-muted-foreground shadow hover:text-foreground"
+          title="清空所有内容重新开始"
+        >
+          <RotateCcw className="size-3.5" /> 重新开始
+        </button>
       </header>
+
 
       <section className="flex flex-1 items-center justify-center px-4 py-6">
         <AnimatePresence mode="wait">
