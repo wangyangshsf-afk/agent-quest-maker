@@ -829,7 +829,7 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
   // 4. 缺安全 / 特殊情况
   pool.push({
     key: "safety",
-    score: hasSafety ? 40 : 88,
+    score: hasSafety ? 10 : 100,
     make: () => ({
       title: "案件：被忽略的安全",
       ai: `${activity}流程：${count}全员一起行动，按顺序完成每个环节，遇到情况现场随机应变即可。`,
