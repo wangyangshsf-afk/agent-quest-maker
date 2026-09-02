@@ -1442,12 +1442,32 @@ function Review({ fields, flow, setFlow, go }: Ctx) {
 }
 
 
-/* ---------- 10. Scene creator ---------- */
+/* ---------- 12. Scene creator / 方法封装 ---------- */
 
-function Scenes({ theme, applyTheme, go }: Ctx) {
+const RULES = [
+  { k: "目标 Goal", v: "帮我完成一件具体的事。" },
+  { k: "行动 Action", v: "先收集信息，再拆成步骤。" },
+  { k: "检查 Check", v: "检查预算、人数、安全和遗漏。" },
+  { k: "人类决定 Sign-off", v: "花钱、通知、出行，必须老师或家长确认。" },
+];
+
+function Scenes({ theme, applyTheme, go, flow }: Ctx) {
   return (
     <Big>
-      <SlideTitle kicker="场景创作" title="🎨 挑一个专属智能体主题" />
+      <SlideTitle kicker="方法封装" title="🎨 把这套办事方法换到另一个场景" />
+      <div className="card-soft mb-5 p-5">
+        <p className="text-base font-bold">
+          刚才我们不只是完成了一次春游，而是教会了 AI 一套办事方法。现在把这套方法保存下来，以后可以重复使用。
+        </p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {RULES.map((r) => (
+            <div key={r.k} className="rounded-2xl bg-secondary p-3">
+              <p className="text-sm font-extrabold text-primary">{r.k}</p>
+              <p className="text-sm">{r.v}</p>
+            </div>
+          ))}
+        </div>
+      </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {THEMES.map((t, i) => (
           <motion.button
@@ -1476,25 +1496,41 @@ function Scenes({ theme, applyTheme, go }: Ctx) {
           当前主题：{theme.emoji} {theme.name}
         </span>
         <button
-          onClick={() => go(10)}
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground"
+          onClick={() => {
+            if (!flow.approved) {
+              toast.error("先去验收台点「我检查过了，通过」");
+              go(SLIDE.review);
+              return;
+            }
+            go(SLIDE.factory);
+          }}
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)]"
         >
-          去做成果卡 <ArrowRight className="size-5" />
+          {flow.approved ? "去创建智能体" : "🔒 先完成人类验收"} <ArrowRight className="size-5" />
         </button>
       </div>
     </Big>
   );
 }
 
-/* ---------- 11. 智能体工厂（实时生成） ---------- */
+/* ---------- 13. 智能体工厂（实时生成） ---------- */
 
-function Factory({ card, setCard, fields, theme }: Ctx) {
+function Factory({ card, setCard, fields, theme, flow }: Ctx) {
   return (
     <Big>
+      <div className="card-soft mb-4 flex flex-wrap items-center gap-3 p-4">
+        <Sparkle className="size-5 text-primary" />
+        <p className="text-sm font-bold">
+          {flow.approved
+            ? "指令卡已继承你刚才验收通过的任务：目标 → 行动 → 检查 → 人类决定。"
+            : "还没完成人类验收，指令卡先用当前指挥台的内容，验收后会更准确。"}
+        </p>
+      </div>
       <AgentFactory card={card} setCard={setCard} fields={fields} theme={theme} />
     </Big>
   );
 }
+
 
 function Field({
   label,
