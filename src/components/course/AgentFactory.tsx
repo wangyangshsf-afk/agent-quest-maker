@@ -403,7 +403,7 @@ function GeneratingOverlay({ emoji }: { emoji: string }) {
             transition={{ duration: 0.25 }}
             className="text-sm font-extrabold"
           >
-            {GEN_STEPS[i].emoji} {GEN_STEPS[i].text}
+            {GEN_STEPS[i]!.emoji} {GEN_STEPS[i]!.text}
           </motion.p>
         </AnimatePresence>
       </div>
