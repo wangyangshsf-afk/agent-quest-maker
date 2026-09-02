@@ -572,38 +572,90 @@ function ConceptQuiz({ go }: Ctx) {
 /* ---------- 7. Command center ---------- */
 
 
+const SAMPLE: Fields = {
+  activity: "五年级春游：去上海科技馆",
+  count: "50 人（2 位老师带队）",
+  limits: "每人 60 元，当天往返，地铁 2 号线，需提前预约学生票，下雨要有备选",
+};
+
 export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
   const warnings = detectConflicts(fields);
   const filled = Object.values(fields).some((v) => v.trim());
+  const complete = fields.activity.trim() && fields.count.trim() && fields.limits.trim();
+
+  const submit = () => {
+    if (!fields.activity.trim()) {
+      toast.error("请先写清楚活动是什么");
+      return;
+    }
+    if (!fields.count.trim()) {
+      toast.error("请写上一共有多少人");
+      return;
+    }
+    if (!fields.limits.trim()) {
+      toast.error("请写一条限制条件，比如预算或时间");
+      return;
+    }
+    setFlow(
+      flow.baseline
+        ? {
+            state: flow.approved ? "approved" : "rerunning",
+            unlocked: Math.max(flow.unlocked, SLIDE.execution),
+          }
+        : {
+            baseline: { ...fields },
+            state: "running",
+            unlocked: Math.max(flow.unlocked, SLIDE.execution),
+          },
+    );
+    go(SLIDE.execution);
+  };
+
   return (
     <Big>
       <SlideTitle kicker="指挥台 Command Center" title="🎛️ 轮到你来下达任务" />
       <div className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
         <div className="card-pop space-y-5 p-6">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-secondary/70 p-3">
+            <p className="text-sm font-bold">
+              灰色的字只是<b>示例</b>，下面三格要写<b>你自己的任务</b>。
+            </p>
+            <button
+              onClick={() => {
+                setField("activity", SAMPLE.activity);
+                setField("count", SAMPLE.count);
+                setField("limits", SAMPLE.limits);
+                toast.success("已载入示例任务，可以随便改成你自己的 ✏️");
+              }}
+              className="rounded-full bg-card px-4 py-2 text-sm font-extrabold shadow"
+            >
+              加载示例任务
+            </button>
+          </div>
           <VoiceInput
             emoji="🎪"
             label="活动是什么"
-            placeholder="例如：五年级春游 / 班级义卖日"
+            placeholder="示例：五年级春游：去上海科技馆"
             value={fields.activity}
             onChange={(v) => setField("activity", v)}
           />
           <VoiceInput
             emoji="👥"
             label="有多少人"
-            placeholder="例如：50 人"
+            placeholder="示例：50 人（2 位老师带队）"
             value={fields.count}
             onChange={(v) => setField("count", v)}
           />
           <VoiceInput
             emoji="🚧"
             label="限制条件 / 预算"
-            placeholder="例如：每人 60 元，当天往返，去森林公园"
+            placeholder="示例：每人 60 元，当天往返，地铁 2 号线，需要预约"
             value={fields.limits}
             onChange={(v) => setField("limits", v)}
             multiline
           />
           <p className="text-sm text-muted-foreground">
-            🎙️ 课堂上建议直接打字。课后在家可以点麦克风用说的。
+            🎙️ 课堂上建议直接打字。课后在家可以点麦克风用说的；没有麦克风或不给权限时，打字一样能完成。
           </p>
         </div>
 
@@ -638,34 +690,37 @@ export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
               )}
             </AnimatePresence>
           </div>
-          <button
-            disabled={!filled}
-            onClick={() => {
-              if (!filled) {
-                toast.error("至少填写一项再出发哦");
-                return;
-              }
-              setFlow(
 
-                flow.baseline
-                  ? { state: flow.approved ? "approved" : "rerunning" }
-                  : { baseline: { ...fields }, state: "running" },
-              );
-              go(SLIDE.execution);
-            }}
-            className="w-full rounded-3xl bg-primary px-6 py-5 text-2xl font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)] transition enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+          {filled && (
+            <div className="card-soft p-5">
+              <p className="text-sm font-extrabold text-primary">我的任务摘要</p>
+              <p className="mt-2 text-sm font-medium">
+                🎪 {fields.activity || "（还没写活动）"}
+                <br />👥 {fields.count || "（还没写人数）"}
+                <br />🚧 {fields.limits || "（还没写限制）"}
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">写错了可以直接在左边改。</p>
+            </div>
+          )}
+
+          <button
+            onClick={submit}
+            className="w-full rounded-3xl bg-primary px-6 py-5 text-2xl font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)] transition hover:brightness-110"
           >
             🚀 交给智能体办事
           </button>
 
-          {!filled && (
-            <p className="text-center text-sm text-muted-foreground">至少填写 1 项才能继续</p>
+          {!complete && (
+            <p className="text-center text-sm text-muted-foreground">
+              三格都写上，智能体才知道要做什么
+            </p>
           )}
         </div>
       </div>
     </Big>
   );
 }
+
 
 /* ---------- 8. Execution animation ---------- */
 
