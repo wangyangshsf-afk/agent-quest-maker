@@ -1258,7 +1258,10 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
 
 function Detective({ fields, theme, setField, go, setFlow }: Ctx) {
   const sig = `${fields.activity}|${fields.count}|${fields.limits}|${theme.id}`;
-  const cases: DCase[] = useMemo(() => makeCases(fields, theme), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
+  const live: DCase[] = useMemo(() => makeCases(fields, theme), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
+  // 一旦开始破案就冻结案件，避免写回指挥台后案件被重算、进度丢失
+  const [frozen, setFrozen] = useState<DCase[] | null>(null);
+  const cases = frozen ?? live;
   const [i, setI] = useState(0);
   // progress: 每一步两次点击（0=未开始, 奇数=看到提示, 偶数=看到答案）
   const [p, setP] = useState(0);
@@ -1266,20 +1269,24 @@ function Detective({ fields, theme, setField, go, setFlow }: Ctx) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   useEffect(() => {
+    if (frozen) return;
     setI(0);
     setP(0);
     setDone({});
     setEditing(false);
-  }, [cases]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live]);
   const c = cases[i] ?? cases[0]!;
   const allDone = cases.every((_, k) => done[k]);
 
   const apply = (value: string, label: string) => {
+    setFrozen(cases);
     setField(c.fixField, value);
     setDone((d) => ({ ...d, [i]: label }));
     setEditing(false);
     toast.success("已写回指挥台 ✅");
   };
+
 
   return (
     <Big>
