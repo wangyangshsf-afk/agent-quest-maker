@@ -672,43 +672,6 @@ function Block({
   );
 }
 
-function cardToMd(d: CardPayload, approved: boolean) {
-  const li = (a?: string[]) => (a?.length ? a.map((x) => `- ${x}`).join("\n") : "- （无）");
-  return `# ${d.title || "智能体成果卡"}
-
-> ${d.tagline || ""}（完成度 ${d.progress || 0}%）
-
-## 已经问到的信息
-${d.collected?.length ? d.collected.map((c) => `- ${c.key}：${c.value}`).join("\n") : "- （无）"}
-
-## 还缺什么
-${li(d.missing)}
-
-## 行动步骤
-${d.plan?.length ? d.plan.map((s, i) => `${i + 1}. ${s}`).join("\n") : "1. （无）"}
-
-## 检查结论
-${li(d.checks)}
-
-## 风险与冲突
-${li(d.risks)}
-
-## 人类最终决定
-${d.humanConfirm || "需要本人或老师确认。"}
-状态：${approved ? "✅ 已由人类确认通过" : "⏳ 等待人类确认"}
-`;
-}
-
-function downloadMd(d: CardPayload, approved: boolean) {
-  const blob = new Blob([cardToMd(d, approved)], { type: "text/markdown;charset=utf-8" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `${d.title || "成果卡"}.md`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-  toast.success("成果卡已下载 📄");
-}
-
 function downloadPng(d: CardPayload, approved: boolean) {
   const W = 900;
   const canvas = document.createElement("canvas");
