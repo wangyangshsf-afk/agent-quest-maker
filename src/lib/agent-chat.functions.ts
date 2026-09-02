@@ -93,7 +93,10 @@ export const agentChat = createServerFn({ method: "POST" })
         model: "google/gemini-3.7-flash",
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: data.systemPrompt + "\n\n" + CARD_INSTRUCTION },
+          {
+            role: "system",
+            content: data.systemPrompt + "\n\n" + STYLE_INSTRUCTION + "\n\n" + CARD_INSTRUCTION,
+          },
           ...data.messages,
         ],
       }),
