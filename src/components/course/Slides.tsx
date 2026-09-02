@@ -518,83 +518,224 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
   const activity = fields.activity.trim() || theme.activity;
   const count = fields.count.trim() || theme.count;
   const limits = fields.limits.trim() || theme.limits;
-  const hasPlace = /地点|去|公园|馆|校|室|场/.test(limits + activity);
-  const num = Number((count.match(/\d+/) ?? ["0"])[0]);
-  const money = Number((limits.match(/(\d+)\s*元/) ?? [, "0"])[1]);
-  const perHead = money > 0 && num > 0 ? (money / num).toFixed(1) : null;
+  const all = `${activity} ${count} ${limits}`;
 
-  return [
-    {
-      title: "案件一：消失的地点",
-      ai: `${activity}方案：早上 8:00 集合出发，中午休息用餐，下午 4:00 结束返回。参加人数 ${count}。`,
+  const num = Number((count.match(/\d+/) ?? ["0"])[0]) || 0;
+  const moneyM = limits.match(/(\d+(?:\.\d+)?)\s*(?:元|块|¥)/);
+  const money = moneyM ? Number(moneyM[1]) : 0;
+  const perHeadDeclared = /每人|人均/.test(limits) && money > 0;
+  const perHead = money > 0 && num > 0 ? (perHeadDeclared ? money : money / num) : 0;
+
+  const hasPlace = /地点|在.{0,6}(公园|馆|校|室|场|山|园|教室|操场)|公园|博物馆|操场|教室|图书|体育馆/.test(all);
+  const hasTime = /\d\s*(点|:|：|小时|分钟|天|周|号|月)|上午|下午|早上|晚上|当天|截止/.test(all);
+  const hasMoney = money > 0 || /预算|费用|元|块|免费|不花钱/.test(limits);
+  const hasHuman = /老师|家长|签字|确认|审核|批准|复核|值日|委员/.test(limits);
+  const hasSafety = /安全|过敏|急救|受伤|晕车|应急|风险|防/.test(all);
+  const hasGroup = /分组|小组|每组|人一组|组长|分工/.test(all);
+
+  const q = (s: string) => `「${s}」`;
+  const src = `你在指挥台写的是${q(`${activity}｜${count}｜${limits}`)}`;
+
+  type Cand = { key: string; score: number; make: () => DCase };
+  const pool: Cand[] = [];
+
+  // 1. 缺地点
+  pool.push({
+    key: "place",
+    score: hasPlace ? 30 : 100,
+    make: () => ({
+      title: "案件：消失的地点",
+      ai: `${activity}方案：${hasTime ? "按你说的时间" : "早上 8:00"}集合出发，中途休息用餐，结束后原路返回。参加人数 ${count}。`,
       steps: [
         {
-          hint: "先别急着说答案。把 AI 的这句话从头读一遍，问自己：时间有了吗？人数有了吗？那「在哪里做」写了吗？",
-          answer: `🔍 找出来：全程只说了时间和人数，一次都没说「${activity}到底在哪里进行」。${
-            hasPlace ? "你在指挥台写过地点，但 AI 的方案里漏掉了它。" : "你在指挥台里也还没写地点，AI 只能靠猜。"
+          hint: `先别急着说答案。把 AI 这句话读一遍，对照你写的${q(limits)}，问自己：时间有了吗？人数有了吗？那「在哪里做」写了吗？`,
+          answer: `🔍 找出来：AI 只讲了时间和人数，一次都没说${q(`${activity}到底在哪里进行`)}。${
+            hasPlace ? `你在指挥台已经写了地点信息，但方案里把它弄丢了。` : `而且${src}，里面也没有地点，AI 只能靠猜。`
           }没有地点，就算不出路程、门票和安全预案。`,
         },
         {
-          hint: "现在轮到你当提问的人。想一想：要让 AI 补上地点，你的问题要具体到什么程度？只问「去哪」够不够？",
-          answer: `❓ 问一句：「${activity}具体在哪个地点进行？给我 2 个备选，并写清各自的路程时间和是否要门票。」——问题里要带上「几个备选 + 判断依据」，AI 才不会随口给一个。`,
+          hint: "轮到你当提问的人。想一想：只问「去哪」够不够？要让 AI 给你可以比较的答案，问题里还要加什么？",
+          answer: `❓ 问一句：「${activity}具体在哪个地点进行？按 ${count} 的规模给我 2 个备选，写清各自路程时间、是否要门票。」——「几个备选 + 判断依据」，AI 才不会随口给一个。`,
         },
         {
-          hint: "最后一步：把你和 AI 谈好的结果写回指挥台，方案才算真的被改过。准备好了就点开。",
-          answer: "✏️ 改一改：把地点连同路程时间一起补进「限制条件」，指挥台的信息就完整了。",
+          hint: "最后一步：把谈好的结果写回指挥台，方案才算真的被改过。",
+          answer: "✏️ 改一改：把地点连同路程时间补进「限制条件」，指挥台信息就完整了。",
         },
       ],
       fixField: "limits",
       fixValue: `${limits}${limits ? "；" : ""}地点：城郊森林公园（车程 40 分钟，无门票）`,
       fixLabel: "补上地点：城郊森林公园",
-    },
-    {
-      title: "案件二：算不过来的钱",
-      ai: `${count}参加${activity}，总预算 20 元，安排门票 + 午餐 + 往返交通，保证人人都有份。`,
+    }),
+  });
+
+  // 2. 钱算不过来
+  const fakeTotal = Math.max(5, Math.round(num > 0 ? num * 0.4 : 20));
+  pool.push({
+    key: "money",
+    score: hasMoney ? 95 : 60,
+    make: () => ({
+      title: "案件：算不过来的钱",
+      ai: `${count}参加${activity}，总预算 ${fakeTotal} 元，安排门票 + 午餐 + 往返交通，保证人人都有份。`,
       steps: [
         {
-          hint: "这次线索藏在数字里。把「人数」和「钱」放在一起，动手算一算人均是多少。",
-          answer: `🔍 找出来：${count} 用总共 20 元${
-            num > 0 ? `，人均只有 ${(20 / num).toFixed(2)} 元` : ""
+          hint: `线索藏在数字里。把${q(count)}和${q(`总预算 ${fakeTotal} 元`)}放一起，动手算一算人均是多少。`,
+          answer: `🔍 找出来：${count}只有 ${fakeTotal} 元${
+            num > 0 ? `，人均约 ${(fakeTotal / num).toFixed(2)} 元` : ""
           }，连一瓶水都买不到，却要覆盖门票 + 午餐 + 交通。${
-            perHead ? `而你在指挥台写的是「${limits}」，两边对不上。` : "AI 把「每人」和「总共」搞混了。"
+            perHead > 0
+              ? `而你在指挥台写的是${q(limits)}，相当于人均 ${perHead.toFixed(1)} 元，两边对不上。`
+              : `而且${src}，里面并没有写清预算，AI 就自己编了一个数。`
           }`,
         },
         {
-          hint: "别直接说「你算错了」。想想：怎么问才能让 AI 自己把账目摊开来给你看？",
-          answer: `❓ 问一句：「20 元是每人预算还是总预算？请按 ${count} 列一张人均花费清单：门票 / 午餐 / 交通各多少，合计不能超过每人 60 元。」——让 AI 列清单，比让它道歉有用。`,
+          hint: "别直接说「你算错了」。想想：怎么问才能让 AI 把账目摊开给你看？",
+          answer: `❓ 问一句：「${fakeTotal} 元是每人预算还是总预算？请按 ${count} 列一张人均花费清单：门票 / 午餐 / 交通各多少，合计不能超过${
+            perHead > 0 ? `每人 ${perHead.toFixed(0)} 元` : "我给的预算"
+          }。」——让 AI 列清单，比让它道歉有用。`,
         },
         {
-          hint: "确认真实预算之后，回到指挥台把这条限制写死，后面每一步 AI 都要守着它。",
-          answer: "✏️ 改一改：把「每人预算 60 元」写进限制条件，这是给 AI 的一条硬规则。",
+          hint: "确认真实预算后，回指挥台把这条限制写死，之后每一步 AI 都要守着它。",
+          answer: `✏️ 改一改：把${q(`每人预算 ${perHead > 0 ? perHead.toFixed(0) : 60} 元`)}写进限制条件，这是给 AI 的硬规则。`,
         },
       ],
       fixField: "limits",
-      fixValue: `每人预算 60 元（含交通与门票）${limits ? `；${limits}` : ""}`,
-      fixLabel: "改成：每人预算 60 元",
-    },
-    {
-      title: "案件三：没人负责的方案",
-      ai: `${activity}安排已生成，AI 将自动通知所有${count}同学、直接下单物资，并在活动当天自行调整流程，无需再确认。`,
+      fixValue: `每人预算 ${perHead > 0 ? perHead.toFixed(0) : 60} 元（含交通与门票）${
+        limits && !perHeadDeclared ? `；${limits}` : ""
+      }`,
+      fixLabel: `改成：每人预算 ${perHead > 0 ? perHead.toFixed(0) : 60} 元`,
+    }),
+  });
+
+  // 3. 没有人类检查点
+  pool.push({
+    key: "human",
+    score: hasHuman ? 70 : 90,
+    make: () => ({
+      title: "案件：没人负责的方案",
+      ai: `${activity}安排已生成，AI 将自动通知全部 ${count}、直接下单物资，并在当天自行调整流程，无需再确认。`,
       steps: [
         {
-          hint: "这一句读起来很顺，问题不在数字里。数一数：从头到尾，出现过「人」吗？谁在最后拍板？",
-          answer: `🔍 找出来：方案里写着「自动通知、直接下单、自行调整、无需再确认」——整段没有任何一个人类检查点。${activity}一旦出错，没人能提前拦住。`,
+          hint: "这句读起来很顺，问题不在数字里。数一数：从头到尾出现过「人」吗？谁最后拍板？",
+          answer: `🔍 找出来：方案写着「自动通知、直接下单、自行调整、无需再确认」——整段没有一个人类检查点。${
+            hasHuman ? `你在限制条件里明明写了${q(limits)}，AI 却直接跳过了。` : `${src}，里面也没规定谁来把关。`
+          }${activity}一旦出错，没人能提前拦住。`,
         },
         {
-          hint: "想一想你学过的口号：AI 很能干，但最终决定权归谁？把这句话变成对 AI 的一个要求。",
-          answer: "❓ 问一句：「哪一步必须由老师签字确认？请把方案拆成『AI 可以做』和『必须人类确认』两栏，下单和通知家长都要等我批准。」",
+          hint: "想想课上的口号：AI 很能干，但最终决定权归谁？把它变成对 AI 的要求。",
+          answer: `❓ 问一句：「${activity}里哪一步必须由老师签字确认？把方案拆成『AI 可以做』和『必须人类确认』两栏，下单和通知家长都要等我批准。」`,
         },
         {
-          hint: "把「人类最终确认」这条规则也写进指挥台，让它跟着每一个方案走。",
+          hint: "把「人类最终确认」这条规则也写进指挥台，让它跟着每个方案走。",
           answer: "✏️ 改一改：加上「所有对外通知与花钱的步骤，必须老师确认后才执行」。",
         },
       ],
       fixField: "limits",
       fixValue: `${limits}${limits ? "；" : ""}所有通知与花钱的步骤必须由老师确认后才执行`,
       fixLabel: "补上：人类最终确认规则",
-    },
-  ];
+    }),
+  });
+
+  // 4. 缺安全 / 特殊情况
+  pool.push({
+    key: "safety",
+    score: hasSafety ? 40 : 88,
+    make: () => ({
+      title: "案件：被忽略的安全",
+      ai: `${activity}流程：${count}全员一起行动，按顺序完成每个环节，遇到情况现场随机应变即可。`,
+      steps: [
+        {
+          hint: `把${q(count)}这么多人放进脑子里想一遍：有人过敏、有人走丢、突然下雨——方案里写了怎么办吗？`,
+          answer: `🔍 找出来：方案只写了「顺利时怎么走」，没写「出事时怎么办」。${
+            hasSafety ? `你在指挥台提过安全相关的要求，AI 却没落实成具体动作。` : `${src}，里面也没有任何安全或特殊情况的说明。`
+          }「现场随机应变」等于没有预案。`,
+        },
+        {
+          hint: "提问要能逼出具体动作。想想：问「安全吗」和问「谁在什么时候做什么」，哪个更有用？",
+          answer: `❓ 问一句：「请为${activity}列出 3 个最可能出问题的场景（走失 / 受伤 / 天气变化），每个写清：谁负责、第一步做什么、联系谁。」`,
+        },
+        {
+          hint: "把安全要求写回指挥台，它才会出现在下一版方案里。",
+          answer: "✏️ 改一改：在限制条件里加上安全与应急要求。",
+        },
+      ],
+      fixField: "limits",
+      fixValue: `${limits}${limits ? "；" : ""}需提前登记过敏与身体情况，并写出走失/受伤/天气三种应急预案`,
+      fixLabel: "补上：安全与应急预案",
+    }),
+  });
+
+  // 5. 人数对不上 / 没分组
+  pool.push({
+    key: "group",
+    score: num > 0 && !hasGroup ? 85 : 45,
+    make: () => ({
+      title: "案件：对不上的人数",
+      ai: `${activity}：把大家分成 4 组，每组 8 人，同时进行不同任务，人人都有事做。`,
+      steps: [
+        {
+          hint: `拿计算器算一下：4 组 × 8 人 = 多少？再看看你写的${q(count)}，对得上吗？`,
+          answer: `🔍 找出来：4 组 × 8 人 = 32 人，${
+            num > 0
+              ? num === 32
+                ? `虽然刚好等于 ${num} 人，但方案没说这 4 组分别做什么、谁当组长。`
+                : `而你写的是${q(count)}，${num > 32 ? `还有 ${num - 32} 人没被安排` : `多算了 ${32 - num} 人`}。`
+              : `而${src}，人数根本没写清，AI 只能瞎凑。`
+          }分组数字错了，物资和分工全都会错。`,
+        },
+        {
+          hint: "怎么问才能让 AI 自己检查算术？提示：让它把过程写出来。",
+          answer: `❓ 问一句：「请按 ${count} 重新分组，写出：组数 × 每组人数 = 总人数的算式，并给每组指定组长和任务。」`,
+        },
+        {
+          hint: "把分组规则写回指挥台，下一版方案就不会再算错。",
+          answer: "✏️ 改一改：把分组与负责人要求补进限制条件。",
+        },
+      ],
+      fixField: "limits",
+      fixValue: `${limits}${limits ? "；" : ""}按 ${count} 分组，每组指定 1 名组长，并写出分组算式`,
+      fixLabel: "补上：分组与组长规则",
+    }),
+  });
+
+  // 6. 缺时间
+  pool.push({
+    key: "time",
+    score: hasTime ? 35 : 92,
+    make: () => ({
+      title: "案件：糊涂的时间表",
+      ai: `${activity}：先做准备工作，然后开始活动，做完就结束，${count}都参加。`,
+      steps: [
+        {
+          hint: `照着这句话，你能知道几点到教室吗？对照你写的${q(limits)}，看看时间信息在哪。`,
+          answer: `🔍 找出来：「先…然后…做完」全是模糊词，没有一个具体时间点。${
+            hasTime ? "你指挥台里其实写了时间，AI 没有把它排进流程。" : `${src}，里面也没写开始与结束时间。`
+          }没有时间表，${count}就会在现场乱成一团。`,
+        },
+        {
+          hint: "让 AI 给时间，要给它格式。想一想：你希望它输出成什么样子？",
+          answer: `❓ 问一句：「请把${activity}做成时间表：每一行写『几点—几点｜做什么｜谁负责』，总时长不能超过我给的限制。」`,
+        },
+        {
+          hint: "把确定下来的时间写回指挥台。",
+          answer: "✏️ 改一改：把开始与结束时间写进限制条件。",
+        },
+      ],
+      fixField: "limits",
+      fixValue: `${limits}${limits ? "；" : ""}时间：09:00 开始，12:00 前结束（含 10 分钟机动）`,
+      fixLabel: "补上：具体起止时间",
+    }),
+  });
+
+  return pool
+    .map((c, idx) => ({ ...c, idx }))
+    .sort((a, b) => b.score - a.score || a.idx - b.idx)
+    .slice(0, 3)
+    .map((c, k) => {
+      const d = c.make();
+      return { ...d, title: `案件${["一", "二", "三"][k]}：${d.title.replace(/^案件[：:]/, "")}` };
+    });
 }
+
 
 function Detective({ fields, theme, setField, go }: Ctx) {
   const cases = makeCases(fields, theme);
