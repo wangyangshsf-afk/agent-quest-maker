@@ -312,7 +312,6 @@ export function AgentFactory({
                   <Loader2 className="size-4 animate-spin" /> 智能体正在思考…
                 </p>
               )}
-              <AnimatePresence>{busy && <GeneratingOverlay emoji={T.emoji} />}</AnimatePresence>
             </div>
             <div className="mt-3">
               <VoiceInput
