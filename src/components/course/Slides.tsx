@@ -905,7 +905,10 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
   useEffect(() => {
     if (!done) return;
     if (flow.approved) return;
-    setFlow({ state: holes.length + badChecks.length > 0 ? "needs_fix" : "rerunning" });
+    setFlow({
+      state: holes.length + badChecks.length > 0 ? "needs_fix" : "rerunning",
+      unlocked: Math.max(flow.unlocked, isRerun ? SLIDE.review : SLIDE.detective),
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [done, sig]);
 
