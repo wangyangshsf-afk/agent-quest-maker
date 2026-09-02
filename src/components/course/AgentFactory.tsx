@@ -681,6 +681,41 @@ function ResultCard({
           </button>
         </div>
       </div>
+
+      <div className="rounded-2xl border-2 border-primary/25 bg-primary/5 p-4">
+        <p className="flex items-center gap-2 font-extrabold text-primary">
+          <LinkIcon className="size-5" /> 我的智能体专属链接
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          保存这条链接，课后再点开就能继续用这个智能体。
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <input
+            readOnly
+            value={shareUrl}
+            onFocus={(e) => e.currentTarget.select()}
+            className="min-w-0 flex-1 rounded-xl border-2 border-border bg-card px-3 py-2 text-xs"
+          />
+          <button
+            onClick={() => {
+              void navigator.clipboard.writeText(shareUrl);
+              toast.success("链接已复制，快粘贴到收藏里 🔗");
+            }}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-extrabold text-primary-foreground"
+          >
+            <Copy className="size-4" /> 复制链接
+          </button>
+          <a
+            href={shareUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-full bg-secondary px-4 py-2 text-sm font-bold"
+          >
+            <ExternalLink className="size-4" /> 打开试试
+          </a>
+        </div>
+      </div>
+
     </motion.div>
   );
 }
