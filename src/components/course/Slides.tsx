@@ -433,46 +433,155 @@ export function CommandCenter({ fields, setField, go }: Ctx) {
 
 /* ---------- 8. Execution animation ---------- */
 
-const STEPS = [
-  { emoji: "🎧", t: "听清任务要求", d: "读取活动、人数、限制条件" },
-  { emoji: "🔍", t: "找出缺少的信息", d: "地点？时间？谁带队？先问清楚" },
-  { emoji: "📝", t: "拆解行动计划", d: "第 1 步 / 第 2 步 / 第 3 步" },
-  { emoji: "🛡️", t: "做安全与常识检查", d: "预算够不够？会不会有危险？" },
-  { emoji: "✨", t: "生成最终执行方案", d: "交给人类检查签字" },
-];
+type RunStep = { emoji: string; t: string; d: string; lines: string[] };
 
-function Execution({ fields }: Ctx) {
+function makeRun(fields: Fields, theme: AgentTheme): RunStep[] {
+  const activity = fields.activity.trim() || theme.activity;
+  const count = fields.count.trim() || theme.count;
+  const limits = fields.limits.trim() || theme.limits;
+  const all = `${activity} ${count} ${limits}`;
+
+  const num = Number((count.match(/\d+/) ?? ["0"])[0]) || 0;
+  const moneyM = limits.match(/(\d+(?:\.\d+)?)\s*(?:元|块|¥)/);
+  const money = moneyM ? Number(moneyM[1]) : 0;
+  const perHeadDeclared = /每人|人均/.test(limits) && money > 0;
+  const perHead = money > 0 && num > 0 ? (perHeadDeclared ? money : money / num) : 0;
+  const total = perHead > 0 && num > 0 ? perHead * num : 0;
+
+  const timeM = limits.match(/(\d+)\s*(小时|分钟|天)/);
+  const clockM = limits.match(/\d{1,2}\s*[:：]\s*\d{2}/g);
+
+  const hasPlace = /地点|公园|博物馆|操场|教室|图书|体育馆|馆|校|山|园/.test(all);
+  const hasTime = /\d\s*(点|[:：]|小时|分钟|天|周|号|月)|上午|下午|早上|晚上|当天/.test(all);
+  const hasHuman = /老师|家长|签字|确认|审核|批准|复核|委员/.test(limits);
+  const hasSafety = /安全|过敏|急救|受伤|晕车|应急|风险|明火|防/.test(all);
+
+  const missing: string[] = [];
+  if (!hasPlace) missing.push("地点：在哪里进行？");
+  if (!hasTime) missing.push("时间：几点开始、几点结束？");
+  if (money === 0 && /预算|费|钱/.test(limits) === false) missing.push("预算：每人可以花多少钱？");
+  if (!hasHuman) missing.push("负责人：谁做最后检查和签字？");
+  if (!hasSafety) missing.push("安全：有没有需要特别注意的情况？");
+  if (num === 0) missing.push("人数：一共多少人？（现在读不出数字）");
+
+  const groups = num > 0 ? Math.max(1, Math.ceil(num / 10)) : 0;
+
+  const checks: string[] = [];
+  if (perHead > 0) {
+    checks.push(
+      perHead < 5
+        ? `❌ 人均 ${perHead.toFixed(1)} 元过低，买不到水和门票，需要提高预算或减少支出项`
+        : `✅ 人均 ${perHead.toFixed(1)} 元${total ? `，${num} 人合计约 ${total.toFixed(0)} 元` : ""}，可覆盖基础开销`,
+    );
+  } else {
+    checks.push("⚠️ 限制条件里读不到金额，无法核算花费");
+  }
+  checks.push(
+    num > 0
+      ? num > 200
+        ? `❌ ${num} 人规模过大，必须分批次并增加带队人手`
+        : `✅ ${num} 人可编 ${groups} 组，每组约 ${Math.ceil(num / groups)} 人`
+      : "⚠️ 没有人数，无法分组与备料",
+  );
+  checks.push(hasSafety ? "✅ 已读到安全相关要求，会写进应急预案" : "❌ 没有安全说明，需补走失/受伤/天气三条预案");
+  checks.push(hasHuman ? "✅ 已识别人类负责人，最终方案会留签字位" : "❌ 没有指定负责人，默认交老师签字");
+
+  return [
+    {
+      emoji: "🎧",
+      t: "听清任务要求",
+      d: "把你在指挥台写的原话逐条读进来",
+      lines: [`活动 = ${activity}`, `人数 = ${count}${num ? `（识别为 ${num} 人）` : "（没读到数字）"}`, `限制 = ${limits}`],
+    },
+    {
+      emoji: "🔍",
+      t: "找出缺少的信息",
+      d: missing.length ? `发现 ${missing.length} 处空白，先问清楚` : "关键信息齐全，无需追问",
+      lines: missing.length ? missing : ["地点、时间、预算、负责人、安全都已给出 ✅"],
+    },
+    {
+      emoji: "📝",
+      t: "拆解行动计划",
+      d: `按 ${activity} 生成三步`,
+      lines: [
+        `第 1 步：确认${hasPlace ? "地点与集合点" : "地点（待你补充）"}，通知${count}并统计特殊情况`,
+        `第 2 步：${num ? `分 ${groups} 组，每组约 ${Math.ceil(num / groups)} 人，` : ""}排出${
+          clockM ? `${clockM[0]} 起的` : timeM ? `${timeM[0]}内的` : ""
+        }时间表与分工`,
+        `第 3 步：${perHead > 0 ? `按人均 ${perHead.toFixed(0)} 元` : "按你确认的预算"}备料结算，并记录实际用时`,
+      ],
+    },
+    {
+      emoji: "🛡️",
+      t: "做安全与常识检查",
+      d: "拿你的数字算一遍，能不能站得住",
+      lines: checks,
+    },
+    {
+      emoji: "✨",
+      t: "生成最终执行方案",
+      d: "交给人类检查签字",
+      lines: [
+        `《${activity}执行方案》｜${count}${num ? `／${groups} 组` : ""}${
+          perHead > 0 ? `｜人均 ${perHead.toFixed(0)} 元` : ""
+        }`,
+        missing.length ? `⚖️ 仍有 ${missing.length} 项待你确认，未确认前不算完成` : "⚖️ 请检查后回复「通过」，我才算完成",
+      ],
+    },
+  ];
+}
+
+function Execution({ fields, theme }: Ctx) {
+  const sig = `${fields.activity}|${fields.count}|${fields.limits}|${theme.id}`;
+  const steps = useMemo(() => makeRun(fields, theme), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
   const [n, setN] = useState(0);
+  useEffect(() => setN(0), [sig]);
   useEffect(() => {
-    if (n >= STEPS.length) return;
+    if (n >= steps.length) return;
     const id = window.setTimeout(() => setN((x) => x + 1), 1100);
     return () => window.clearTimeout(id);
-  }, [n]);
+  }, [n, steps.length]);
 
   return (
     <Big>
       <SlideTitle kicker="办事过程" title="⚙️ 智能体正在办事…" />
       <div className="card-pop p-6">
         <p className="mb-4 rounded-xl bg-secondary p-3 text-base">
-          任务：<b>{fields.activity || "（未填写活动）"}</b>｜人数：
-          <b>{fields.count || "（未填写）"}</b>｜限制：<b>{fields.limits || "（未填写）"}</b>
+          任务：<b>{fields.activity || theme.activity || "（未填写活动）"}</b>｜人数：
+          <b>{fields.count || theme.count || "（未填写）"}</b>｜限制：
+          <b>{fields.limits || theme.limits || "（未填写）"}</b>
         </p>
         <ol className="space-y-3">
-          {STEPS.map((s, i) => (
+          {steps.map((s, i) => (
             <motion.li
               key={s.t}
               animate={{ opacity: i < n ? 1 : 0.25, x: i < n ? 0 : -12 }}
-              className="flex items-center gap-4 rounded-2xl border-2 border-border p-4"
+              className="rounded-2xl border-2 border-border p-4"
             >
-              <span className="text-3xl">{s.emoji}</span>
-              <div className="flex-1">
-                <p className="text-xl font-extrabold">{s.t}</p>
-                <p className="text-sm text-muted-foreground">{s.d}</p>
+              <div className="flex items-center gap-4">
+                <span className="text-3xl">{s.emoji}</span>
+                <div className="flex-1">
+                  <p className="text-xl font-extrabold">{s.t}</p>
+                  <p className="text-sm text-muted-foreground">{s.d}</p>
+                </div>
+                {i < n ? (
+                  <CheckCircle2 className="size-7 text-grass" />
+                ) : (
+                  <span className="text-sm text-muted-foreground">等待中</span>
+                )}
               </div>
-              {i < n ? (
-                <CheckCircle2 className="size-7 text-grass" />
-              ) : (
-                <span className="text-sm text-muted-foreground">等待中</span>
+              {i < n && (
+                <motion.ul
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="mt-3 space-y-1.5 overflow-hidden pl-12"
+                >
+                  {s.lines.map((l) => (
+                    <li key={l} className="rounded-xl bg-muted px-3 py-2 text-sm font-medium">
+                      {l}
+                    </li>
+                  ))}
+                </motion.ul>
               )}
             </motion.li>
           ))}
@@ -484,7 +593,7 @@ function Execution({ fields }: Ctx) {
           >
             <RefreshCw className="size-5" /> 重播动画
           </button>
-          {n >= STEPS.length && (
+          {n >= steps.length && (
             <motion.span
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -498,6 +607,7 @@ function Execution({ fields }: Ctx) {
     </Big>
   );
 }
+
 
 /* ---------- 9. Detective ---------- */
 
