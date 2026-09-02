@@ -25,7 +25,9 @@ import {
   detectFactoryType,
   type FactoryTypeId,
 } from "@/lib/agent-factory";
+import { buildShareUrl } from "@/lib/agent-share";
 import type { AgentCard, Fields, AgentTheme } from "@/lib/agent-themes";
+
 
 type Msg = { role: "user" | "assistant"; content: string };
 
