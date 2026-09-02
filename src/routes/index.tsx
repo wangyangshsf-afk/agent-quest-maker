@@ -158,7 +158,7 @@ function CoursePage() {
 
   return (
     <main className="flex min-h-screen flex-col">
-      <header className="flex items-center justify-between gap-3 px-4 py-3">
+      <header className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
         <button
           onClick={() => go(0)}
           className="inline-flex items-center gap-2 rounded-full bg-card px-4 py-2 text-sm font-extrabold shadow"
@@ -168,23 +168,35 @@ function CoursePage() {
         <span className="rounded-full bg-card px-4 py-2 text-sm font-bold shadow">
           {i + 1} / {SLIDES.length} · {slide.title}
         </span>
-        <button
-          onClick={() => {
-            if (!confirm("确定要清空所有内容重新开始吗？")) return;
-            window.localStorage.removeItem(STORAGE_KEY);
-            const t = THEMES[0]!;
-            setFields({ activity: t.activity, count: t.count, limits: t.limits });
-            setCard(t.card);
-            setTheme(t);
-            setFlowState(EMPTY_FLOW);
-            setI(0);
-          }}
-          className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-2 text-xs font-bold text-muted-foreground shadow hover:text-foreground"
-          title="清空所有内容重新开始"
-        >
-          <RotateCcw className="size-3.5" /> 重新开始
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setTeacherMode((v) => !v)}
+            className={`rounded-full px-3 py-2 text-xs font-extrabold shadow ${
+              teacherMode ? "bg-accent text-accent-foreground" : "bg-card text-muted-foreground"
+            }`}
+            title="教师演示模式：可以自由跳到任意一页"
+          >
+            {teacherMode ? "🎓 教师演示模式（可自由跳页）" : "🎓 教师演示"}
+          </button>
+          <button
+            onClick={() => {
+              if (!confirm("确定要清空所有内容重新开始吗？")) return;
+              window.localStorage.removeItem(STORAGE_KEY);
+              const t = THEMES[0]!;
+              setFields({ activity: "", count: "", limits: "" });
+              setCard(t.card);
+              setTheme(t);
+              setFlowState(EMPTY_FLOW);
+              setI(0);
+            }}
+            className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-2 text-xs font-bold text-muted-foreground shadow hover:text-foreground"
+            title="清空所有内容重新开始"
+          >
+            <RotateCcw className="size-3.5" /> 重新开始
+          </button>
+        </div>
       </header>
+
 
 
       <section className="flex flex-1 items-center justify-center px-4 py-6">
