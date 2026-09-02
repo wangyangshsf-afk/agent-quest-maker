@@ -430,7 +430,7 @@ export function CommandCenter({ fields, setField, go }: Ctx) {
             multiline
           />
           <p className="text-sm text-muted-foreground">
-            🎙️ 点麦克风可以用说的（中文）。不支持或没权限时，直接打字也一样。
+            🎙️ 课堂上建议直接打字。课后在家可以点麦克风用说的。
           </p>
         </div>
 
