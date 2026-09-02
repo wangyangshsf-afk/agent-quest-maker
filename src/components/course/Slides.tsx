@@ -567,7 +567,7 @@ function ConceptQuiz({ go }: Ctx) {
 /* ---------- 7. Command center ---------- */
 
 
-export function CommandCenter({ fields, setField, go }: Ctx) {
+export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
   const warnings = detectConflicts(fields);
   const filled = Object.values(fields).some((v) => v.trim());
   return (
