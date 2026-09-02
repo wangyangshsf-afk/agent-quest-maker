@@ -35,6 +35,40 @@ import {
 
 import { AgentFactory } from "@/components/course/AgentFactory";
 
+/** 集中管理的页面索引，避免魔法数字 */
+export const SLIDE = {
+  cover: 0,
+  journey: 1,
+  situation: 2,
+  roleVote: 3,
+  compare: 4,
+  loop: 5,
+  quiz: 6,
+  commandCenter: 7,
+  execution: 8,
+  detective: 9,
+  review: 10,
+  scenes: 11,
+  factory: 12,
+  wrap: 13,
+} as const;
+
+export type FlowState = "draft" | "running" | "needs_fix" | "rerunning" | "approved";
+
+export type Flow = {
+  state: FlowState;
+  baseline: Fields | null;
+  approved: boolean;
+  checks: string[];
+};
+
+export const EMPTY_FLOW: Flow = {
+  state: "draft",
+  baseline: null,
+  approved: false,
+  checks: [],
+};
+
 export type Ctx = {
   fields: Fields;
   setField: (k: keyof Fields, v: string) => void;
@@ -44,7 +78,10 @@ export type Ctx = {
   applyTheme: (t: AgentTheme) => void;
   go: (i: number) => void;
   openAgent: () => void;
+  flow: Flow;
+  setFlow: (patch: Partial<Flow>) => void;
 };
+
 
 /* ---------- shared bits ---------- */
 
