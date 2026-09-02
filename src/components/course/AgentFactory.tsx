@@ -280,7 +280,7 @@ export function AgentFactory({
                       : "bg-secondary text-secondary-foreground"
                   }`}
                 >
-                  {m.content}
+                  <ChatMessage content={m.content} />
                 </motion.div>
               ))}
               {busy && (
