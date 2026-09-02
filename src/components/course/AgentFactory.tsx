@@ -45,16 +45,22 @@ export function AgentFactory({
   setCard,
   fields,
   theme,
+  initialAction = "",
+  initialTypeId,
 }: {
   card: AgentCard;
   setCard: (c: AgentCard) => void;
   fields: Fields;
   theme: AgentTheme;
+  initialAction?: string;
+  initialTypeId?: string;
 }) {
   const chat = useServerFn(agentChat);
 
-  const [typeId, setTypeId] = useState<FactoryTypeId>(THEME_TO_TYPE[theme.id] ?? "custom");
-  const [action, setAction] = useState("");
+  const [typeId, setTypeId] = useState<FactoryTypeId>(
+    (initialTypeId as FactoryTypeId | undefined) ?? THEME_TO_TYPE[theme.id] ?? "custom",
+  );
+  const [action, setAction] = useState(initialAction);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -64,15 +70,21 @@ export function AgentFactory({
   const [replay, setReplay] = useState(0);
   const [booting, setBooting] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const firstRun = useRef(true);
 
   // 主题切换时跟随（场景创作页选主题后进入本页）
   useEffect(() => {
+    if (firstRun.current) {
+      firstRun.current = false;
+      return;
+    }
     setTypeId(THEME_TO_TYPE[theme.id] ?? "custom");
     setAction("");
     setMsgs([]);
     setLive(null);
     setApproved(false);
   }, [theme.id]);
+
 
   const T = FACTORY_TYPES[typeId];
 
