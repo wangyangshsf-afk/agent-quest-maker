@@ -774,7 +774,7 @@ function makeRun(fields: Fields, theme: AgentTheme): RunStep[] {
   ];
 }
 
-function Execution({ fields, theme }: Ctx) {
+function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
   const sig = `${fields.activity}|${fields.count}|${fields.limits}|${theme.id}`;
   const steps = useMemo(() => makeRun(fields, theme), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
   const [n, setN] = useState(0);
@@ -785,9 +785,24 @@ function Execution({ fields, theme }: Ctx) {
     return () => window.clearTimeout(id);
   }, [n, steps.length]);
 
+  const holes = steps[1]!.lines.filter((l) => !l.includes("✅"));
+  const badChecks = steps[3]!.lines.filter((l) => l.startsWith("❌") || l.startsWith("⚠️"));
+  const isRerun = flow.state === "rerunning" || flow.approved;
+  const done = n >= steps.length;
+
+  useEffect(() => {
+    if (!done) return;
+    if (flow.approved) return;
+    setFlow({ state: holes.length + badChecks.length > 0 ? "needs_fix" : "rerunning" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [done, sig]);
+
   return (
     <Big>
-      <SlideTitle kicker="办事过程" title="⚙️ 智能体正在办事…" />
+      <SlideTitle
+        kicker="办事过程"
+        title={isRerun ? "⚙️ 智能体正在跑第二版…" : "⚙️ 智能体正在办事…"}
+      />
       <div className="card-pop p-6">
         <p className="mb-4 rounded-xl bg-secondary p-3 text-base">
           任务：<b>{fields.activity || theme.activity || "（未填写活动）"}</b>｜人数：
@@ -829,27 +844,69 @@ function Execution({ fields, theme }: Ctx) {
             </motion.li>
           ))}
         </ol>
-        <div className="mt-5 flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => setN(0)}
-            className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 font-extrabold text-accent-foreground"
+
+        {done && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="card-soft mt-5 space-y-4 p-5"
           >
-            <RefreshCw className="size-5" /> 重播动画
-          </button>
-          {n >= steps.length && (
-            <motion.span
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="rounded-full bg-destructive px-4 py-2 text-sm font-extrabold text-destructive-foreground"
-            >
-              ⚖️ 方案已生成，等待人类检查
-            </motion.span>
-          )}
-        </div>
+            <p className="text-2xl font-extrabold">
+              {isRerun ? "🔁 第二版方案已生成" : "📄 第一版方案已生成，等待人类检查"}
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="rounded-2xl bg-destructive/10 p-3">
+                <p className="text-sm font-extrabold text-destructive">
+                  缺少的信息 {holes.length} 处
+                </p>
+                <ul className="mt-1 space-y-1 text-sm font-medium">
+                  {holes.length ? (
+                    holes.map((h) => <li key={h}>· {h}</li>)
+                  ) : (
+                    <li>· 关键信息都齐了 ✅</li>
+                  )}
+                </ul>
+              </div>
+              <div className="rounded-2xl bg-sun/25 p-3">
+                <p className="text-sm font-extrabold">检查没过的地方 {badChecks.length} 处</p>
+                <ul className="mt-1 space-y-1 text-sm font-medium">
+                  {badChecks.length ? (
+                    badChecks.map((h) => <li key={h}>· {h}</li>)
+                  ) : (
+                    <li>· 预算、人数、安全都算得过来 ✅</li>
+                  )}
+                </ul>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => go(SLIDE.detective)}
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)]"
+              >
+                <Search className="size-5" /> 去侦探模式找漏洞
+              </button>
+              {isRerun && (
+                <button
+                  onClick={() => go(SLIDE.review)}
+                  className="inline-flex items-center gap-2 rounded-full bg-grass px-6 py-3 text-lg font-extrabold text-ink"
+                >
+                  <ClipboardCheck className="size-5" /> 去验收台
+                </button>
+              )}
+              <button
+                onClick={() => setN(0)}
+                className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-3 font-extrabold"
+              >
+                <RefreshCw className="size-5" /> 重新播放
+              </button>
+            </div>
+          </motion.div>
+        )}
       </div>
     </Big>
   );
 }
+
 
 /* ---------- 9. Detective ---------- */
 
