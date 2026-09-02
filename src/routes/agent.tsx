@@ -7,13 +7,14 @@ import { EMPTY_CARD, THEMES, type AgentCard, type Fields } from "@/lib/agent-the
 import { cardFrom, decodeAgent } from "@/lib/agent-share";
 
 export const Route = createFileRoute("/agent")({
-  validateSearch: (s: Record<string, unknown>) => ({ a: typeof s['a'] === "string" ? s['a'] : "" }),
+  validateSearch: (s: Record<string, unknown>) => ({ a: typeof s["a"] === "string" ? s["a"] : "" }),
   head: () => ({
     meta: [
       { title: "我的专属智能体 · 随时打开继续用" },
       {
         name: "description",
-        content: "打开你在课堂上生成的专属智能体：继续对话、补齐信息、生成成果卡，最后由你做人类最终决定。",
+        content:
+          "打开你在课堂上生成的专属智能体：继续对话、补齐信息、生成成果卡，最后由你做人类最终决定。",
       },
       { property: "og:title", content: "我的专属智能体" },
       { property: "og:description", content: "课后随时打开你的专属智能体，继续完成那件事。" },

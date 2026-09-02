@@ -86,9 +86,7 @@ function Cover({ go }: Ctx) {
           🤖
         </motion.div>
         <h1 className="text-5xl font-extrabold sm:text-7xl">什么是智能体？</h1>
-        <p className="mt-4 text-2xl font-bold text-primary sm:text-3xl">
-          让 AI 帮我完成一件事
-        </p>
+        <p className="mt-4 text-2xl font-bold text-primary sm:text-3xl">让 AI 帮我完成一件事</p>
         <p className="mt-2 text-lg text-muted-foreground">45 分钟沉浸互动课件 · 适合 8-15 岁</p>
         <motion.button
           onClick={() => go(1)}
@@ -173,7 +171,8 @@ function Situation({ go }: Ctx) {
         </div>
         <div className="card-soft flex flex-col justify-center gap-4 bg-secondary/60 p-6">
           <p className="text-2xl font-extrabold">
-            👉 一件事要做成，不只需要「答案」，还需要有人<span className="text-primary">把事情办完</span>。
+            👉 一件事要做成，不只需要「答案」，还需要有人
+            <span className="text-primary">把事情办完</span>。
           </p>
           <p className="text-lg text-muted-foreground">
             今天我们就要学会：让 AI 从「回答问题」变成「帮我完成一件事」。
@@ -390,7 +389,8 @@ function Loop() {
           <Gavel className="size-4" /> 最后一步 · 人类最终决定
         </p>
         <p className="mt-3 text-2xl font-extrabold">
-          AI 可以很能干，但人类必须负责<span className="text-destructive">检查、判断和最终决定</span>。
+          AI 可以很能干，但人类必须负责
+          <span className="text-destructive">检查、判断和最终决定</span>。
         </p>
       </motion.div>
     </Big>
@@ -533,15 +533,25 @@ function makeRun(fields: Fields, theme: AgentTheme): RunStep[] {
         : `✅ ${num} 人可编 ${groups} 组，每组约 ${Math.ceil(num / groups)} 人`
       : "⚠️ 没有人数，无法分组与备料",
   );
-  checks.push(hasSafety ? "✅ 已读到安全相关要求，会写进应急预案" : "❌ 没有安全说明，需补走失/受伤/天气三条预案");
-  checks.push(hasHuman ? "✅ 已识别人类负责人，最终方案会留签字位" : "❌ 没有指定负责人，默认交老师签字");
+  checks.push(
+    hasSafety
+      ? "✅ 已读到安全相关要求，会写进应急预案"
+      : "❌ 没有安全说明，需补走失/受伤/天气三条预案",
+  );
+  checks.push(
+    hasHuman ? "✅ 已识别人类负责人，最终方案会留签字位" : "❌ 没有指定负责人，默认交老师签字",
+  );
 
   return [
     {
       emoji: "🎧",
       t: "听清任务要求",
       d: "把你在指挥台写的原话逐条读进来",
-      lines: [`活动 = ${activity}`, `人数 = ${count}${num ? `（识别为 ${num} 人）` : "（没读到数字）"}`, `限制 = ${limits}`],
+      lines: [
+        `活动 = ${activity}`,
+        `人数 = ${count}${num ? `（识别为 ${num} 人）` : "（没读到数字）"}`,
+        `限制 = ${limits}`,
+      ],
     },
     {
       emoji: "🔍",
@@ -575,7 +585,9 @@ function makeRun(fields: Fields, theme: AgentTheme): RunStep[] {
         `《${activity}执行方案》｜${count}${num ? `／${groups} 组` : ""}${
           perHead > 0 ? `｜人均 ${perHead.toFixed(0)} 元` : ""
         }`,
-        missing.length ? `⚖️ 仍有 ${missing.length} 项待你确认，未确认前不算完成` : "⚖️ 请检查后回复「通过」，我才算完成",
+        missing.length
+          ? `⚖️ 仍有 ${missing.length} 项待你确认，未确认前不算完成`
+          : "⚖️ 请检查后回复「通过」，我才算完成",
       ],
     },
   ];
@@ -658,7 +670,6 @@ function Execution({ fields, theme }: Ctx) {
   );
 }
 
-
 /* ---------- 9. Detective ---------- */
 
 type DCase = {
@@ -686,7 +697,8 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
   const perHeadDeclared = /每人|人均/.test(limits) && money > 0;
   const perHead = money > 0 && num > 0 ? (perHeadDeclared ? money : money / num) : 0;
 
-  const hasPlace = /地点|在.{0,6}(公园|馆|校|室|场|山|园|教室|操场)|公园|博物馆|操场|教室|图书|体育馆/.test(all);
+  const hasPlace =
+    /地点|在.{0,6}(公园|馆|校|室|场|山|园|教室|操场)|公园|博物馆|操场|教室|图书|体育馆/.test(all);
   const hasTime = /\d\s*(点|:|：|小时|分钟|天|周|号|月)|上午|下午|早上|晚上|当天|截止/.test(all);
   const hasMoney = money > 0 || /预算|费用|元|块|免费|不花钱/.test(limits);
   const hasHuman = /老师|家长|签字|确认|审核|批准|复核|值日|委员/.test(limits);
@@ -710,7 +722,9 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
         {
           hint: `先别急着说答案。把 AI 这句话读一遍，对照你写的${q(limits)}，问自己：时间有了吗？人数有了吗？那「在哪里做」写了吗？`,
           answer: `🔍 找出来：AI 只讲了时间和人数，一次都没说${q(`${activity}到底在哪里进行`)}。${
-            hasPlace ? `你在指挥台已经写了地点信息，但方案里把它弄丢了。` : `而且${src}，里面也没有地点，AI 只能靠猜。`
+            hasPlace
+              ? `你在指挥台已经写了地点信息，但方案里把它弄丢了。`
+              : `而且${src}，里面也没有地点，AI 只能靠猜。`
           }没有地点，就算不出路程、门票和安全预案。`,
         },
         {
@@ -777,7 +791,9 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
         {
           hint: "这句读起来很顺，问题不在数字里。数一数：从头到尾出现过「人」吗？谁最后拍板？",
           answer: `🔍 找出来：方案写着「自动通知、直接下单、自行调整、无需再确认」——整段没有一个人类检查点。${
-            hasHuman ? `你在限制条件里明明写了${q(limits)}，AI 却直接跳过了。` : `${src}，里面也没规定谁来把关。`
+            hasHuman
+              ? `你在限制条件里明明写了${q(limits)}，AI 却直接跳过了。`
+              : `${src}，里面也没规定谁来把关。`
           }${activity}一旦出错，没人能提前拦住。`,
         },
         {
@@ -806,7 +822,9 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
         {
           hint: `把${q(count)}这么多人放进脑子里想一遍：有人过敏、有人走丢、突然下雨——方案里写了怎么办吗？`,
           answer: `🔍 找出来：方案只写了「顺利时怎么走」，没写「出事时怎么办」。${
-            hasSafety ? `你在指挥台提过安全相关的要求，AI 却没落实成具体动作。` : `${src}，里面也没有任何安全或特殊情况的说明。`
+            hasSafety
+              ? `你在指挥台提过安全相关的要求，AI 却没落实成具体动作。`
+              : `${src}，里面也没有任何安全或特殊情况的说明。`
           }「现场随机应变」等于没有预案。`,
         },
         {
@@ -868,7 +886,9 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
         {
           hint: `照着这句话，你能知道几点到教室吗？对照你写的${q(limits)}，看看时间信息在哪。`,
           answer: `🔍 找出来：「先…然后…做完」全是模糊词，没有一个具体时间点。${
-            hasTime ? "你指挥台里其实写了时间，AI 没有把它排进流程。" : `${src}，里面也没写开始与结束时间。`
+            hasTime
+              ? "你指挥台里其实写了时间，AI 没有把它排进流程。"
+              : `${src}，里面也没写开始与结束时间。`
           }没有时间表，${count}就会在现场乱成一团。`,
         },
         {
@@ -896,7 +916,6 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
     });
 }
 
-
 function Detective({ fields, theme, setField, go }: Ctx) {
   const sig = `${fields.activity}|${fields.count}|${fields.limits}|${theme.id}`;
   const cases: DCase[] = useMemo(() => makeCases(fields, theme), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -913,7 +932,9 @@ function Detective({ fields, theme, setField, go }: Ctx) {
     <Big>
       <SlideTitle kicker="侦探模式" title="🕵️ 抓出 AI 的毛病" />
       <p className="mb-4 text-center text-sm font-bold text-muted-foreground">
-        案情、破绽与三步提示都会跟着指挥台的「{fields.activity.trim() || theme.activity}｜{fields.count.trim() || theme.count}｜{fields.limits.trim() || theme.limits}」实时重算 · 每一步点两次：先想，再看答案
+        案情、破绽与三步提示都会跟着指挥台的「{fields.activity.trim() || theme.activity}｜
+        {fields.count.trim() || theme.count}｜{fields.limits.trim() || theme.limits}」实时重算 ·
+        每一步点两次：先想，再看答案
       </p>
 
       <div className="mb-4 flex flex-wrap justify-center gap-2">
@@ -969,7 +990,9 @@ function Detective({ fields, theme, setField, go }: Ctx) {
                 <p className="font-extrabold">
                   {["第 1 步 找出来 🔍", "第 2 步 问一问 ❓", "第 3 步 改一改 ✏️"][k]}
                 </p>
-                {seenHint && <p className="mt-2 rounded-xl bg-card/70 p-2 text-sm">💭 {c.steps[k]!.hint}</p>}
+                {seenHint && (
+                  <p className="mt-2 rounded-xl bg-card/70 p-2 text-sm">💭 {c.steps[k]!.hint}</p>
+                )}
                 {seenAnswer ? (
                   <p className="mt-2 text-sm font-bold">{c.steps[k]!.answer}</p>
                 ) : (
@@ -984,10 +1007,19 @@ function Detective({ fields, theme, setField, go }: Ctx) {
           })}
         </div>
         {p >= 6 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl bg-grass/15 p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl bg-grass/15 p-4"
+          >
             <ClipboardCheck className="size-6 text-grass" />
-            <p className="font-bold">「{c.fixLabel}」已经写回指挥台，你就是那个「负责检查的人类」！</p>
-            <button onClick={() => go(6)} className="rounded-full bg-primary px-4 py-2 font-bold text-primary-foreground">
+            <p className="font-bold">
+              「{c.fixLabel}」已经写回指挥台，你就是那个「负责检查的人类」！
+            </p>
+            <button
+              onClick={() => go(6)}
+              className="rounded-full bg-primary px-4 py-2 font-bold text-primary-foreground"
+            >
               回指挥台看看
             </button>
             {i < cases.length - 1 && (
@@ -1007,7 +1039,6 @@ function Detective({ fields, theme, setField, go }: Ctx) {
     </Big>
   );
 }
-
 
 /* ---------- 10. Scene creator ---------- */
 
@@ -1135,9 +1166,7 @@ function Recap() {
         <p className="text-3xl font-extrabold">
           ＋半件事：<span className="text-destructive">人类最终决定</span> 🙋
         </p>
-        <p className="mt-2 text-lg">
-          AI 可以很能干，但人类必须负责检查、判断和最终决定。
-        </p>
+        <p className="mt-2 text-lg">AI 可以很能干，但人类必须负责检查、判断和最终决定。</p>
       </div>
       <div className="mt-5 flex items-center justify-center gap-2 text-lg text-muted-foreground">
         <Lightbulb className="size-6 text-accent" /> 想一想：生活里还有哪件事，可以交给你的智能体？
@@ -1156,12 +1185,9 @@ function Export({ card, fields, openAgent }: Ctx) {
         <p className="text-5xl">📝</p>
         <p className="mt-4 text-2xl font-extrabold leading-relaxed">
           回家用你的智能体办成一件真实的小事，
-          <br />
-          并<span className="text-destructive">亲自找出 1 处要改的地方</span>。
+          <br />并<span className="text-destructive">亲自找出 1 处要改的地方</span>。
         </p>
-        <p className="mt-3 text-lg text-muted-foreground">
-          明天带着你的「人类签字版」方案来分享。
-        </p>
+        <p className="mt-3 text-lg text-muted-foreground">明天带着你的「人类签字版」方案来分享。</p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
           <button
             onClick={() => copy(buildPrompt(card, fields))}
@@ -1183,7 +1209,6 @@ function Export({ card, fields, openAgent }: Ctx) {
     </Big>
   );
 }
-
 
 export const SLIDES: { title: string; C: (ctx: Ctx) => React.ReactElement }[] = [
   { title: "封面", C: Cover },

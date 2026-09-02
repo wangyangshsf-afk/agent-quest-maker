@@ -9,7 +9,6 @@ import {
   ExternalLink,
   Link as LinkIcon,
   Loader2,
-
   Play,
   Rocket,
   Send,
@@ -30,7 +29,6 @@ import {
 } from "@/lib/agent-factory";
 import { buildShareUrl } from "@/lib/agent-share";
 import type { AgentCard, Fields, AgentTheme } from "@/lib/agent-themes";
-
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -90,7 +88,6 @@ export function AgentFactory({
     setApproved(false);
   }, [theme.id]);
 
-
   const T = FACTORY_TYPES[typeId];
 
   const actionText = action.trim() || card.steps.filter(Boolean).join("；") || T.defaultAction;
@@ -120,8 +117,6 @@ export function AgentFactory({
       }),
     [typeId, theme.id, card.name, card.goal, card.check, actionText, fields, T],
   );
-
-
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -410,7 +405,6 @@ export function AgentFactory({
   );
 }
 
-
 /* ---------- 生成中的期待感动画 ---------- */
 
 const GEN_STEPS = [
@@ -523,7 +517,6 @@ function ResultCard({
   onReplay: () => void;
   shareUrl: string;
 }) {
-
   if (!data) {
     return (
       <div className="card-pop flex min-h-[50vh] flex-col items-center justify-center gap-3 p-8 text-center">
@@ -595,7 +588,10 @@ function ResultCard({
                 <Block delay={0.08} title="✅ 已经问到的信息">
                   <div className="flex flex-wrap gap-2">
                     {data.collected.map((c, i) => (
-                      <span key={i} className="rounded-full bg-white px-3 py-1 text-sm font-bold shadow-sm">
+                      <span
+                        key={i}
+                        className="rounded-full bg-white px-3 py-1 text-sm font-bold shadow-sm"
+                      >
                         {c.key}：{c.value}
                       </span>
                     ))}
@@ -718,7 +714,6 @@ function ResultCard({
           </a>
         </div>
       </div>
-
     </motion.div>
   );
 }
