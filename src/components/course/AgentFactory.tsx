@@ -63,9 +63,11 @@ export function AgentFactory({
 }) {
   const chat = useServerFn(agentChat);
 
-  const [typeId, setTypeId] = useState<FactoryTypeId>(
-    (initialTypeId as FactoryTypeId | undefined) ?? THEME_TO_TYPE[theme.id] ?? "custom",
-  );
+  const [typeId, setTypeId] = useState<FactoryTypeId>(() => {
+    const fromLink = initialTypeId as FactoryTypeId | undefined;
+    if (fromLink && fromLink in FACTORY_TYPES) return fromLink;
+    return THEME_TO_TYPE[theme.id] ?? "custom";
+  });
   const [action, setAction] = useState(initialAction);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");

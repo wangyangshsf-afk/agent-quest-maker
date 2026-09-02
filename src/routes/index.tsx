@@ -28,7 +28,7 @@ export const Route = createFileRoute("/")({
   component: CoursePage,
 });
 
-const STORAGE_KEY = "agent-course-progress-v1";
+const STORAGE_KEY = "agent-course-progress-v2";
 
 type SavedProgress = {
   fields: Fields;
