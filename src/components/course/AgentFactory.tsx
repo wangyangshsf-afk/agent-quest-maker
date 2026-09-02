@@ -263,7 +263,7 @@ export function AgentFactory({
 
       {stage === 1 && (
         <div className="space-y-4">
-          <div className="card-soft flex h-[52vh] flex-col p-5">
+          <div className="card-soft relative flex h-[52vh] flex-col p-5">
             <div ref={scrollRef} className="flex-1 space-y-3 overflow-auto pr-1">
               {msgs.length === 0 && (
                 <p className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground">
@@ -289,6 +289,7 @@ export function AgentFactory({
                   <Loader2 className="size-4 animate-spin" /> 智能体正在思考…
                 </p>
               )}
+              <AnimatePresence>{busy && <GeneratingOverlay emoji={T.emoji} />}</AnimatePresence>
             </div>
             <div className="mt-3">
               <VoiceInput
@@ -352,6 +353,76 @@ export function AgentFactory({
   );
 }
 
+
+/* ---------- 生成中的期待感动画 ---------- */
+
+const GEN_STEPS = [
+  { emoji: "🎯", text: "读懂你的目标…" },
+  { emoji: "🧠", text: "调取这一类的领域知识…" },
+  { emoji: "❓", text: "找出还缺少的信息…" },
+  { emoji: "🪜", text: "排列行动步骤…" },
+  { emoji: "🛡️", text: "做安全与预算检查…" },
+  { emoji: "🎁", text: "组装成果卡…" },
+];
+
+function GeneratingOverlay({ emoji }: { emoji: string }) {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setI((x) => (x + 1) % GEN_STEPS.length), 1100);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-3xl bg-background/85 backdrop-blur-sm"
+    >
+      <div className="relative flex size-24 items-center justify-center">
+        <motion.span
+          animate={{ rotate: 360 }}
+          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-0 rounded-full border-4 border-dashed border-primary/50"
+        />
+        <motion.span
+          animate={{ scale: [1, 1.15, 1] }}
+          transition={{ duration: 1.1, repeat: Infinity }}
+          className="text-4xl"
+        >
+          {emoji}
+        </motion.span>
+      </div>
+
+      <div className="h-6 overflow-hidden text-center">
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={i}
+            initial={{ y: 14, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -14, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="text-sm font-extrabold"
+          >
+            {GEN_STEPS[i]!.emoji} {GEN_STEPS[i]!.text}
+          </motion.p>
+        </AnimatePresence>
+      </div>
+
+      <div className="flex gap-1.5">
+        {GEN_STEPS.map((s, k) => (
+          <motion.span
+            key={s.text}
+            animate={{
+              scale: k === i ? 1.3 : 1,
+              opacity: k <= i ? 1 : 0.3,
+            }}
+            className="size-2 rounded-full bg-primary"
+          />
+        ))}
+      </div>
+    </motion.div>
+  );
+}
 
 function Line({
   label,
