@@ -899,7 +899,8 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
 
   const holes = steps[1]!.lines.filter((l) => !l.includes("✅"));
   const badChecks = steps[3]!.lines.filter((l) => l.startsWith("❌") || l.startsWith("⚠️"));
-  const isRerun = flow.state === "rerunning" || flow.approved;
+  // 进入本页时的版本判定，跑完后不会把第一版误标成第二版
+  const [isRerun] = useState(flow.state === "rerunning" || flow.approved);
   const done = n >= steps.length;
 
   useEffect(() => {
