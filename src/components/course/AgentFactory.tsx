@@ -66,6 +66,7 @@ export function AgentFactory({
   // 主题切换时跟随（场景创作页选主题后进入本页）
   useEffect(() => {
     setTypeId(THEME_TO_TYPE[theme.id] ?? "custom");
+    setAction("");
     setMsgs([]);
     setLive(null);
     setApproved(false);
