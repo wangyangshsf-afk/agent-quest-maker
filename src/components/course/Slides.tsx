@@ -1141,23 +1141,36 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
     });
 }
 
-function Detective({ fields, theme, setField, go }: Ctx) {
+function Detective({ fields, theme, setField, go, setFlow }: Ctx) {
   const sig = `${fields.activity}|${fields.count}|${fields.limits}|${theme.id}`;
   const cases: DCase[] = useMemo(() => makeCases(fields, theme), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
   const [i, setI] = useState(0);
   // progress: 每一步两次点击（0=未开始, 奇数=看到提示, 偶数=看到答案）
   const [p, setP] = useState(0);
+  const [done, setDone] = useState<Record<number, string>>({});
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
   useEffect(() => {
     setI(0);
     setP(0);
-  }, [sig]);
+    setDone({});
+    setEditing(false);
+  }, [cases]);
   const c = cases[i] ?? cases[0]!;
+  const allDone = cases.every((_, k) => done[k]);
+
+  const apply = (value: string, label: string) => {
+    setField(c.fixField, value);
+    setDone((d) => ({ ...d, [i]: label }));
+    setEditing(false);
+    toast.success("已写回指挥台 ✅");
+  };
 
   return (
     <Big>
       <SlideTitle kicker="侦探模式" title="🕵️ 抓出 AI 的毛病" />
       <p className="mb-4 text-center text-sm font-bold text-muted-foreground">
-        今天我们抓 2 个案件。每一步点两次：先想，再看答案。课后可以自己挑战更多案件。
+        今天我们抓 2 个案件。每一步点两次：先想，再看答案。修改由你来决定要不要采纳。
       </p>
 
       <div className="mb-4 flex flex-wrap justify-center gap-2">
@@ -1167,11 +1180,13 @@ function Detective({ fields, theme, setField, go }: Ctx) {
             onClick={() => {
               setI(k);
               setP(0);
+              setEditing(false);
             }}
             className={`rounded-full px-4 py-2 font-bold ${
               k === i ? "bg-primary text-primary-foreground" : "bg-secondary"
             }`}
           >
+            {done[k] ? "✅ " : ""}
             {x.title}
           </button>
         ))}
@@ -1192,15 +1207,9 @@ function Detective({ fields, theme, setField, go }: Ctx) {
               <motion.button
                 key={k}
                 disabled={!active}
-                onClick={() => {
-                  const next = p + 1;
-                  if (next === k * 2 + 2 && k === 2) {
-                    setField(c.fixField, c.fixValue);
-                    toast.success("已自动填回指挥台 ✅");
-                  }
-                  setP(next);
-                }}
+                onClick={() => setP(p + 1)}
                 whileHover={{ y: active ? -4 : 0 }}
+                whileTap={{ scale: active ? 0.97 : 1 }}
                 className={`rounded-2xl border-2 p-4 text-left transition ${
                   seenAnswer
                     ? "border-grass bg-grass/15"
@@ -1229,7 +1238,63 @@ function Detective({ fields, theme, setField, go }: Ctx) {
             );
           })}
         </div>
-        {p >= 6 && (
+
+        {p >= 6 && !done[i] && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-4 space-y-3 rounded-2xl bg-sun/25 p-4"
+          >
+            <p className="flex items-center gap-2 text-lg font-extrabold">
+              <Lightbulb className="size-5" /> AI 的修改建议（要不要采纳，你说了算）
+            </p>
+            <p className="rounded-xl bg-card p-3 text-base font-medium">{c.fixValue}</p>
+            {editing ? (
+              <div className="space-y-3">
+                <textarea
+                  value={draft}
+                  rows={3}
+                  onChange={(e) => setDraft(e.target.value)}
+                  className="w-full resize-none rounded-2xl border-2 border-border bg-card px-4 py-3 outline-none focus:border-primary"
+                />
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={() => apply(draft, "你自己改的版本")}
+                    className="rounded-full bg-primary px-5 py-2.5 font-extrabold text-primary-foreground"
+                  >
+                    保存我的修改
+                  </button>
+                  <button
+                    onClick={() => setEditing(false)}
+                    className="rounded-full bg-secondary px-5 py-2.5 font-bold"
+                  >
+                    取消
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => apply(c.fixValue, c.fixLabel)}
+                  className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 font-extrabold text-primary-foreground"
+                >
+                  <CheckCircle2 className="size-5" /> 采纳这条修改
+                </button>
+                <button
+                  onClick={() => {
+                    setDraft(c.fixValue);
+                    setEditing(true);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-2.5 font-bold"
+                >
+                  <Wand2 className="size-5" /> 我自己编辑
+                </button>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {done[i] && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -1237,11 +1302,11 @@ function Detective({ fields, theme, setField, go }: Ctx) {
           >
             <ClipboardCheck className="size-6 text-grass" />
             <p className="font-bold">
-              「{c.fixLabel}」已经写回指挥台，你就是那个「负责检查的人类」！
+              变更摘要：{done[i]} —— 已写回指挥台，你就是那个「负责检查的人类」！
             </p>
             <button
-              onClick={() => go(6)}
-              className="rounded-full bg-primary px-4 py-2 font-bold text-primary-foreground"
+              onClick={() => go(SLIDE.commandCenter)}
+              className="rounded-full bg-secondary px-4 py-2 font-bold"
             >
               回指挥台看看
             </button>
@@ -1251,9 +1316,20 @@ function Detective({ fields, theme, setField, go }: Ctx) {
                   setI(i + 1);
                   setP(0);
                 }}
-                className="rounded-full bg-secondary px-4 py-2 font-bold"
+                className="rounded-full bg-primary px-4 py-2 font-bold text-primary-foreground"
               >
                 下一个案件 →
+              </button>
+            )}
+            {allDone && (
+              <button
+                onClick={() => {
+                  setFlow({ state: "rerunning" });
+                  go(SLIDE.execution);
+                }}
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)]"
+              >
+                <RefreshCw className="size-5" /> 带着修改结果去重新运行
               </button>
             )}
           </motion.div>
@@ -1262,6 +1338,109 @@ function Detective({ fields, theme, setField, go }: Ctx) {
     </Big>
   );
 }
+
+/* ---------- 11. 验收台 ---------- */
+
+const CHECKLIST = [
+  { id: "goal", t: "目标和人数是否一致？" },
+  { id: "when", t: "时间和地点是否明确？" },
+  { id: "money", t: "预算是否算得过来？" },
+  { id: "safe", t: "安全风险是否有预案？" },
+  { id: "human", t: "有没有老师 / 家长做最终确认？" },
+];
+
+function Review({ fields, flow, setFlow, go }: Ctx) {
+  const before = flow.baseline ?? { activity: "", count: "", limits: "" };
+  const toggle = (id: string) =>
+    setFlow({
+      checks: flow.checks.includes(id)
+        ? flow.checks.filter((x) => x !== id)
+        : [...flow.checks, id],
+    });
+  const allChecked = CHECKLIST.every((c) => flow.checks.includes(c.id));
+
+  const Row = ({ label, a, b }: { label: string; a: string; b: string }) => (
+    <div className="rounded-2xl border-2 border-border p-3">
+      <p className="text-xs font-extrabold text-muted-foreground">{label}</p>
+      <p className="mt-1 text-sm line-through opacity-60">{a || "（第一版没写）"}</p>
+      <p className="mt-1 text-sm font-bold text-grass">{b || "（还没补上）"}</p>
+    </div>
+  );
+
+  return (
+    <Big>
+      <SlideTitle kicker="验收台" title="✅ 这份方案能执行吗？" />
+      <div className="grid gap-5 lg:grid-cols-2">
+        <div className="card-pop space-y-3 p-6">
+          <p className="text-xl font-extrabold">修改前 → 修改后</p>
+          <Row label="活动" a={before.activity} b={fields.activity} />
+          <Row label="人数" a={before.count} b={fields.count} />
+          <Row label="限制条件" a={before.limits} b={fields.limits} />
+        </div>
+
+        <div className="card-pop space-y-3 p-6">
+          <p className="text-xl font-extrabold">人类检查清单</p>
+          {CHECKLIST.map((c) => {
+            const on = flow.checks.includes(c.id);
+            return (
+              <motion.button
+                key={c.id}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => toggle(c.id)}
+                className={`flex w-full items-center gap-3 rounded-2xl border-2 p-3 text-left font-bold transition ${
+                  on ? "border-grass bg-grass/15" : "border-border"
+                }`}
+              >
+                {on ? (
+                  <CheckCircle2 className="size-6 text-grass" />
+                ) : (
+                  <AlertTriangle className="size-6 text-muted-foreground" />
+                )}
+                {c.t}
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+        <button
+          onClick={() => go(SLIDE.commandCenter)}
+          className="rounded-full bg-secondary px-5 py-3 font-extrabold"
+        >
+          继续修改
+        </button>
+        <button
+          onClick={() => {
+            setFlow({ state: "rerunning" });
+            go(SLIDE.execution);
+          }}
+          className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 font-extrabold text-accent-foreground"
+        >
+          <RefreshCw className="size-5" /> 重新运行
+        </button>
+        <button
+          onClick={() => {
+            if (!allChecked) {
+              toast.error("先把 5 项都检查一遍再通过哦");
+              return;
+            }
+            setFlow({ approved: true, state: "approved" });
+            toast.success("已完成人类验收 🎉");
+            go(SLIDE.scenes);
+          }}
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)] disabled:opacity-50"
+        >
+          <Gavel className="size-5" /> 我检查过了，通过
+        </button>
+      </div>
+      <p className="mt-3 text-center text-sm font-bold text-muted-foreground">
+        {flow.approved ? "🎫 已完成人类验收" : `已检查 ${flow.checks.length} / ${CHECKLIST.length} 项`}
+      </p>
+    </Big>
+  );
+}
+
 
 /* ---------- 10. Scene creator ---------- */
 
