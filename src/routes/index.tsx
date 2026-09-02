@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Home, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { EMPTY_FLOW, SLIDES, type Ctx, type Flow } from "@/components/course/Slides";
 import { AgentModal } from "@/components/course/AgentModal";
