@@ -337,10 +337,15 @@ function Compare() {
             </motion.div>
           </div>
 
-          <div className="mt-5 flex justify-center gap-3 text-center">
+          <div className="mt-5 flex flex-wrap justify-center gap-3 text-center">
             <MiniTag emoji="🤷" text="没说的它就猜" />
-            <MiniTag emoji="📄" text="做不做随你" />
+            <MiniTag emoji="📄" text="只回答，不动手" />
           </div>
+          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+            这一页的聊天 AI 只负责回答问题；智能体还会追问、规划、执行和检查。
+            现实中的聊天 AI 也可能连上工具去做事，这里只是用「只聊天模式」来做对比。
+          </p>
+
         </div>
 
         {/* 智能体：目标→追问→步骤→人类拍板 */}
