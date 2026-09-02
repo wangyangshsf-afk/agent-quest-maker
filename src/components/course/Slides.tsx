@@ -110,9 +110,9 @@ const MILESTONES = [
   { emoji: "🎒", t: "遇到难题", d: "春游要怎么安排？", s: 2 },
   { emoji: "🆚", t: "分清角色", d: "聊天 AI ≠ 智能体", s: 4 },
   { emoji: "🔁", t: "工作循环", d: "目标→行动→检查→改进", s: 5 },
-  { emoji: "🎛️", t: "亲手指挥", d: "填写指挥台并纠错", s: 6 },
-  { emoji: "🕵️", t: "侦探挑战", d: "找出 AI 的错误", s: 8 },
-  { emoji: "🚀", t: "造一个它", d: "生成专属智能体", s: 9 },
+  { emoji: "🎛️", t: "亲手指挥", d: "填写指挥台并纠错", s: 7 },
+  { emoji: "🕵️", t: "侦探挑战", d: "找出 AI 的错误", s: 9 },
+  { emoji: "🚀", t: "造一个它", d: "生成专属智能体", s: 10 },
 ];
 
 function Journey({ go }: Ctx) {
@@ -397,7 +397,136 @@ function Loop() {
   );
 }
 
+/* ---------- 6.5 Concept quiz ---------- */
+
+const QUIZ = [
+  {
+    q: "下面哪个是智能体？",
+    options: ["闹钟（到点就响）", "能根据天气推荐穿搭、帮你查库存并下单的 AI", "计算器（输入公式出结果）"],
+    correct: 1,
+    explain: "智能体 = 能感知信息 + 做决策 + 执行动作。闹钟和计算器只做固定动作，不会感知和决策。",
+  },
+  {
+    q: "智能体给出方案后，谁做最后决定？",
+    options: ["智能体自己", "人类", "不需要决定"],
+    correct: 1,
+    explain: "AI 可以很能干，但检查、判断和最终决定必须由人类负责。",
+  },
+];
+
+function ConceptQuiz({ go }: Ctx) {
+  const [answers, setAnswers] = useState<(number | null)[]>(QUIZ.map(() => null));
+  const done = answers.every((a) => a !== null);
+
+  return (
+    <Big>
+      <SlideTitle kicker="概念小测" title="🤔 来测一测：你真的懂了吗？" />
+      <div className="mx-auto grid max-w-3xl gap-5">
+        {QUIZ.map((item, qi) => {
+          const picked = answers[qi];
+          const isDone = picked !== null;
+          const isCorrect = picked === item.correct;
+          return (
+            <motion.div
+              key={qi}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: qi * 0.15 }}
+              className="card-pop p-6"
+            >
+              <p className="mb-4 text-xl font-extrabold">
+                {qi + 1}. {item.q}
+              </p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {item.options.map((opt, oi) => {
+                  const status = isDone
+                    ? oi === item.correct
+                      ? "correct"
+                      : oi === picked
+                        ? "wrong"
+                        : "idle"
+                    : "idle";
+                  return (
+                    <motion.button
+                      key={oi}
+                      disabled={isDone}
+                      onClick={() =>
+                        setAnswers((prev) => {
+                          const next = [...prev];
+                          next[qi] = oi;
+                          return next;
+                        })
+                      }
+                      whileTap={{ scale: !isDone ? 0.95 : 1 }}
+                      whileHover={{ scale: !isDone ? 1.03 : 1 }}
+                      className={`rounded-2xl border-2 px-4 py-4 text-left text-sm font-bold transition-colors ${
+                        status === "correct"
+                          ? "border-grass bg-grass/20 text-grass-foreground"
+                          : status === "wrong"
+                            ? "border-destructive bg-destructive/15 text-destructive"
+                            : "border-border bg-card hover:border-primary hover:bg-primary/10"
+                      }`}
+                    >
+                      <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-background text-xs font-extrabold shadow">
+                        {String.fromCharCode(65 + oi)}
+                      </span>
+                      {opt}
+                    </motion.button>
+                  );
+                })}
+              </div>
+              <AnimatePresence>
+                {isDone && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-4 overflow-hidden rounded-2xl bg-secondary/60 p-4"
+                  >
+                    <p className="flex items-center gap-2 font-extrabold">
+                      {isCorrect ? (
+                        <>
+                          <CheckCircle2 className="size-5 text-grass" /> 答对啦！
+                        </>
+                      ) : (
+                        <>
+                          <AlertTriangle className="size-5 text-destructive" /> 再想想
+                        </>
+                      )}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">{item.explain}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          );
+        })}
+        <AnimatePresence>
+          {done && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="card-soft flex flex-col items-center gap-4 p-6 text-center"
+            >
+              <p className="text-2xl font-extrabold">🎉 太棒了！你已经准备好了，去指挥台下达任务吧！</p>
+              <motion.button
+                onClick={() => go(7)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-4 text-lg font-extrabold text-primary-foreground shadow"
+              >
+                去指挥台 <ArrowRight className="size-5" />
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </Big>
+  );
+}
+
 /* ---------- 7. Command center ---------- */
+
 
 export function CommandCenter({ fields, setField, go }: Ctx) {
   const warnings = detectConflicts(fields);
@@ -1230,6 +1359,7 @@ export const SLIDES: { title: string; C: (ctx: Ctx) => React.ReactElement }[] = 
   { title: "角色投票", C: () => <RoleVote /> },
   { title: "聊天 vs 智能体", C: () => <Compare /> },
   { title: "工作循环", C: () => <Loop /> },
+  { title: "概念小测", C: ConceptQuiz },
   { title: "指挥台", C: CommandCenter },
   { title: "办事过程", C: Execution },
   { title: "侦探模式", C: Detective },
