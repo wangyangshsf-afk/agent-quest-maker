@@ -6,6 +6,8 @@ import {
   CheckCircle2,
   Copy,
   Download,
+  ExternalLink,
+  Link as LinkIcon,
   Loader2,
   Play,
   Rocket,
@@ -25,6 +27,7 @@ import {
   detectFactoryType,
   type FactoryTypeId,
 } from "@/lib/agent-factory";
+import { buildShareUrl } from "@/lib/agent-share";
 import type { AgentCard, Fields, AgentTheme } from "@/lib/agent-themes";
 
 type Msg = { role: "user" | "assistant"; content: string };
@@ -45,16 +48,22 @@ export function AgentFactory({
   setCard,
   fields,
   theme,
+  initialAction = "",
+  initialTypeId,
 }: {
   card: AgentCard;
   setCard: (c: AgentCard) => void;
   fields: Fields;
   theme: AgentTheme;
+  initialAction?: string;
+  initialTypeId?: string;
 }) {
   const chat = useServerFn(agentChat);
 
-  const [typeId, setTypeId] = useState<FactoryTypeId>(THEME_TO_TYPE[theme.id] ?? "custom");
-  const [action, setAction] = useState("");
+  const [typeId, setTypeId] = useState<FactoryTypeId>(
+    (initialTypeId as FactoryTypeId | undefined) ?? THEME_TO_TYPE[theme.id] ?? "custom",
+  );
+  const [action, setAction] = useState(initialAction);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -64,9 +73,14 @@ export function AgentFactory({
   const [replay, setReplay] = useState(0);
   const [booting, setBooting] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const firstRun = useRef(true);
 
   // 主题切换时跟随（场景创作页选主题后进入本页）
   useEffect(() => {
+    if (firstRun.current) {
+      firstRun.current = false;
+      return;
+    }
     setTypeId(THEME_TO_TYPE[theme.id] ?? "custom");
     setAction("");
     setMsgs([]);
@@ -88,6 +102,20 @@ export function AgentFactory({
         typeId,
       ),
     [card.name, card.goal, card.check, actionText, typeId, fields],
+  );
+
+  const shareUrl = useMemo(
+    () =>
+      buildShareUrl({
+        t: typeId,
+        th: theme.id,
+        n: card.name || T.label,
+        g: card.goal || T.defaultGoal,
+        a: actionText,
+        c: card.check || T.defaultCheck,
+        f: fields,
+      }),
+    [typeId, theme.id, card.name, card.goal, card.check, actionText, fields, T],
   );
 
   useEffect(() => {
@@ -360,7 +388,9 @@ export function AgentFactory({
               toast.success("你已完成人类最终决定 ✅");
             }}
             onReplay={() => setReplay((x) => x + 1)}
+            shareUrl={shareUrl}
           />
+
           <div className="flex justify-center">
             <button
               onClick={() => setStage(1)}
@@ -374,7 +404,6 @@ export function AgentFactory({
     </div>
   );
 }
-
 
 /* ---------- 生成中的期待感动画 ---------- */
 
@@ -479,12 +508,14 @@ function ResultCard({
   approved,
   onApprove,
   onReplay,
+  shareUrl,
 }: {
   data: CardPayload | null;
   typeEmoji: string;
   approved: boolean;
   onApprove: () => void;
   onReplay: () => void;
+  shareUrl: string;
 }) {
   if (!data) {
     return (
@@ -557,7 +588,10 @@ function ResultCard({
                 <Block delay={0.08} title="✅ 已经问到的信息">
                   <div className="flex flex-wrap gap-2">
                     {data.collected.map((c, i) => (
-                      <span key={i} className="rounded-full bg-white px-3 py-1 text-sm font-bold shadow-sm">
+                      <span
+                        key={i}
+                        className="rounded-full bg-white px-3 py-1 text-sm font-bold shadow-sm"
+                      >
                         {c.key}：{c.value}
                       </span>
                     ))}
@@ -644,6 +678,40 @@ function ResultCard({
           >
             <Download className="size-4" /> 导出成果卡图片
           </button>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border-2 border-primary/25 bg-primary/5 p-4">
+        <p className="flex items-center gap-2 font-extrabold text-primary">
+          <LinkIcon className="size-5" /> 我的智能体专属链接
+        </p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          保存这条链接，课后再点开就能继续用这个智能体。
+        </p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <input
+            readOnly
+            value={shareUrl}
+            onFocus={(e) => e.currentTarget.select()}
+            className="min-w-0 flex-1 rounded-xl border-2 border-border bg-card px-3 py-2 text-xs"
+          />
+          <button
+            onClick={() => {
+              void navigator.clipboard.writeText(shareUrl);
+              toast.success("链接已复制，快粘贴到收藏里 🔗");
+            }}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-extrabold text-primary-foreground"
+          >
+            <Copy className="size-4" /> 复制链接
+          </button>
+          <a
+            href={shareUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-full bg-secondary px-4 py-2 text-sm font-bold"
+          >
+            <ExternalLink className="size-4" /> 打开试试
+          </a>
         </div>
       </div>
     </motion.div>
