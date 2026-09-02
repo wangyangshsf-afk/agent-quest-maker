@@ -102,6 +102,22 @@ export function AgentFactory({
     [card.name, card.goal, card.check, actionText, typeId, fields],
   );
 
+  const shareUrl = useMemo(
+    () =>
+      buildShareUrl({
+        t: typeId,
+        th: theme.id,
+        n: card.name || T.label,
+        g: card.goal || T.defaultGoal,
+        a: actionText,
+        c: card.check || T.defaultCheck,
+        f: fields,
+      }),
+    [typeId, theme.id, card.name, card.goal, card.check, actionText, fields, T],
+  );
+
+
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [msgs, busy]);
