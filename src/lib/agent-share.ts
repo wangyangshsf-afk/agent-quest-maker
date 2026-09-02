@@ -5,7 +5,10 @@ export type SharedAgent = {
   th: string; // theme id
   n: string; // name
   g: string; // goal
-  a: string; // action
+  a: string; // action (legacy compat)
+  s1: string; // step 1
+  s2: string; // step 2
+  s3: string; // step 3
   c: string; // check
   f: Fields;
 };
