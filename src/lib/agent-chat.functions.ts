@@ -28,12 +28,33 @@ const CARD_INSTRUCTION = `
 输出必须是 json，格式为：{"reply": "给用户看的回复", "card": { ... }}。reply 里不要出现 json 或大括号。
 `;
 
+export type CardPayload = {
+  title: string;
+  tagline: string;
+  collected: { key: string; value: string }[];
+  missing: string[];
+  plan: string[];
+  checks: string[];
+  risks: string[];
+  humanConfirm: string;
+  progress: number;
+  mood: string;
+};
+
+export type AgentChatResult = {
+  ok: boolean;
+  reply: string;
+  card: CardPayload | null;
+  error: string;
+  status: number;
+};
+
 export const agentChat = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => InputSchema.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data }): Promise<AgentChatResult> => {
     const apiKey = process.env["LOVABLE_API_KEY"];
     if (!apiKey) {
-      return { ok: false as const, status: 401, error: "AI 服务未配置（缺少密钥）。" };
+      return { ok: false, status: 401, error: "AI 服务未配置（缺少密钥）。", reply: "", card: null };
     }
 
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -54,7 +75,7 @@ export const agentChat = createServerFn({ method: "POST" })
     });
 
     if (!res.ok) {
-      const text = await res.text().catch(() => "");
+      await res.text().catch(() => "");
       const map: Record<number, string> = {
         400: "请求有问题，请把内容改短一点再试。",
         401: "AI 服务密钥无效，请联系老师检查配置。",
@@ -63,10 +84,11 @@ export const agentChat = createServerFn({ method: "POST" })
         429: "大家问得太快啦，请稍等几秒再试。",
       };
       return {
-        ok: false as const,
+        ok: false,
         status: res.status,
         error: map[res.status] ?? `AI 服务暂时不可用（${res.status}）。`,
-        detail: text.slice(0, 300),
+        reply: "",
+        card: null,
       };
     }
 
@@ -75,9 +97,9 @@ export const agentChat = createServerFn({ method: "POST" })
     };
     const raw = json.choices?.[0]?.message?.content ?? "";
     let reply = raw;
-    let card: unknown = null;
+    let card: CardPayload | null = null;
     try {
-      const parsed = JSON.parse(raw) as { reply?: string; card?: unknown };
+      const parsed = JSON.parse(raw) as { reply?: string; card?: CardPayload };
       if (parsed && typeof parsed === "object") {
         reply = typeof parsed.reply === "string" ? parsed.reply : raw;
         card = parsed.card ?? null;
@@ -86,5 +108,11 @@ export const agentChat = createServerFn({ method: "POST" })
       /* 模型偶尔不返回 json，就直接用原文 */
     }
 
-    return { ok: true as const, reply: reply || "（我没想好该怎么说，请再说一次）", card };
+    return {
+      ok: true,
+      status: 200,
+      error: "",
+      reply: reply || "（我没想好该怎么说，请再说一次）",
+      card,
+    };
   });
