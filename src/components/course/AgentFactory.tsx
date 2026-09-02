@@ -131,42 +131,66 @@ export function AgentFactory({
     void send(ctx ? `${ctx}。请开始帮我办这件事。` : "请开始帮我办这件事，缺什么就问我。");
   };
 
+  const [stage, setStage] = useState<0 | 1 | 2>(0);
+
+  const STAGES = [
+    { emoji: "🧾", label: "指令卡" },
+    { emoji: "💬", label: "和智能体对话" },
+    { emoji: "🎁", label: "成果卡" },
+  ] as const;
+
   return (
-    <div className="mx-auto w-full max-w-6xl">
-      <div className="mb-5 text-center">
+    <div className="mx-auto w-full max-w-5xl">
+      <div className="mb-4 text-center">
         <p className="mb-2 text-sm font-extrabold uppercase tracking-[0.2em] text-primary">
           实时生成 · 智能体工厂
         </p>
-        <h2 className="text-3xl font-extrabold sm:text-4xl">
+        <h2 className="text-2xl font-extrabold sm:text-3xl">
           {T.emoji} {card.name || T.label}
         </h2>
-        <p className="mt-1 text-muted-foreground">{T.desc}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{T.desc}</p>
       </div>
 
-      <div className="flex flex-wrap justify-center gap-2 pb-5">
-        {FACTORY_LIST.map((t) => (
+      {/* 分步导航 */}
+      <div className="mb-5 flex flex-wrap items-center justify-center gap-2">
+        {STAGES.map((s, i) => (
           <button
-            key={t.id}
-            onClick={() => {
-              setTypeId(t.id);
-              setMsgs([]);
-              setLive(null);
-            }}
-            className={`rounded-full px-4 py-2 text-sm font-bold transition ${
-              t.id === typeId
+            key={s.label}
+            onClick={() => setStage(i as 0 | 1 | 2)}
+            className={`rounded-full px-4 py-2 text-sm font-extrabold transition ${
+              i === stage
                 ? "bg-primary text-primary-foreground"
                 : "bg-secondary text-secondary-foreground hover:bg-primary/15"
             }`}
           >
-            {t.emoji} {t.label}
+            {i + 1}. {s.emoji} {s.label}
           </button>
         ))}
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_1.05fr]">
-        {/* 左：设定 + 对话 */}
+      {stage === 0 && (
         <div className="space-y-4">
-          <div className="card-pop space-y-3 p-5">
+          <div className="flex flex-wrap justify-center gap-2">
+            {FACTORY_LIST.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => {
+                  setTypeId(t.id);
+                  setMsgs([]);
+                  setLive(null);
+                }}
+                className={`rounded-full px-4 py-2 text-sm font-bold transition ${
+                  t.id === typeId
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-secondary-foreground hover:bg-primary/15"
+                }`}
+              >
+                {t.emoji} {t.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="card-pop space-y-3 p-6">
             <Line
               label="🏷️ 名字"
               value={card.name}
@@ -198,13 +222,6 @@ export function AgentFactory({
             </p>
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={boot}
-                disabled={busy}
-                className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-extrabold text-primary-foreground disabled:opacity-50"
-              >
-                <Rocket className="size-4" /> 启动智能体
-              </button>
-              <button
                 onClick={() => setShowPrompt((s) => !s)}
                 className="inline-flex items-center gap-2 rounded-full bg-secondary px-4 py-2 text-sm font-bold"
               >
@@ -221,17 +238,34 @@ export function AgentFactory({
               </button>
             </div>
             {showPrompt && (
-              <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded-xl bg-muted p-3 text-xs leading-relaxed">
+              <pre className="max-h-56 overflow-auto whitespace-pre-wrap rounded-xl bg-muted p-3 text-xs leading-relaxed">
                 {prompt}
               </pre>
             )}
           </div>
 
-          <div className="card-soft flex h-[46vh] flex-col p-4">
+          <div className="flex justify-center">
+            <button
+              onClick={() => {
+                setStage(1);
+                boot();
+              }}
+              disabled={busy}
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 font-extrabold text-primary-foreground disabled:opacity-50"
+            >
+              <Rocket className="size-5" /> 启动智能体，去对话
+            </button>
+          </div>
+        </div>
+      )}
+
+      {stage === 1 && (
+        <div className="space-y-4">
+          <div className="card-soft flex h-[52vh] flex-col p-5">
             <div ref={scrollRef} className="flex-1 space-y-3 overflow-auto pr-1">
               {msgs.length === 0 && (
                 <p className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground">
-                  {T.starter}。点「启动智能体」，或直接在下面说一句话。
+                  {T.starter}。直接在下面说一句话，或回到第 1 步点「启动智能体」。
                 </p>
               )}
               {msgs.map((m, i) => (
@@ -239,7 +273,7 @@ export function AgentFactory({
                   key={i}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                  className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                     m.role === "user"
                       ? "ml-auto bg-primary text-primary-foreground"
                       : "bg-secondary text-secondary-foreground"
@@ -271,24 +305,51 @@ export function AgentFactory({
               </button>
             </div>
           </div>
-        </div>
 
-        {/* 右：实时成果卡 */}
-        <ResultCard
-          key={replay}
-          data={live}
-          typeEmoji={T.emoji}
-          approved={approved}
-          onApprove={() => {
-            setApproved(true);
-            toast.success("你已完成人类最终决定 ✅");
-          }}
-          onReplay={() => setReplay((x) => x + 1)}
-        />
-      </div>
+          <div className="flex flex-wrap justify-center gap-2">
+            <button
+              onClick={() => setStage(0)}
+              className="rounded-full bg-secondary px-5 py-3 font-bold"
+            >
+              ← 回到指令卡
+            </button>
+            <button
+              onClick={() => setStage(2)}
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 font-extrabold text-primary-foreground"
+            >
+              看成果卡 <Wand2 className="size-5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {stage === 2 && (
+        <div className="space-y-4">
+          <ResultCard
+            key={replay}
+            data={live}
+            typeEmoji={T.emoji}
+            approved={approved}
+            onApprove={() => {
+              setApproved(true);
+              toast.success("你已完成人类最终决定 ✅");
+            }}
+            onReplay={() => setReplay((x) => x + 1)}
+          />
+          <div className="flex justify-center">
+            <button
+              onClick={() => setStage(1)}
+              className="rounded-full bg-secondary px-5 py-3 font-bold"
+            >
+              ← 继续和智能体对话
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 
 function Line({
   label,
