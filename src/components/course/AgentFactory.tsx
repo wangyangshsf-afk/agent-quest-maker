@@ -319,20 +319,21 @@ export function AgentFactory({
             </button>
           </div>
 
-          <AnimatePresence>
-            {booting && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-4"
-              >
-                <GeneratingOverlay emoji={T.emoji} />
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       )}
+
+      <AnimatePresence>
+        {booting && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 p-4"
+          >
+            <GeneratingOverlay emoji={T.emoji} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {stage === 1 && (
         <div className="space-y-4">
