@@ -173,7 +173,23 @@ export function AgentFactory({
     setMsgs([{ role: "assistant", content: greet }]);
   };
 
-  const [stage, setStage] = useState<0 | 1 | 2>(0);
+  const [stage, setStage] = useState<0 | 1 | 2>(startAtChat ? 1 : 0);
+
+  // 分享链接打开：自动孵化 3 秒后直接开始对话
+  const autoBooted = useRef(false);
+  useEffect(() => {
+    if (!startAtChat || autoBooted.current) return;
+    autoBooted.current = true;
+    setBooting(true);
+    const t = setTimeout(() => {
+      setBooting(false);
+      setStage(1);
+      boot();
+    }, 3000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startAtChat]);
+
 
   const STAGES = [
     { emoji: "🧾", label: "指令卡" },
