@@ -1359,6 +1359,7 @@ export const SLIDES: { title: string; C: (ctx: Ctx) => React.ReactElement }[] = 
   { title: "角色投票", C: () => <RoleVote /> },
   { title: "聊天 vs 智能体", C: () => <Compare /> },
   { title: "工作循环", C: () => <Loop /> },
+  { title: "概念小测", C: () => <ConceptQuiz /> },
   { title: "指挥台", C: CommandCenter },
   { title: "办事过程", C: Execution },
   { title: "侦探模式", C: Detective },
