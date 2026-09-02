@@ -635,11 +635,20 @@ export function CommandCenter({ fields, setField, go }: Ctx) {
           </div>
           <button
             disabled={!filled}
-            onClick={() => (filled ? go(7) : toast.error("至少填写一项再出发哦"))}
+            onClick={() => {
+              if (!filled) return toast.error("至少填写一项再出发哦");
+              setFlow(
+                flow.baseline
+                  ? { state: flow.approved ? "approved" : "rerunning" }
+                  : { baseline: { ...fields }, state: "running" },
+              );
+              go(SLIDE.execution);
+            }}
             className="w-full rounded-3xl bg-primary px-6 py-5 text-2xl font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)] transition enabled:hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
           >
             🚀 交给智能体办事
           </button>
+
           {!filled && (
             <p className="text-center text-sm text-muted-foreground">至少填写 1 项才能继续</p>
           )}
