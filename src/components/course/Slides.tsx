@@ -798,7 +798,7 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
   // 3. 没有人类检查点
   pool.push({
     key: "human",
-    score: hasHuman ? 70 : 90,
+    score: hasHuman ? 10 : 100,
     make: () => ({
       title: "案件：没人负责的方案",
       ai: `${activity}安排已生成，AI 将自动通知全部 ${count}、直接下单物资，并在当天自行调整流程，无需再确认。`,
