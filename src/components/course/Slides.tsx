@@ -457,8 +457,8 @@ function ConceptQuiz({ go }: Ctx) {
                           return next;
                         })
                       }
-                      whileTap={!isDone ? { scale: 0.95 } : undefined}
-                      whileHover={!isDone ? { scale: 1.03 } : undefined}
+                      whileTap={{ scale: !isDone ? 0.95 : 1 }}
+                      whileHover={{ scale: !isDone ? 1.03 : 1 }}
                       className={`rounded-2xl border-2 px-4 py-4 text-left text-sm font-bold transition-colors ${
                         status === "correct"
                           ? "border-grass bg-grass/20 text-grass-foreground"
