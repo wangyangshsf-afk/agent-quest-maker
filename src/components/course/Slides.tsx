@@ -2252,7 +2252,6 @@ const RECAP_CARDS = [
 
 function Recap() {
   const [open, setOpen] = useState<string | null>(null);
-  const [pick, setPick] = useState<string | null>(null);
   const toggle = (k: string) => setOpen((o) => (o === k ? null : k));
 
   return (
