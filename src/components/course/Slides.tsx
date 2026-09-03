@@ -886,14 +886,6 @@ const SAMPLE_STANDARD =
 
 
 export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
-  const warnings = detectConflicts(fields);
-  const missingWarn = warnings.filter((w) => w.startsWith("❓") || w.startsWith("📍"));
-  const conflictWarn = warnings.filter((w) => !missingWarn.includes(w));
-  const extraMissing: string[] = [];
-  if (!flow.standard.trim()) extraMissing.push("❓ 还缺少「完成标准」：不写清楚，就没法判断方案是否合格。");
-  if (fields.limits.trim() && !/老师|家长|确认|签字/.test(fields.limits + flow.standard))
-    extraMissing.push("❓ 还缺少「最终确认人」：谁来做最后确认？");
-  const missing = [...missingWarn, ...extraMissing];
   const filled = Object.values(fields).some((v) => v.trim());
   const complete = fields.activity.trim() && fields.count.trim() && fields.limits.trim();
   const confirmer = /家长/.test(fields.limits + flow.standard)
