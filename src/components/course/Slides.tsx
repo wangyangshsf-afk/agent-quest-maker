@@ -2471,24 +2471,15 @@ function Homework({ card, flow, setFlow, go }: Ctx) {
       ) : (
         <div className="grid gap-4">
           <h3 className="text-center text-3xl font-extrabold">你让智能体变得更靠谱了！</h3>
-          <div className="card-pop whitespace-pre-wrap p-6 text-sm leading-relaxed">{cardText}</div>
-          <label className="card-soft flex items-start gap-3 p-4 text-sm font-bold">
-            <input
-              type="checkbox"
-              checked={ch.checked}
-              onChange={(e) => patch({ checked: e.target.checked })}
-              className="mt-1 size-4"
-            />
-            我已经检查过这份方案；涉及外出、花钱、食物或安全时，我会和家长/老师一起确认。
-          </label>
+          <div className="card-pop p-6 text-center">
+            <p className="text-lg font-bold">
+              你完成了「选任务 → 试一试 → 找问题 → 修改并再试」四步循环。
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              重要提醒：涉及外出、花钱、食物或安全时，要和家长/老师一起确认。
+            </p>
+          </div>
           <div className="flex flex-wrap justify-center gap-3">
-            <button
-              disabled={!ch.checked}
-              onClick={() => download(`${card.name || "我的智能体"}-挑战卡.md`, cardText)}
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 font-extrabold text-primary-foreground disabled:opacity-40"
-            >
-              <ClipboardCheck className="size-5" /> 下载 / 打印挑战卡
-            </button>
             <button
               onClick={() => go(SLIDE.factory)}
               className="rounded-full bg-secondary px-5 py-3 font-bold"
