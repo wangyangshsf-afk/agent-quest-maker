@@ -2647,6 +2647,7 @@ function Homework({ card, flow, setFlow, go }: Ctx) {
 
 export const SLIDES: { title: string; C: (ctx: Ctx) => React.ReactElement }[] = [
   { title: "封面", C: Cover },
+  { title: "课堂导入", C: VideoIntro },
   { title: "学习地图", C: Journey },
   { title: "情境引入", C: Situation },
   { title: "角色投票", C: () => <RoleVote /> },
