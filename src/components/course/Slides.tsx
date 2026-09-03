@@ -1177,7 +1177,6 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
   const sig = `${fields.activity}|${fields.count}|${fields.limits}|${flow.standard}|${theme.id}`;
   const steps = useMemo(() => makeRun(fields, theme, flow.standard), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
   const draft = useMemo(() => makeDraft(fields, theme, flow.standard), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [showDraft, setShowDraft] = useState(false);
   const [n, setN] = useState(0);
   useEffect(() => setN(0), [sig]);
 
@@ -1192,13 +1191,6 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
   // 进入本页时的版本判定，跑完后不会把第一版误标成第二版
   const [isRerun] = useState(flow.state === "rerunning" || flow.approved);
   const done = n >= steps.length;
-  const plan = steps[2]!.lines;
-  const needHuman = [
-    "通知同学和家长",
-    "任何花钱、预约或下单",
-    "外出路线与集合安排",
-    "安全与应急措施",
-  ];
 
   useEffect(() => {
     if (!done) return;
