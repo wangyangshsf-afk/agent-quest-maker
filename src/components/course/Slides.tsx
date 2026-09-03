@@ -327,7 +327,7 @@ function Situation({ go }: Ctx) {
             今天我们就要学会：让 AI 从「回答问题」变成「帮我完成一件事」。
           </p>
           <button
-            onClick={() => go(3)}
+            onClick={() => go(SLIDE.roleVote)}
             className="inline-flex w-fit items-center gap-2 rounded-full bg-accent px-6 py-3 text-lg font-extrabold text-accent-foreground"
           >
             我来选个帮手 <ArrowRight className="size-5" />
