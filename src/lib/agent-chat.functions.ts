@@ -25,31 +25,43 @@ const STYLE_INSTRUCTION = `
 `;
 
 const CARD_INSTRUCTION = `
-同时维护一张 json「成果卡」，真实反映当前对话进展：
+同时维护一张 json「成果卡」，真实反映当前对话进展（只用本次对话里出现过的信息，不要自行编造场景）：
 {
   "title": "智能体名字+具体事项",
   "tagline": "当前进度一句话",
-  "collected": [{"key": "", "value": ""}],
+  "stage": "collecting | planning | checking | awaiting_student_confirmation",
+  "collected": [{"key": "", "value": "学生原话或确认后的简短值"}],
   "missing": ["还缺的信息"],
-  "plan": ["2-4条具体步骤"],
-  "checks": ["检查结论"],
+  "nextMissingField": "此刻正在追问的那一项，没有就空字符串",
+  "plan": ["2-4条具体步骤（信息没齐时给草稿）"],
+  "checks": [{"rule": "检查项", "status": "pass | adjust | confirm", "reason": "依据", "suggestion": "建议，没有就空"}],
   "risks": ["风险或冲突，没有就空"],
-  "humanConfirm": "需人类确认的事项",
+  "humanConfirm": "需家长或老师确认的事项",
+  "actionLog": "这一轮你做了什么，例如：已根据 7 节课和 16:30 放学更新日程草稿",
   "progress": 0,
   "mood": "emoji"
 }
+阶段规则：信息没齐 = collecting（每轮只追问一项）；信息齐了先给方案草稿 = planning；逐条对照规则检查 = checking；成果卡完成、等学生核对 = awaiting_student_confirmation。
+不要声称已经替学生完成了订票、购买、预约或外出等真实世界的行动。
 输出：{"reply": "给用户看的回复", "card": {...}}。reply 里不要出现 json。
 `;
+
+export type CardCheck = { rule: string; status: "pass" | "adjust" | "confirm"; reason: string; suggestion?: string };
+
+export type CardStage = "collecting" | "planning" | "checking" | "awaiting_student_confirmation";
 
 export type CardPayload = {
   title: string;
   tagline: string;
+  stage?: CardStage;
   collected: { key: string; value: string }[];
   missing: string[];
+  nextMissingField?: string;
   plan: string[];
-  checks: string[];
+  checks: (string | CardCheck)[];
   risks: string[];
   humanConfirm: string;
+  actionLog?: string;
   progress: number;
   mood: string;
 };
