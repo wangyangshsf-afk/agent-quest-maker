@@ -37,20 +37,21 @@ import { AgentFactory } from "@/components/course/AgentFactory";
 /** 集中管理的页面索引，避免魔法数字 */
 export const SLIDE = {
   cover: 0,
-  journey: 1,
-  situation: 2,
-  roleVote: 3,
-  compare: 4,
-  loop: 5,
-  quiz: 6,
-  commandCenter: 7,
-  execution: 8,
-  detective: 9,
-  review: 10,
-  scenes: 11,
-  factory: 12,
-  wrap: 13,
-  homework: 14,
+  video: 1,
+  journey: 2,
+  situation: 3,
+  roleVote: 4,
+  compare: 5,
+  loop: 6,
+  quiz: 7,
+  commandCenter: 8,
+  execution: 9,
+  detective: 10,
+  review: 11,
+  scenes: 12,
+  factory: 13,
+  wrap: 14,
+  homework: 15,
 } as const;
 
 export type FlowState = "draft" | "running" | "needs_fix" | "detective" | "rerunning" | "approved";
@@ -235,7 +236,7 @@ function Cover({ go }: Ctx) {
         <p className="mt-3 text-xl font-bold text-primary sm:text-2xl">让 AI 帮我完成一件事</p>
         <p className="mt-2 text-base text-muted-foreground">45 分钟沉浸互动课件 · 适合 8-15 岁</p>
         <motion.button
-          onClick={() => go(1)}
+          onClick={() => go(SLIDE.video)}
           animate={{ scale: [1, 1.06, 1] }}
           transition={{ repeat: Infinity, duration: 1.6 }}
           className="mt-8 inline-flex items-center gap-3 rounded-full bg-primary px-10 py-4 text-xl font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)] sm:mt-10 sm:py-5 sm:text-2xl"
@@ -250,7 +251,70 @@ function Cover({ go }: Ctx) {
   );
 }
 
-/* ---------- 2. Journey map ---------- */
+/* ---------- 2. Video intro ---------- */
+
+function VideoIntro({ go }: Ctx) {
+  const [error, setError] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  return (
+    <Big>
+      <SlideTitle kicker="课堂导入" title="来看看它帮助老人办了什么事？" />
+      <p className="-mt-4 mb-5 text-center text-base font-bold text-muted-foreground">
+        认真观察：视频里的 AI 智能体帮老人做了哪些事？它问了什么、查了什么、最后又交给了谁决定？
+      </p>
+
+      <div className="card-pop mx-auto max-w-4xl overflow-hidden p-2">
+        <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-secondary">
+          {error ? (
+            <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+              <Play className="size-12 text-muted-foreground/50" />
+              <p className="text-lg font-extrabold">视频待插入</p>
+              <p className="max-w-md text-sm text-muted-foreground">
+                请将视频文件命名为 <code className="rounded bg-card px-1.5 py-0.5 font-mono">class-video.mp4</code> 并放到 <code className="rounded bg-card px-1.5 py-0.5 font-mono">public/</code> 文件夹下，这里就会自动播放。
+              </p>
+            </div>
+          ) : (
+            <>
+              <video
+                ref={videoRef}
+                src="/class-video.mp4"
+                controls
+                className="h-full w-full"
+                onPlay={() => setPlaying(true)}
+                onPause={() => setPlaying(false)}
+                onError={() => setError(true)}
+              />
+              {!playing && (
+                <button
+                  onClick={() => videoRef.current?.play()}
+                  className="absolute inset-0 flex items-center justify-center bg-black/20 transition hover:bg-black/30"
+                  aria-label="播放视频"
+                >
+                  <span className="flex size-20 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg">
+                    <Play className="size-9 ml-1" fill="currentColor" />
+                  </span>
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <button
+          onClick={() => go(SLIDE.journey)}
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[3px_3px_0_0_var(--ink)]"
+        >
+          继续看学习地图 <ArrowRight className="size-5" />
+        </button>
+      </div>
+    </Big>
+  );
+}
+
+/* ---------- 3. Journey map ---------- */
 
 const MILESTONES = [
   { emoji: "🎒", t: "遇到难题", d: "春游要怎么安排？", s: SLIDE.situation },
@@ -326,7 +390,7 @@ function Situation({ go }: Ctx) {
             今天我们就要学会：让 AI 从「回答问题」变成「帮我完成一件事」。
           </p>
           <button
-            onClick={() => go(3)}
+            onClick={() => go(SLIDE.roleVote)}
             className="inline-flex w-fit items-center gap-2 rounded-full bg-accent px-6 py-3 text-lg font-extrabold text-accent-foreground"
           >
             我来选个帮手 <ArrowRight className="size-5" />
@@ -2583,6 +2647,7 @@ function Homework({ card, flow, setFlow, go }: Ctx) {
 
 export const SLIDES: { title: string; C: (ctx: Ctx) => React.ReactElement }[] = [
   { title: "封面", C: Cover },
+  { title: "课堂导入", C: VideoIntro },
   { title: "学习地图", C: Journey },
   { title: "情境引入", C: Situation },
   { title: "角色投票", C: () => <RoleVote /> },
