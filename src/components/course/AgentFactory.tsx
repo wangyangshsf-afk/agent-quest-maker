@@ -538,7 +538,7 @@ function TaskProgress({
         })}
       </ol>
 
-      <div className={`mt-3 space-y-2 text-xs ${open ? "" : "hidden sm:block"}`}>
+      <div className={`mt-3 space-y-2 text-xs ${open ? "" : "hidden lg:block"}`}>
         <div>
           <p className="font-extrabold">📥 已知信息</p>
           {got.length ? (
