@@ -1833,11 +1833,6 @@ function Detective({ fields, theme, setField, go, flow, setFlow }: Ctx) {
         今天我们看 2 个案件，每一步点两次：先想，再看答案。
       </p>
 
-      {flow.doubt && (
-        <p className="mx-auto mb-4 max-w-3xl rounded-2xl border-2 border-ink bg-card p-3 text-center text-sm font-bold">
-          你在第 9 页标记要核实的是：<b>「{flow.doubt}」</b>。下面的案件就来自智能体那份方案草案。
-        </p>
-      )}
 
 
       <div className="mb-4 flex flex-wrap justify-center gap-2">
