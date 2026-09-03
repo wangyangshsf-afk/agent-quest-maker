@@ -1328,10 +1328,20 @@ function Detective({ fields, theme, setField, go, setFlow }: Ctx) {
 
   return (
     <Big>
-      <SlideTitle kicker="侦探模式" title="🕵️ 抓出 AI 的毛病" />
-      <p className="mb-4 text-center text-sm font-bold text-muted-foreground">
-        今天我们抓 2 个案件。每一步点两次：先想，再看答案。修改由你来决定要不要采纳。
+      <TaskBar active="check" />
+      <SlideTitle kicker="侦探模式" title="🕵️ 发现指令缺口，修订智能体规则" />
+      <p className="mx-auto mb-4 max-w-3xl text-center text-sm font-bold text-muted-foreground">
+        你不是在订正作业答案。要判断：<b>是任务信息缺了，还是规则没写清楚？</b>
+        今天我们看 2 个案件，每一步点两次：先想，再看答案。
       </p>
+      <div className="mx-auto mb-4 grid max-w-3xl gap-2 sm:grid-cols-2">
+        <p className="rounded-2xl bg-secondary/70 p-3 text-sm font-bold">
+          🧩 <b>信息缺失</b>：比如没有地点。智能体就无法判断路程、门票、预约和时间是否可行。
+        </p>
+        <p className="rounded-2xl bg-sun/25 p-3 text-sm font-bold">
+          🛑 <b>规则缺失</b>：没写清哪些动作必须由人确认。通知、花钱、预约、外出不能由它自己决定。
+        </p>
+      </div>
 
       <div className="mb-4 flex flex-wrap justify-center gap-2">
         {cases.map((x, k) => (
