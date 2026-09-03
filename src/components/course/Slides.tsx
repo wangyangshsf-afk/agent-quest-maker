@@ -1606,21 +1606,21 @@ function makeCases(fields: Fields, theme: AgentTheme, standard = ""): DCase[] {
         },
         {
           hint: "给 AI 一个时间格式，它才能输出你要的样子。",
-          answer: `❓ 问：「请做成时间表。每行写『几点—几点｜做什么｜谁负责』。」`,
+          answer: `❓ 问：「${activity}请做成时间表。每行写『几点—几点｜做什么｜谁负责』。」`,
         },
         {
           hint: "把确定的时间写回指挥台。",
-          answer: "✏️ 加上：开始与结束时间，再留 10 分钟机动。",
+          answer: `✏️ 加上：${start} 开始、${end} 前结束，再留 10 分钟机动。`,
         },
       ],
       fixField: "limits",
-      fixValue: `${limits}${limits ? "；" : ""}时间：09:00 开始，12:00 前结束（含 10 分钟机动）`,
-      fixLabel: "补上：具体起止时间",
+      fixValue: `${limits}${limits ? "；" : ""}时间：${start} 开始，${end} 前结束（含 10 分钟机动）${stdTail}`,
+      fixLabel: `补上时间：${start}—${end}`,
     }),
   });
 
   // 第 9 页方案草案里真实出现的破绽，优先成为案件（第 10 页要能追溯到第 9 页）
-  const fromDraft = makeDraft(fields, theme).flaws;
+  const fromDraft = makeDraft(fields, theme, std).flaws;
 
   return pool
     .map((c, idx) => ({ ...c, idx, score: c.score + (fromDraft.includes(c.key) ? 200 : 0) }))
@@ -1634,8 +1634,9 @@ function makeCases(fields: Fields, theme: AgentTheme, standard = ""): DCase[] {
 }
 
 function Detective({ fields, theme, setField, go, flow, setFlow }: Ctx) {
-  const sig = `${fields.activity}|${fields.count}|${fields.limits}|${theme.id}`;
-  const live: DCase[] = useMemo(() => makeCases(fields, theme), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
+  const sig = `${fields.activity}|${fields.count}|${fields.limits}|${flow.standard}|${theme.id}`;
+  const live: DCase[] = useMemo(() => makeCases(fields, theme, flow.standard), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // 一旦开始破案就冻结案件，避免写回指挥台后案件被重算、进度丢失
   const [frozen, setFrozen] = useState<DCase[] | null>(null);
   const cases = frozen ?? live;
