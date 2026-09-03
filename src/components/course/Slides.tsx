@@ -2249,16 +2249,9 @@ const RECAP_CARDS = [
   },
 ];
 
-const RECAP_QUESTIONS = [
-  "我的目标是什么？",
-  "我需要提供哪些条件？",
-  "这个方案怎样才算完成？",
-  "哪些事情必须由大人确认？",
-];
 
 function Recap() {
   const [open, setOpen] = useState<string | null>(null);
-  const [pick, setPick] = useState<string | null>(null);
   const toggle = (k: string) => setOpen((o) => (o === k ? null : k));
 
   return (
@@ -2337,33 +2330,6 @@ function Recap() {
         </p>
       </button>
 
-      <div className="mt-5 rounded-3xl border-2 border-border bg-card p-5">
-        <p className="flex items-center gap-2 text-lg font-extrabold">
-          <Lightbulb className="size-6 text-accent" />
-          想一想：下次让智能体帮你做一件事时，你会先问哪一个问题？
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {RECAP_QUESTIONS.map((q) => (
-            <button
-              key={q}
-              type="button"
-              onClick={() => setPick(q)}
-              className={`rounded-full border-2 px-4 py-2 text-sm font-bold transition ${
-                pick === q
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-secondary/50 hover:border-primary/60"
-              }`}
-            >
-              {q}
-            </button>
-          ))}
-        </div>
-        {pick && (
-          <p className="mt-3 text-base font-bold text-primary">
-            很好！下次就从「{pick}」开始问。
-          </p>
-        )}
-      </div>
 
       <p className="mt-5 text-center text-xl font-extrabold">
         目标 → 分步行动 → 检查结果 → 人类决定
