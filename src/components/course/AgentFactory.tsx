@@ -341,8 +341,8 @@ export function AgentFactory({
       {stage === 1 && (
         <div className="flex flex-col gap-4 lg:h-[80vh] lg:flex-row">
           {/* 左侧：对话框占 3/4 */}
-          <div className="flex w-full flex-col gap-4 lg:w-3/4">
-            <div className="card-soft relative flex h-[60vh] flex-col p-5 lg:h-full">
+          <div className="flex w-full flex-col gap-4 lg:h-full lg:w-3/4">
+            <div className="card-soft relative flex h-[60vh] flex-col p-5 lg:flex-1">
               <div ref={scrollRef} className="flex-1 space-y-3 overflow-auto pr-1">
                 {msgs.length === 0 && (
                   <p className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground">
