@@ -812,16 +812,9 @@ export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
     <Big>
       <TaskBar active="brief" />
       <SlideTitle kicker="任务说明卡" title="🎛️ 给智能体下达一份完整任务" />
-      <p className="mx-auto mb-5 max-w-3xl text-center text-sm font-bold text-muted-foreground">
-        智能体不能靠猜来办事。请告诉它：<b>要完成什么、涉及谁、有什么不能违反的条件、怎样才算完成。</b>
-      </p>
       <div className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
         <div className="card-pop space-y-5 p-6">
           <div className="rounded-2xl bg-secondary/70 p-3">
-            <p className="text-sm font-bold">
-              你现在是<b>任务负责人</b>。把任务说明交给「春游规划助理」，它会用你给的信息制定方案；
-              你没写清楚的地方，它只能追问，或者做出不可靠的猜测。
-            </p>
             <button
               onClick={() => {
                 setField("activity", SAMPLE.activity);
@@ -830,61 +823,42 @@ export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
                 setFlow({ standard: SAMPLE_STANDARD });
                 toast.success("已载入示例任务说明，可以随便改成你自己的 ✏️");
               }}
-              className="mt-3 rounded-full bg-card px-4 py-2 text-sm font-extrabold shadow"
+              className="rounded-full bg-card px-4 py-2 text-sm font-extrabold shadow"
             >
               加载示例任务说明
             </button>
           </div>
-          <div>
-            <VoiceInput
-              emoji="🎯"
-              label="1 任务目标：希望智能体完成什么？"
-              placeholder="示例：为周六去上海科技馆的活动生成一份可执行方案"
-              value={fields.activity}
-              onChange={(v) => setField("activity", v)}
-            />
-            <p className="mt-1.5">
-              <WhyTip k="activity" />
-            </p>
-          </div>
-          <div>
-            <VoiceInput
-              emoji="👥"
-              label="2 任务对象与规模：这件事涉及谁、多少人？"
-              placeholder="示例：50 名学生 + 2 位老师；老师负责最终确认"
-              value={fields.count}
-              onChange={(v) => setField("count", v)}
-            />
-            <p className="mt-1.5">
-              <WhyTip k="count" />
-            </p>
-          </div>
-          <div>
-            <VoiceInput
-              emoji="🚧"
-              label="3 约束条件：哪些条件不能违反？"
-              placeholder="示例：人均 120 元；10:00 出发；17:00 前回家；有人花生过敏"
-              value={fields.limits}
-              onChange={(v) => setField("limits", v)}
-              multiline
-            />
-            <p className="mt-1.5">
-              <WhyTip k="limits" />
-            </p>
-          </div>
-          <div>
-            <VoiceInput
-              emoji="🏁"
-              label="4 完成标准：最后的方案必须包含什么？"
-              placeholder="示例：集合点、路线、时间表、预算明细、安全预案；先由老师确认"
-              value={flow.standard}
-              onChange={(v) => setFlow({ standard: v })}
-              multiline
-            />
-            <p className="mt-1.5">
-              <WhyTip k="standard" />
-            </p>
-          </div>
+          <VoiceInput
+            emoji="🎯"
+            label="1 任务目标：希望智能体完成什么？"
+            placeholder="示例：为周六去上海科技馆的活动生成一份可执行方案"
+            value={fields.activity}
+            onChange={(v) => setField("activity", v)}
+          />
+          <VoiceInput
+            emoji="👥"
+            label="2 任务对象与规模：这件事涉及谁、多少人？"
+            placeholder="示例：50 名学生 + 2 位老师；老师负责最终确认"
+            value={fields.count}
+            onChange={(v) => setField("count", v)}
+          />
+          <VoiceInput
+            emoji="🚧"
+            label="3 约束条件：哪些条件不能违反？"
+            placeholder="示例：人均 120 元；10:00 出发；17:00 前回家；有人花生过敏"
+            value={fields.limits}
+            onChange={(v) => setField("limits", v)}
+            multiline
+          />
+          <VoiceInput
+            emoji="🏁"
+            label="4 完成标准：最后的方案必须包含什么？"
+            placeholder="示例：集合点、路线、时间表、预算明细、安全预案；先由老师确认"
+            value={flow.standard}
+            onChange={(v) => setFlow({ standard: v })}
+            multiline
+          />
+
           <p className="text-sm text-muted-foreground">
             🎙️ 课堂上建议直接打字。课后在家可以点麦克风用说的；没有麦克风或不给权限时，打字一样能完成。
           </p>
