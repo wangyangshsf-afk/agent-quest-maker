@@ -412,7 +412,7 @@ export function AgentFactory({
             approved={approved}
             onApprove={() => {
               setApproved(true);
-              toast.success("你已完成人类最终决定 ✅");
+              toast.success("已记录：你核对过这份成果卡 ✅ 花钱/外出仍要家长或老师确认");
             }}
             onReplay={() => setReplay((x) => x + 1)}
             shareUrl={shareUrl}
@@ -827,7 +827,7 @@ function ResultCard({
 
       <div className="rounded-2xl bg-sun/25 p-4">
         <p className="flex items-center gap-2 font-extrabold">
-          <UserCheck className="size-5" /> 人类最终决定
+          <UserCheck className="size-5" /> 人类确认（学生核对 + 家长/老师确认）
         </p>
         <p className="mt-1 text-sm">{data.humanConfirm || "请检查这份方案后再执行。"}</p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -836,7 +836,7 @@ function ResultCard({
             disabled={approved}
             className="rounded-full bg-primary px-4 py-2 text-sm font-extrabold text-primary-foreground disabled:opacity-50"
           >
-            {approved ? "✅ 已由我确认通过" : "我检查过了，通过"}
+            {approved ? "✅ 已由学生核对" : "我已核对"}
           </button>
           <button
             onClick={() => downloadPng(data, approved)}
@@ -945,7 +945,7 @@ function downloadPng(d: CardPayload, approved: boolean) {
   sec("风险与冲突", d.risks ?? []);
   sec("人类最终决定", [
     d.humanConfirm || "需要本人或老师确认。",
-    approved ? "✅ 已由人类确认通过" : "⏳ 等待人类确认",
+    approved ? "✅ 已由学生核对（仍需家长/老师确认）" : "⏳ 等待学生核对",
   ]);
 
   const pad = 48;
