@@ -1373,13 +1373,87 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
                 </ul>
               </div>
             </div>
+
+            <div className="rounded-2xl border-2 border-ink bg-card p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-lg font-extrabold">🤖 {draft.title}</p>
+                <button
+                  onClick={() => setShowDraft((v) => !v)}
+                  className="rounded-full bg-primary px-4 py-2 text-sm font-extrabold text-primary-foreground"
+                >
+                  {showDraft ? "收起方案草案" : "查看智能体方案草案"}
+                </button>
+              </div>
+              <p className="mt-1 text-sm font-bold text-muted-foreground">
+                下面的方案是智能体的初版产出，不一定正确，请准备检查。
+              </p>
+              {showDraft && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="mt-3 overflow-hidden"
+                >
+                  <ul className="space-y-2">
+                    {draft.items.map((it) => (
+                      <li key={it.label} className="rounded-xl bg-muted p-3">
+                        <p className="flex flex-wrap items-center gap-2 text-sm font-extrabold">
+                          {it.label}
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${TAG_CLASS[it.tag]}`}
+                          >
+                            {TAG_TEXT[it.tag]}
+                          </span>
+                        </p>
+                        <p className="mt-1 text-sm font-medium">{it.text}</p>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-3 rounded-xl bg-sun/25 p-3 text-sm font-bold">{draft.verdict}</p>
+
+                  <p className="mt-4 text-sm font-extrabold">
+                    👇 指出一个你不相信或需要核实的地方（选一条才能进入侦探模式）
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {draft.items.map((it) => (
+                      <button
+                        key={it.label}
+                        onClick={() => {
+                          setFlow({
+                            doubt: it.label,
+                            unlocked: Math.max(flow.unlocked, SLIDE.detective),
+                          });
+                          toast.success(`已记下：我要核实「${it.label}」`);
+                        }}
+                        className={`rounded-full px-4 py-2 text-sm font-extrabold ${
+                          flow.doubt === it.label ? "bg-grass text-ink" : "bg-secondary"
+                        }`}
+                      >
+                        {flow.doubt === it.label ? "✅ " : ""}
+                        {it.label}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </div>
+
             <div className="flex flex-wrap gap-3">
               <button
-                onClick={() => go(SLIDE.detective)}
-                className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)]"
+                onClick={() => {
+                  if (!flow.doubt) {
+                    setShowDraft(true);
+                    toast.info("先看方案草案，并指出一个你要核实的地方 🔍");
+                    return;
+                  }
+                  go(SLIDE.detective);
+                }}
+                className={`inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)] ${
+                  flow.doubt ? "" : "opacity-60"
+                }`}
               >
                 <Search className="size-5" /> 去侦探模式找漏洞
               </button>
+
               {isRerun && (
                 <button
                   onClick={() => go(SLIDE.review)}
