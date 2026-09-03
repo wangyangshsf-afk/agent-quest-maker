@@ -1601,7 +1601,13 @@ function Scenes({ theme, applyTheme, go, flow }: Ctx) {
             whileHover={{ y: -6 }}
             onClick={() => {
               applyTheme(t);
-              toast.success(`已套用「${t.name}」，没有覆盖你已经改过的内容`);
+              if (!flow.approved) {
+                toast.error("先去验收台点「我检查过了，通过」");
+                go(SLIDE.review);
+                return;
+              }
+              toast.success(`已选择「${t.name}」，正在进入指令卡`);
+              go(SLIDE.factory);
             }}
             className={`card-pop bg-gradient-to-br p-5 text-left ${t.tint} ${
               theme.id === t.id ? "ring-4 ring-primary" : ""
