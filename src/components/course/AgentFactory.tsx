@@ -339,66 +339,73 @@ export function AgentFactory({
       </AnimatePresence>
 
       {stage === 1 && (
-        <div className="space-y-4">
-          <TaskProgress data={live} approved={approved} slots={T.slots} />
-          <div className="card-soft relative flex h-[52vh] flex-col p-5">
-            <div ref={scrollRef} className="flex-1 space-y-3 overflow-auto pr-1">
-              {msgs.length === 0 && (
-                <p className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground">
-                  {T.starter}。直接在下面说一句话，或回到第 1 步点「启动智能体」。
-                </p>
-              )}
-              {msgs.map((m, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                    m.role === "user"
-                      ? "ml-auto bg-primary text-primary-foreground"
-                      : "bg-secondary text-secondary-foreground"
-                  }`}
+        <div className="flex flex-col gap-4 lg:h-[80vh] lg:flex-row">
+          {/* 左侧：对话框占 3/4 */}
+          <div className="flex w-full flex-col gap-4 lg:h-full lg:w-3/4">
+            <div className="card-soft relative flex h-[60vh] flex-col p-5 lg:flex-1">
+              <div ref={scrollRef} className="flex-1 space-y-3 overflow-auto pr-1">
+                {msgs.length === 0 && (
+                  <p className="rounded-2xl bg-muted p-4 text-sm text-muted-foreground">
+                    {T.starter}。直接在下面说一句话，或回到第 1 步点「启动智能体」。
+                  </p>
+                )}
+                {msgs.map((m, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                      m.role === "user"
+                        ? "ml-auto bg-primary text-primary-foreground"
+                        : "bg-secondary text-secondary-foreground"
+                    }`}
+                  >
+                    <ChatMessage content={m.content} />
+                  </motion.div>
+                ))}
+                {busy && (
+                  <p className="inline-flex items-center gap-2 rounded-2xl bg-secondary px-4 py-3 text-sm font-bold">
+                    <Loader2 className="size-4 animate-spin" /> 智能体正在思考…
+                  </p>
+                )}
+              </div>
+              <div className="mt-3 shrink-0">
+                <VoiceInput
+                  label="🗣️ 对智能体说"
+                  emoji="💬"
+                  placeholder="说出你的要求，或补充它问你的信息"
+                  value={input}
+                  onChange={setInput}
+                />
+                <button
+                  onClick={() => void send(input)}
+                  disabled={busy || !input.trim()}
+                  className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-3 font-extrabold text-accent-foreground disabled:opacity-40"
                 >
-                  <ChatMessage content={m.content} />
-                </motion.div>
-              ))}
-              {busy && (
-                <p className="inline-flex items-center gap-2 rounded-2xl bg-secondary px-4 py-3 text-sm font-bold">
-                  <Loader2 className="size-4 animate-spin" /> 智能体正在思考…
-                </p>
-              )}
+                  <Send className="size-4" /> 发送
+                </button>
+              </div>
             </div>
-            <div className="mt-3">
-              <VoiceInput
-                label="🗣️ 对智能体说"
-                emoji="💬"
-                placeholder="说出你的要求，或补充它问你的信息"
-                value={input}
-                onChange={setInput}
-              />
+
+            <div className="flex flex-wrap justify-center gap-2">
               <button
-                onClick={() => void send(input)}
-                disabled={busy || !input.trim()}
-                className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-3 font-extrabold text-accent-foreground disabled:opacity-40"
+                onClick={() => setStage(0)}
+                className="rounded-full bg-secondary px-5 py-3 font-bold"
               >
-                <Send className="size-4" /> 发送
+                ← 回到指令卡
+              </button>
+              <button
+                onClick={() => setStage(2)}
+                className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 font-extrabold text-primary-foreground"
+              >
+                看成果卡 <Wand2 className="size-5" />
               </button>
             </div>
           </div>
 
-          <div className="flex flex-wrap justify-center gap-2">
-            <button
-              onClick={() => setStage(0)}
-              className="rounded-full bg-secondary px-5 py-3 font-bold"
-            >
-              ← 回到指令卡
-            </button>
-            <button
-              onClick={() => setStage(2)}
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 font-extrabold text-primary-foreground"
-            >
-              看成果卡 <Wand2 className="size-5" />
-            </button>
+          {/* 右侧：任务进度占 1/4 */}
+          <div className="w-full lg:w-1/4">
+            <TaskProgress data={live} approved={approved} slots={T.slots} />
           </div>
         </div>
       )}
@@ -491,7 +498,7 @@ function TaskProgress({
           : { text: "未开始", icon: "⬜" };
 
   return (
-    <div className="card-soft p-4">
+    <div className="card-soft h-full p-4 lg:overflow-auto">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="text-sm font-extrabold">🧭 任务进度</p>
@@ -499,13 +506,13 @@ function TaskProgress({
         </div>
         <button
           onClick={() => setOpen((v) => !v)}
-          className="rounded-full bg-secondary px-3 py-1.5 text-xs font-bold sm:hidden"
+          className="rounded-full bg-secondary px-3 py-1.5 text-xs font-bold lg:hidden"
         >
           {open ? "收起详情" : "展开详情"}
         </button>
       </div>
 
-      <ol className="mt-3 grid gap-2 sm:grid-cols-4">
+      <ol className="mt-3 grid gap-2">
         {PHASES.map((p, i) => {
           const s = status(i);
           const active = i === idx;
@@ -531,7 +538,7 @@ function TaskProgress({
         })}
       </ol>
 
-      <div className={`mt-3 space-y-2 text-xs ${open ? "" : "hidden sm:block"}`}>
+      <div className={`mt-3 space-y-2 text-xs ${open ? "" : "hidden lg:block"}`}>
         <div>
           <p className="font-extrabold">📥 已知信息</p>
           {got.length ? (
