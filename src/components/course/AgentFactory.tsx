@@ -93,25 +93,28 @@ export function AgentFactory({
     }
     setTypeId(THEME_TO_TYPE[theme.id] ?? "custom");
     setAction("");
+  }, [theme.id]);
+
+  // 每次切换智能体，都开一段全新的会话：不复用上一个场景的任何业务数据
+  const sessionKey = useRef(typeId);
+  useEffect(() => {
+    if (sessionKey.current === typeId) return;
+    sessionKey.current = typeId;
     setMsgs([]);
+    setInput("");
     setLive(null);
     setApproved(false);
-  }, [theme.id]);
+    setBusy(false);
+  }, [typeId]);
 
   const T = FACTORY_TYPES[typeId];
 
   const actionText = action.trim() || card.steps.filter(Boolean).join("；") || T.defaultAction;
 
+  // 只用当前这一个智能体的配置构建上下文，不从课程页全局状态兜底取值
   const prompt = useMemo(
-    () =>
-      buildFactoryPrompt(
-        card.name,
-        card.goal || `${fields.activity}｜${fields.count}｜${fields.limits}`,
-        actionText,
-        card.check,
-        typeId,
-      ),
-    [card.name, card.goal, card.check, actionText, typeId, fields],
+    () => buildFactoryPrompt(card.name, card.goal, actionText, card.check, typeId),
+    [card.name, card.goal, card.check, actionText, typeId],
   );
 
   const shareUrl = useMemo(
