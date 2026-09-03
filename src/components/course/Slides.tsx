@@ -56,6 +56,37 @@ export const SLIDE = {
 
 export type FlowState = "draft" | "running" | "needs_fix" | "detective" | "rerunning" | "approved";
 
+export type IssueType = "missing_info" | "unreasonable_plan" | "rule_violation" | "unclear" | "custom";
+
+/** 课后挑战：选任务 → 试一试 → 找问题 → 修改并再试 → 挑战卡 */
+export type Challenge = {
+  agentId: string;
+  task: string;
+  customTask: string;
+  tested: boolean;
+  issueType: IssueType | "";
+  issueText: string;
+  field: "action" | "check" | "";
+  applied: string;
+  retested: boolean;
+  checked: boolean;
+  prefill: string;
+};
+
+export const EMPTY_CHALLENGE: Challenge = {
+  agentId: "",
+  task: "",
+  customTask: "",
+  tested: false,
+  issueType: "",
+  issueText: "",
+  field: "",
+  applied: "",
+  retested: false,
+  checked: false,
+  prefill: "",
+};
+
 export type Flow = {
   state: FlowState;
   baseline: Fields | null;
@@ -63,6 +94,7 @@ export type Flow = {
   checks: string[];
   /** 学生主流程解锁到第几页（教师演示模式可无视） */
   unlocked: number;
+  challenge: Challenge;
 };
 
 export const EMPTY_FLOW: Flow = {
@@ -71,7 +103,9 @@ export const EMPTY_FLOW: Flow = {
   approved: false,
   checks: [],
   unlocked: 7,
+  challenge: EMPTY_CHALLENGE,
 };
+
 
 
 export type Ctx = {
