@@ -737,27 +737,8 @@ const SAMPLE: Fields = {
 const SAMPLE_STANDARD =
   "方案必须包含：集合点、路线、时间表、预算明细、安全预案；先由老师确认";
 
-const WHY: Record<string, string> = {
-  activity: "没有目标，智能体不知道要完成哪件事。",
-  count: "人数会影响分组、费用和通知范围。",
-  limits: "这些是它办事时不能违反的规则。",
-  standard: "没有标准，就不知道方案算不算合格。",
-};
 
-function WhyTip({ k }: { k: string }) {
-  const [on, setOn] = useState(false);
-  return (
-    <span className="inline-block">
-      <button
-        onClick={() => setOn((v) => !v)}
-        className="rounded-full bg-secondary px-2.5 py-1 text-xs font-extrabold text-secondary-foreground"
-      >
-        为什么要写？
-      </button>
-      {on && <span className="ml-2 text-xs font-bold text-primary">{WHY[k]}</span>}
-    </span>
-  );
-}
+
 
 export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
   const warnings = detectConflicts(fields);
@@ -812,16 +793,9 @@ export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
     <Big>
       <TaskBar active="brief" />
       <SlideTitle kicker="任务说明卡" title="🎛️ 给智能体下达一份完整任务" />
-      <p className="mx-auto mb-5 max-w-3xl text-center text-sm font-bold text-muted-foreground">
-        智能体不能靠猜来办事。请告诉它：<b>要完成什么、涉及谁、有什么不能违反的条件、怎样才算完成。</b>
-      </p>
       <div className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
         <div className="card-pop space-y-5 p-6">
           <div className="rounded-2xl bg-secondary/70 p-3">
-            <p className="text-sm font-bold">
-              你现在是<b>任务负责人</b>。把任务说明交给「春游规划助理」，它会用你给的信息制定方案；
-              你没写清楚的地方，它只能追问，或者做出不可靠的猜测。
-            </p>
             <button
               onClick={() => {
                 setField("activity", SAMPLE.activity);
@@ -830,61 +804,42 @@ export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
                 setFlow({ standard: SAMPLE_STANDARD });
                 toast.success("已载入示例任务说明，可以随便改成你自己的 ✏️");
               }}
-              className="mt-3 rounded-full bg-card px-4 py-2 text-sm font-extrabold shadow"
+              className="rounded-full bg-card px-4 py-2 text-sm font-extrabold shadow"
             >
               加载示例任务说明
             </button>
           </div>
-          <div>
-            <VoiceInput
-              emoji="🎯"
-              label="1 任务目标：希望智能体完成什么？"
-              placeholder="示例：为周六去上海科技馆的活动生成一份可执行方案"
-              value={fields.activity}
-              onChange={(v) => setField("activity", v)}
-            />
-            <p className="mt-1.5">
-              <WhyTip k="activity" />
-            </p>
-          </div>
-          <div>
-            <VoiceInput
-              emoji="👥"
-              label="2 任务对象与规模：这件事涉及谁、多少人？"
-              placeholder="示例：50 名学生 + 2 位老师；老师负责最终确认"
-              value={fields.count}
-              onChange={(v) => setField("count", v)}
-            />
-            <p className="mt-1.5">
-              <WhyTip k="count" />
-            </p>
-          </div>
-          <div>
-            <VoiceInput
-              emoji="🚧"
-              label="3 约束条件：哪些条件不能违反？"
-              placeholder="示例：人均 120 元；10:00 出发；17:00 前回家；有人花生过敏"
-              value={fields.limits}
-              onChange={(v) => setField("limits", v)}
-              multiline
-            />
-            <p className="mt-1.5">
-              <WhyTip k="limits" />
-            </p>
-          </div>
-          <div>
-            <VoiceInput
-              emoji="🏁"
-              label="4 完成标准：最后的方案必须包含什么？"
-              placeholder="示例：集合点、路线、时间表、预算明细、安全预案；先由老师确认"
-              value={flow.standard}
-              onChange={(v) => setFlow({ standard: v })}
-              multiline
-            />
-            <p className="mt-1.5">
-              <WhyTip k="standard" />
-            </p>
-          </div>
+          <VoiceInput
+            emoji="🎯"
+            label="1 任务目标：希望智能体完成什么？"
+            placeholder="示例：为周六去上海科技馆的活动生成一份可执行方案"
+            value={fields.activity}
+            onChange={(v) => setField("activity", v)}
+          />
+          <VoiceInput
+            emoji="👥"
+            label="2 任务对象与规模：这件事涉及谁、多少人？"
+            placeholder="示例：50 名学生 + 2 位老师；老师负责最终确认"
+            value={fields.count}
+            onChange={(v) => setField("count", v)}
+          />
+          <VoiceInput
+            emoji="🚧"
+            label="3 约束条件：哪些条件不能违反？"
+            placeholder="示例：人均 120 元；10:00 出发；17:00 前回家；有人花生过敏"
+            value={fields.limits}
+            onChange={(v) => setField("limits", v)}
+            multiline
+          />
+          <VoiceInput
+            emoji="🏁"
+            label="4 完成标准：最后的方案必须包含什么？"
+            placeholder="示例：集合点、路线、时间表、预算明细、安全预案；先由老师确认"
+            value={flow.standard}
+            onChange={(v) => setFlow({ standard: v })}
+            multiline
+          />
+
           <p className="text-sm text-muted-foreground">
             🎙️ 课堂上建议直接打字。课后在家可以点麦克风用说的；没有麦克风或不给权限时，打字一样能完成。
           </p>
@@ -1267,12 +1222,8 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
         它会读取你的任务说明、补齐缺失信息、制定计划、检查规则，再把方案交给人类确认。
       </p>
       <div className="card-pop p-6">
-        <p className="mb-4 rounded-xl bg-secondary p-3 text-base">
-          任务目标：<b>{fields.activity || theme.activity || "（未填写）"}</b>｜对象与规模：
-          <b>{fields.count || theme.count || "（未填写）"}</b>｜约束规则：
-          <b>{fields.limits || theme.limits || "（未填写）"}</b>｜完成标准：
-          <b>{flow.standard || "（未填写）"}</b>
-        </p>
+
+
         <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl bg-grass/15 p-3">
             <p className="text-xs font-extrabold">已知信息</p>
@@ -1755,17 +1706,9 @@ function Detective({ fields, theme, setField, go, flow, setFlow }: Ctx) {
       <TaskBar active="check" />
       <SlideTitle kicker="侦探模式" title="🕵️ 发现指令缺口，修订智能体规则" />
       <p className="mx-auto mb-4 max-w-3xl text-center text-sm font-bold text-muted-foreground">
-        你不是在订正作业答案。要判断：<b>是任务信息缺了，还是规则没写清楚？</b>
         今天我们看 2 个案件，每一步点两次：先想，再看答案。
       </p>
-      <div className="mx-auto mb-4 grid max-w-3xl gap-2 sm:grid-cols-2">
-        <p className="rounded-2xl bg-secondary/70 p-3 text-sm font-bold">
-          🧩 <b>信息缺失</b>：比如没有地点。智能体就无法判断路程、门票、预约和时间是否可行。
-        </p>
-        <p className="rounded-2xl bg-sun/25 p-3 text-sm font-bold">
-          🛑 <b>规则缺失</b>：没写清哪些动作必须由人确认。通知、花钱、预约、外出不能由它自己决定。
-        </p>
-      </div>
+
       {flow.doubt && (
         <p className="mx-auto mb-4 max-w-3xl rounded-2xl border-2 border-ink bg-card p-3 text-center text-sm font-bold">
           你在第 9 页标记要核实的是：<b>「{flow.doubt}」</b>。下面的案件就来自智能体那份方案草案。
