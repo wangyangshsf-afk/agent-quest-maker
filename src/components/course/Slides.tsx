@@ -1492,44 +1492,13 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
                     </ul>
                     <p className="mt-3 rounded-xl bg-sun/25 p-3 text-sm font-bold">{draft.verdict}</p>
 
-                    <p className="mt-4 text-sm font-extrabold">
-                      👇 指出一个你不相信或需要核实的地方（选一条才能进入侦探模式）
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {draft.items.map((it) => (
-                        <button
-                          key={it.label}
-                          onClick={() => {
-                            setFlow({
-                              doubt: it.label,
-                              unlocked: Math.max(flow.unlocked, SLIDE.detective),
-                            });
-                            toast.success(`已记下：我要核实「${it.label}」`);
-                          }}
-                          className={`rounded-full px-4 py-2 text-sm font-extrabold ${
-                            flow.doubt === it.label ? "bg-grass text-ink" : "bg-secondary"
-                          }`}
-                        >
-                          {flow.doubt === it.label ? "✅ " : ""}
-                          {it.label}
-                        </button>
-                      ))}
-                    </div>
                   </motion.div>
                 </div>
 
                 <div className="flex flex-wrap gap-3">
                   <button
-                    onClick={() => {
-                      if (!flow.doubt) {
-                        toast.info("先在上面的结果卡片里指出一个你要核实的地方 🔍");
-                        return;
-                      }
-                      go(SLIDE.detective);
-                    }}
-                    className={`inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)] ${
-                      flow.doubt ? "" : "opacity-60"
-                    }`}
+                    onClick={() => go(SLIDE.detective)}
+                    className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)]"
                   >
                     <Search className="size-5" /> 去侦探模式找漏洞
                   </button>
