@@ -1055,7 +1055,7 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
             className="card-soft mt-5 space-y-4 p-5"
           >
             <p className="text-2xl font-extrabold">
-              {isRerun ? "🔁 第二版方案已生成" : "📄 第一版方案已生成，等待人类检查"}
+              {isRerun ? "🔁 第二版：待人类验收的方案草案" : "📄 待人类验收的方案草案（不等于已获批准）"}
             </p>
             <div className="grid gap-2 sm:grid-cols-2">
               <div className="rounded-2xl bg-destructive/10 p-3">
