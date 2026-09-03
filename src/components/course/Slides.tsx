@@ -1325,6 +1325,19 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
   const [n, setN] = useState(0);
   useEffect(() => setN(0), [sig]);
 
+  /** 学生在单元格里写下的批注（隐藏入口，点击单元格才出现） */
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  /** 已经在「重新生成」里生效的批注 */
+  const [applied, setApplied] = useState<Record<string, string>>({});
+  const [editing, setEditing] = useState<string | null>(null);
+  const [version, setVersion] = useState(1);
+  useEffect(() => {
+    setNotes({});
+    setApplied({});
+    setEditing(null);
+    setVersion(1);
+  }, [sig]);
+
   useEffect(() => {
     if (n >= steps.length) return;
     const id = window.setTimeout(() => setN((x) => x + 1), 1100);
@@ -1333,23 +1346,21 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
 
   const holes = steps[1]!.lines.filter((l) => !l.includes("✅"));
   const badChecks = steps[3]!.lines.filter((l) => l.startsWith("❌") || l.startsWith("⚠️"));
-  // 进入本页时的版本判定，跑完后不会把第一版误标成第二版
-  const [isRerun] = useState(flow.state === "rerunning" || flow.approved);
   const done = n >= steps.length;
+  const noteCount = Object.values(notes).filter((v) => v.trim()).length;
+  const appliedCount = Object.values(applied).filter((v) => v.trim()).length;
 
   useEffect(() => {
     if (!done) return;
     if (flow.approved) return;
     setFlow({
       state: holes.length + badChecks.length > 0 ? "needs_fix" : "rerunning",
-      unlocked: Math.max(
-        flow.unlocked,
-        isRerun ? SLIDE.review : SLIDE.detective,
-      ),
+      unlocked: Math.max(flow.unlocked, SLIDE.execution),
     });
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [done, sig]);
+
 
   return (
     <Big>
