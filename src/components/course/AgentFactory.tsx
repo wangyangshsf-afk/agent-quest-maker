@@ -498,7 +498,7 @@ function TaskProgress({
           : { text: "未开始", icon: "⬜" };
 
   return (
-    <div className="card-soft p-4">
+    <div className="card-soft h-full p-4 lg:overflow-auto">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="text-sm font-extrabold">🧭 任务进度</p>
@@ -506,13 +506,13 @@ function TaskProgress({
         </div>
         <button
           onClick={() => setOpen((v) => !v)}
-          className="rounded-full bg-secondary px-3 py-1.5 text-xs font-bold sm:hidden"
+          className="rounded-full bg-secondary px-3 py-1.5 text-xs font-bold lg:hidden"
         >
           {open ? "收起详情" : "展开详情"}
         </button>
       </div>
 
-      <ol className="mt-3 grid gap-2 sm:grid-cols-4">
+      <ol className="mt-3 grid gap-2">
         {PHASES.map((p, i) => {
           const s = status(i);
           const active = i === idx;
