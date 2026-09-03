@@ -1439,24 +1439,25 @@ function makeCases(fields: Fields, theme: AgentTheme, standard = ""): DCase[] {
     score: hasPlace ? 10 : 100,
     make: () => ({
       title: "案件：消失的地点",
-      ai: `${activity}方案：${hasTime ? "按你说的时间" : "早上 8:00"}集合出发，中途休息用餐，结束后原路返回。参加人数 ${count}。`,
+      ai: `${activity}方案：${hasTime ? `按你写的 ${start} 集合出发` : "早上 8:00 集合出发"}，中途休息用餐，结束后原路返回。参加人数 ${count}。`,
       steps: [
         {
-          hint: "读一遍 AI 的方案。时间有吗？人数有吗？地点在哪里？",
-          answer: `🔍 AI 只说了时间和人数，没说地点。📍 没有地点，算不出路程和门票。`,
+          hint: `读一遍 AI 的方案。对照你写的${q(activity)}，地点在哪里？`,
+          answer: `🔍 AI 只说了时间和人数，没说地点。📍 没有地点，算不出路程和${hasMoney ? "门票花费" : "路上时间"}。`,
         },
         {
           hint: "只问「去哪」不够。要让 AI 给可比较的答案，问题里还要加什么？",
-          answer: `❓ 问：「${activity}具体在哪里？给我 2 个备选，写清路程和门票。」`,
+          answer: `❓ 问：「${activity}具体在哪里？给我 2 个备选，写清路程、门票${perHead > 0 ? `，并控制在每人 ${Math.round(perHead)} 元内` : ""}。」`,
         },
         {
           hint: "把谈好的结果写回指挥台，方案才算改好。",
-          answer: "✏️ 把地点和路程时间补进限制条件。",
+          answer: `✏️ 把地点和路程时间补进限制条件（${count}都要去得了）。`,
         },
       ],
       fixField: "limits",
-      fixValue: `${limits}${limits ? "；" : ""}地点：城郊森林公园（车程 40 分钟，无门票）`,
-      fixLabel: "补上地点：城郊森林公园",
+      fixValue: `${limits}${limits ? "；" : ""}地点：${placeGuess}（写清车程与门票，${count}同行）${stdTail}`,
+      fixLabel: `补上地点：${placeGuess}`,
+
     }),
   });
 
