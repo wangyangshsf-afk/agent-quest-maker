@@ -1392,7 +1392,7 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
         ) : (
           /* 生成完成：只显示「已完成」结果框 */
           <div className="min-h-[360px]">
-            {(
+            {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
