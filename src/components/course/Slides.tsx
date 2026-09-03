@@ -1502,15 +1502,16 @@ function Detective({ fields, theme, setField, go, setFlow }: Ctx) {
 /* ---------- 11. 验收台 ---------- */
 
 const CHECKLIST = [
-  { id: "goal", t: "目标和人数是否一致？" },
-  { id: "when", t: "时间和地点是否明确？" },
-  { id: "money", t: "预算是否算得过来？" },
-  { id: "safe", t: "安全风险是否有预案？" },
-  { id: "human", t: "有没有老师 / 家长做最终确认？" },
+  { id: "goal", t: "目标和人数是否一致？", map: "对应：任务目标 + 任务对象与规模", why: "方案要做的事，和你写的目标、人数是同一件事吗？" },
+  { id: "when", t: "时间和地点是否明确？", map: "对应：任务信息是否完整", why: "没有时间和地点，路程、门票、预约都算不准。" },
+  { id: "money", t: "预算是否算得过来？", map: "对应：约束规则是否被遵守", why: "把人均 × 人数算一遍，看看有没有超出你写的约束。" },
+  { id: "safe", t: "安全风险是否有预案？", map: "对应：完成标准与安全规则", why: "走失、受伤、天气变化，方案里有没有写清楚怎么办？" },
+  { id: "human", t: "有没有老师 / 家长做最终确认？", map: "对应：人类最终控制", why: "通知、花钱、预约、外出，必须由成年人确认后才能执行。" },
 ];
 
 function Review({ fields, flow, setFlow, go }: Ctx) {
   const before = flow.baseline ?? { activity: "", count: "", limits: "" };
+  const [open, setOpen] = useState<Record<string, boolean>>({});
   const toggle = (id: string) =>
     setFlow({
       checks: flow.checks.includes(id)
@@ -1529,35 +1530,87 @@ function Review({ fields, flow, setFlow, go }: Ctx) {
 
   return (
     <Big>
-      <SlideTitle kicker="验收台" title="✅ 这份方案能执行吗？" />
+      <TaskBar active="human" />
+      <SlideTitle kicker="人类验收" title="✅ 方案符合任务说明吗？" />
+      <p className="mx-auto mb-5 max-w-3xl text-center text-sm font-bold text-muted-foreground">
+        智能体已经生成方案，但<b>方案不等于事实，也不等于授权</b>。请按你自己写的完成标准，逐项检查。
+      </p>
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="card-pop space-y-3 p-6">
-          <p className="text-xl font-extrabold">修改前 → 修改后</p>
-          <Row label="活动" a={before.activity} b={fields.activity} />
-          <Row label="人数" a={before.count} b={fields.count} />
-          <Row label="限制条件" a={before.limits} b={fields.limits} />
+          <p className="text-xl font-extrabold">任务说明卡：修订前 → 修订后</p>
+          <p className="text-xs font-bold text-muted-foreground">
+            改的是<b>输入信息和规则</b>，不是答案本身。
+          </p>
+          <Row label="任务目标" a={before.activity} b={fields.activity} />
+          <Row label="任务对象与规模" a={before.count} b={fields.count} />
+          <Row label="约束规则" a={before.limits} b={fields.limits} />
+          <div className="rounded-2xl border-2 border-border p-3">
+            <p className="text-xs font-extrabold text-muted-foreground">完成标准</p>
+            <p className="mt-1 text-sm font-bold text-grass">
+              {flow.standard || "（还没写完成标准，回到任务说明卡补上）"}
+            </p>
+          </div>
         </div>
 
         <div className="card-pop space-y-3 p-6">
-          <p className="text-xl font-extrabold">人类检查清单</p>
+          <p className="text-xl font-extrabold">人类验收清单</p>
+          <p className="text-xs font-bold text-muted-foreground">
+            先点标题展开，看清这条在检查什么，再打勾。
+          </p>
           {CHECKLIST.map((c) => {
             const on = flow.checks.includes(c.id);
+            const opened = !!open[c.id];
             return (
-              <motion.button
+              <div
                 key={c.id}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => toggle(c.id)}
-                className={`flex w-full items-center gap-3 rounded-2xl border-2 p-3 text-left font-bold transition ${
-                  on ? "border-grass bg-grass/15" : "border-border"
-                }`}
+                className={`rounded-2xl border-2 p-3 transition ${on ? "border-grass bg-grass/15" : "border-border"}`}
               >
-                {on ? (
-                  <CheckCircle2 className="size-6 text-grass" />
-                ) : (
-                  <AlertTriangle className="size-6 text-muted-foreground" />
+                <button
+                  onClick={() => setOpen((o) => ({ ...o, [c.id]: !o[c.id] }))}
+                  className="flex w-full items-start gap-2 text-left"
+                >
+                  <Eye className="mt-0.5 size-5 shrink-0 text-primary" />
+                  <span className="flex-1 font-bold">{c.t}</span>
+                  <span className="text-xs font-extrabold text-primary">
+                    {opened ? "收起" : "展开"}
+                  </span>
+                </button>
+                <AnimatePresence>
+                  {opened && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <p className="mt-2 rounded-xl bg-secondary/60 p-2 text-sm">{c.why}</p>
+                      <p className="mt-1 text-xs font-extrabold text-muted-foreground">{c.map}</p>
+                      <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => toggle(c.id)}
+                        className={`mt-2 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-extrabold ${
+                          on ? "bg-grass text-ink" : "bg-primary text-primary-foreground"
+                        }`}
+                      >
+                        {on ? (
+                          <>
+                            <CheckCircle2 className="size-4" /> 已检查（点一下取消）
+                          </>
+                        ) : (
+                          <>
+                            <ClipboardCheck className="size-4" /> 我读过了，这条通过
+                          </>
+                        )}
+                      </motion.button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                {!opened && (
+                  <p className="mt-1 pl-7 text-xs font-bold text-muted-foreground">
+                    {on ? "✅ 已检查" : <span className="inline-flex items-center gap-1"><AlertTriangle className="size-3.5" />还没检查</span>}
+                  </p>
                 )}
-                {c.t}
-              </motion.button>
+              </div>
             );
           })}
         </div>
@@ -1568,7 +1621,7 @@ function Review({ fields, flow, setFlow, go }: Ctx) {
           onClick={() => go(SLIDE.commandCenter)}
           className="rounded-full bg-secondary px-5 py-3 font-extrabold"
         >
-          继续修改
+          返回任务说明，补充信息或规则
         </button>
         <button
           onClick={() => {
@@ -1577,25 +1630,27 @@ function Review({ fields, flow, setFlow, go }: Ctx) {
           }}
           className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 font-extrabold text-accent-foreground"
         >
-          <RefreshCw className="size-5" /> 重新运行
+          <RefreshCw className="size-5" /> 用修订后的任务说明重新运行
         </button>
         <button
           onClick={() => {
             if (!allChecked) {
-              toast.error("先把 5 项都检查一遍再通过哦");
+              toast.error("先把 5 项都展开读过并打勾，再交给老师 / 家长");
               return;
             }
             setFlow({ approved: true, state: "approved", unlocked: SLIDE.homework });
-            toast.success("已完成人类验收 🎉");
+            toast.success("你已逐项检查，重要决定留给人类 🎉");
             go(SLIDE.scenes);
           }}
           className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)] disabled:opacity-50"
         >
-          <Gavel className="size-5" /> 我检查过了，通过
+          <Gavel className="size-5" /> 我已逐项检查，方案可以交给老师 / 家长确认
         </button>
       </div>
       <p className="mt-3 text-center text-sm font-bold text-muted-foreground">
-        {flow.approved ? "🎫 已完成人类验收" : `已检查 ${flow.checks.length} / ${CHECKLIST.length} 项`}
+        {flow.approved
+          ? "🎫 你完成的不是「给 AI 打分」，而是作为任务负责人确认方案达标，并把重要决定留给人类。"
+          : `已检查 ${flow.checks.length} / ${CHECKLIST.length} 项`}
       </p>
     </Big>
   );
