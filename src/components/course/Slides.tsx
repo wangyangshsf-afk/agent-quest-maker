@@ -489,11 +489,6 @@ function RoleVote() {
 function Compare() {
   const [showRight, setShowRight] = useState(false);
 
-  useEffect(() => {
-    const t = setTimeout(() => setShowRight(true), 800);
-    return () => clearTimeout(t);
-  }, []);
-
   const rightListVariants = {
     hidden: {},
     visible: { transition: { staggerChildren: 0.14, delayChildren: 0.2 } },
@@ -508,13 +503,24 @@ function Compare() {
     <Big>
       <SlideTitle kicker="角色对比" title="💬 聊天 AI vs 🤖 智能体" />
       <div className="grid gap-5 md:grid-cols-2">
-        {/* 普通聊天 AI：一问一答就结束（先出现） */}
-        <motion.div
+        {/* 普通聊天 AI：一问一答就结束（先出现，点击后展开智能体） */}
+        <motion.button
+          onClick={() => setShowRight(true)}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45 }}
-          className="card-soft border-t-8 border-t-muted-foreground/40 p-6"
+          className="card-soft relative border-t-8 border-t-muted-foreground/40 p-6 text-left transition hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary/50"
         >
+          {!showRight && (
+            <motion.span
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.2 }}
+              className="absolute -right-2 -top-3 rounded-full bg-primary px-3 py-1 text-xs font-extrabold text-primary-foreground shadow"
+            >
+              点我看看智能体 →
+            </motion.span>
+          )}
           <motion.h3
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -577,9 +583,9 @@ function Compare() {
             这一页的聊天 AI 只负责回答问题；智能体还会追问、规划、执行和检查。
             现实中的聊天 AI 也可能连上工具去做事，这里只是用「只聊天模式」来做对比。
           </motion.p>
-        </motion.div>
+        </motion.button>
 
-        {/* 智能体：目标→追问→步骤→人类拍板（后出现，自动出现） */}
+        {/* 智能体：目标→追问→步骤→人类拍板（点击左侧卡片后出现） */}
         {!showRight ? (
           <div className="card-pop flex min-h-[320px] flex-col items-center justify-center border-t-8 border-t-primary p-6 text-center">
             <motion.div
@@ -589,8 +595,8 @@ function Compare() {
             >
               ⚙️
             </motion.div>
-            <p className="text-base font-extrabold text-primary">智能体正在准备…</p>
-            <p className="mt-1 text-xs font-bold text-muted-foreground">马上自动出现，不用点击</p>
+            <p className="text-base font-extrabold text-primary">智能体正在等待启动…</p>
+            <p className="mt-1 text-xs font-bold text-muted-foreground">点击左边「普通聊天 AI」卡片，看看它有什么不同</p>
           </div>
         ) : (
           <motion.div
