@@ -276,7 +276,9 @@ function VideoIntro({ go }: Ctx) {
             <>
               <video
                 ref={videoRef}
-                src="/class-video.mp4"
+                src={classVideo.url}
+                playsInline
+                preload="metadata"
                 controls
                 className="h-full w-full"
                 onPlay={() => setPlaying(true)}
