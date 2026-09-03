@@ -6,7 +6,6 @@ import {
   Bot,
   CheckCircle2,
   ClipboardCheck,
-  Copy,
   Eye,
   Gavel,
   Lightbulb,
@@ -26,7 +25,6 @@ import { toast } from "sonner";
 import { VoiceInput } from "./VoiceInput";
 import {
   THEMES,
-  buildPrompt,
   detectConflicts,
   type AgentCard,
   type AgentTheme,
@@ -56,6 +54,37 @@ export const SLIDE = {
 
 export type FlowState = "draft" | "running" | "needs_fix" | "detective" | "rerunning" | "approved";
 
+export type IssueType = "missing_info" | "unreasonable_plan" | "rule_violation" | "unclear" | "custom";
+
+/** 课后挑战：选任务 → 试一试 → 找问题 → 修改并再试 → 挑战卡 */
+export type Challenge = {
+  agentId: string;
+  task: string;
+  customTask: string;
+  tested: boolean;
+  issueType: IssueType | "";
+  issueText: string;
+  field: "action" | "check" | "";
+  applied: string;
+  retested: boolean;
+  checked: boolean;
+  prefill: string;
+};
+
+export const EMPTY_CHALLENGE: Challenge = {
+  agentId: "",
+  task: "",
+  customTask: "",
+  tested: false,
+  issueType: "",
+  issueText: "",
+  field: "",
+  applied: "",
+  retested: false,
+  checked: false,
+  prefill: "",
+};
+
 export type Flow = {
   state: FlowState;
   baseline: Fields | null;
@@ -63,6 +92,7 @@ export type Flow = {
   checks: string[];
   /** 学生主流程解锁到第几页（教师演示模式可无视） */
   unlocked: number;
+  challenge: Challenge;
 };
 
 export const EMPTY_FLOW: Flow = {
@@ -71,7 +101,9 @@ export const EMPTY_FLOW: Flow = {
   approved: false,
   checks: [],
   unlocked: 7,
+  challenge: EMPTY_CHALLENGE,
 };
+
 
 
 export type Ctx = {
@@ -1644,9 +1676,64 @@ function Scenes({ theme, applyTheme, go, flow }: Ctx) {
 
 /* ---------- 13. 智能体工厂（实时生成） ---------- */
 
-function Factory({ card, setCard, fields, theme, flow }: Ctx) {
+function Factory({ card, setCard, fields, theme, flow, setFlow, go }: Ctx) {
+  const ch = flow.challenge;
+  const editing = !!ch.issueType && !ch.retested;
+  const suggestion = ch.applied;
+
+  const applyFix = () => {
+    if (!suggestion) return;
+    if (ch.field === "check") {
+      setCard({ ...card, check: `${card.check}｜${suggestion}` });
+    } else {
+      setCard({ ...card, steps: [suggestion, card.steps[1]!, card.steps[2]!] });
+    }
+    setFlow({
+      challenge: {
+        ...ch,
+        retested: true,
+        prefill: `我刚刚修改了你的规则。请用新规则重新帮我完成：${ch.task || ch.customTask}。`,
+      },
+    });
+    toast.success("已写入指令卡，再和智能体试一次吧 ✅");
+  };
+
   return (
     <Big>
+      {editing && (
+        <div className="card-pop mb-4 border-accent p-4">
+          <p className="text-sm font-extrabold">
+            ✏️ 课后挑战：把你发现的问题写进{ch.field === "check" ? "「它要检查什么」" : "「行动方式」"}
+          </p>
+          <p className="mt-2 rounded-2xl bg-sun/25 p-3 text-sm font-bold">{suggestion}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              onClick={applyFix}
+              className="rounded-full bg-primary px-5 py-2.5 text-sm font-extrabold text-primary-foreground"
+            >
+              保存修改，再试一次
+            </button>
+            <button
+              onClick={() => go(SLIDE.homework)}
+              className="rounded-full bg-secondary px-5 py-2.5 text-sm font-bold"
+            >
+              回到挑战卡
+            </button>
+          </div>
+        </div>
+      )}
+      {!editing && ch.retested && (
+        <div className="card-soft mb-4 flex flex-wrap items-center gap-3 p-4">
+          <CheckCircle2 className="size-5 text-grass" />
+          <p className="text-sm font-bold">规则已更新，和智能体再聊一次，然后回去生成挑战卡。</p>
+          <button
+            onClick={() => go(SLIDE.homework)}
+            className="rounded-full bg-secondary px-4 py-2 text-xs font-bold"
+          >
+            回到挑战卡
+          </button>
+        </div>
+      )}
       <div className="card-soft mb-4 flex flex-wrap items-center gap-3 p-4">
         <Sparkle className="size-5 text-primary" />
         <p className="text-sm font-bold">
@@ -1655,7 +1742,13 @@ function Factory({ card, setCard, fields, theme, flow }: Ctx) {
             : "还没完成人类验收，指令卡先用当前指挥台的内容，验收后会更准确。"}
         </p>
       </div>
-      <AgentFactory card={card} setCard={setCard} fields={fields} theme={theme} />
+      <AgentFactory
+        card={card}
+        setCard={setCard}
+        fields={fields}
+        theme={theme}
+        initialAction={ch.prefill}
+      />
     </Big>
   );
 }
@@ -1742,72 +1835,284 @@ function Recap() {
   );
 }
 
-/* ---------- 14. 课程收束 + 出口任务 ---------- */
+/* ---------- 15. 课后挑战：智能体挑战卡 ---------- */
 
-function Homework({ card, fields, flow, openAgent }: Ctx) {
-  const sheet = [
-    `# ${card.name || "我的智能体"}｜人类签字版方案`,
+const TASK_OPTIONS = [
+  "整理明天的书包和作业",
+  "规划明天放学后的时间",
+  "安排一次周末运动",
+  "做一份零花钱购买清单",
+  "准备一次家庭出行/研学的物品清单",
+];
+
+const ISSUES: { id: IssueType; label: string; hint: string; field: "action" | "check" }[] = [
+  {
+    id: "missing_info",
+    label: "它漏问了重要信息",
+    hint: "比如没有问放学时间、预算或人数。",
+    field: "action",
+  },
+  {
+    id: "unreasonable_plan",
+    label: "它的方案不合理",
+    hint: "比如把写作业安排在 10 分钟课间。",
+    field: "check",
+  },
+  {
+    id: "rule_violation",
+    label: "它没有遵守我定的规则",
+    hint: "比如超过了你设定的预算。",
+    field: "check",
+  },
+  { id: "unclear", label: "它说得不够清楚", hint: "", field: "action" },
+  { id: "custom", label: "我有自己的发现", hint: "", field: "action" },
+];
+
+function suggestFor(t: IssueType, issueText: string) {
+  const s = issueText.trim() || "这个问题";
+  switch (t) {
+    case "missing_info":
+      return `先问清楚：${s}，再给方案。`;
+    case "unreasonable_plan":
+      return `生成方案前，检查：${s}。`;
+    case "rule_violation":
+      return `必须遵守：${s}；不符合就提醒我修改。`;
+    case "unclear":
+      return "先给一句结论，再用 3 条清单说明。";
+    default:
+      return `我要它注意：${s}。`;
+  }
+}
+
+function Homework({ card, flow, setFlow, go }: Ctx) {
+  const ch = flow.challenge;
+  const patch = (p: Partial<Challenge>) => setFlow({ challenge: { ...ch, ...p } });
+  const task = ch.task === "custom" ? ch.customTask.trim() : ch.task;
+  const done = ch.retested;
+  const [custom, setCustom] = useState(ch.customTask);
+  const [issueText, setIssueText] = useState(ch.issueText);
+
+  const steps = ["选任务", "试一试", "找问题", "修改并再试", "挑战卡"];
+  const stepIdx = !task ? 0 : !ch.tested ? 1 : !ch.issueType ? 2 : !ch.retested ? 3 : 4;
+
+  const cardText = [
+    "我的智能体挑战卡",
     "",
-    `- 活动：${fields.activity || "（未填写）"}`,
-    `- 人数：${fields.count || "（未填写）"}`,
-    `- 限制条件：${fields.limits || "（未填写）"}`,
+    `我的智能体：${card.name || "我的智能体"}`,
+    `它要帮我完成：${card.goal}`,
+    `我今晚挑战的小事：${task || "（未选择）"}`,
     "",
-    "## 目标",
-    card.goal,
+    "1. 我告诉它的关键信息",
+    ...card.steps.slice(0, 2).map((s) => `- ${s}`),
     "",
-    "## 行动三步",
+    "2. 它给我的方案",
     ...card.steps.map((s, i) => `${i + 1}. ${s}`),
     "",
-    "## 检查与风险",
-    card.check,
+    "3. 我发现的问题",
+    `- ${ISSUES.find((x) => x.id === ch.issueType)?.label ?? ""}${ch.issueText ? `：${ch.issueText}` : ""}`,
     "",
-    "## 还需要人类确认的事",
-    "- [ ] 时间地点已确认",
-    "- [ ] 预算算得过来",
-    "- [ ] 安全预案已写清",
-    `- [ ] 人类验收：${flow.approved ? "已完成 ✅" : "未完成"}`,
+    "4. 我怎么修改它",
+    `- ${ch.applied}`,
     "",
-    "学生姓名：____________　日期：____________",
-    "家长 / 老师签字：____________",
+    "5. 再试一次后的变化",
+    `- ${ch.field === "check" ? "它现在会先按新规则检查，再给方案。" : "它现在会先问清楚关键信息，再安排。"}`,
+    "",
+    "我的核对",
+    `${ch.checked ? "☑" : "□"} 我已经检查过这份方案。`,
+    `${ch.checked ? "☑" : "□"} 涉及外出、花钱、食物或安全时，我会和家长/老师一起确认。`,
+    "",
+    `日期：${new Date().toLocaleDateString("zh-CN")}`,
   ].join("\n");
 
   return (
     <Big>
-      <SlideTitle kicker="出口任务" title="🎁 今天只有一个作业" />
-      <div className="card-pop mx-auto max-w-2xl p-8 text-center">
-        <p className="text-xl font-extrabold leading-relaxed">
-          回家用你的智能体办成一件真实的小事，
-          <br />并<span className="text-destructive">亲自找出 1 处要改的地方</span>。
-        </p>
-        <p className="mt-3 text-base text-muted-foreground">
-          明天带着你的「人类签字版」方案来分享。
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <button
-            onClick={() => copy(buildPrompt(card, fields), "提示词已复制 ✅ 可以粘贴给 AI 用啦")}
-            className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 font-extrabold text-primary-foreground"
+      <SlideTitle kicker="课后挑战" title="把你的智能体变得更靠谱" />
+      <p className="-mt-3 mb-5 text-center text-base text-muted-foreground">
+        今晚选一件小事试一试：让 AI 出方案，你来找问题、改规则。
+      </p>
+
+      <div className="mb-5 flex flex-wrap items-center justify-center gap-2 text-xs font-bold">
+        {steps.map((s, i) => (
+          <span
+            key={s}
+            className={`rounded-full px-3 py-1.5 ${
+              i < stepIdx
+                ? "bg-grass/25 text-foreground"
+                : i === stepIdx
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-muted-foreground"
+            }`}
           >
-            <Copy className="size-5" /> 复制提示词
-          </button>
-          <button
-            onClick={() => download(`${card.name || "我的智能体"}-人类签字版.md`, sheet)}
-            className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 font-extrabold text-accent-foreground"
-          >
-            <ClipboardCheck className="size-5" /> 下载 / 打印方案
-          </button>
-          <button
-            onClick={openAgent}
-            className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-3 font-extrabold"
-          >
-            <Rocket className="size-5" /> 再试一次智能体
-          </button>
-        </div>
-        <p className="mt-4 text-xs text-muted-foreground">
-          所有内容只保存在你自己的浏览器里，不用注册、不会上传。
-        </p>
+            {i + 1}. {s}
+          </span>
+        ))}
       </div>
-      <p className="mt-6 flex items-center justify-center gap-2 text-xl font-extrabold">
-        <MapPin className="size-6 text-berry" /> 下课啦！记得：能干的是 AI，负责的是你。
+
+      {!done ? (
+        <div className="grid gap-4">
+          {/* 第 1 步 */}
+          <div className="card-pop p-6">
+            <p className="text-2xl font-extrabold">1. 选一个真实小任务</p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              {TASK_OPTIONS.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => patch({ task: t, tested: false })}
+                  className={`rounded-2xl px-4 py-3 text-left text-sm font-bold ${
+                    ch.task === t ? "bg-primary text-primary-foreground" : "bg-secondary"
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+              <button
+                onClick={() => patch({ task: "custom" })}
+                className={`rounded-2xl px-4 py-3 text-left text-sm font-bold ${
+                  ch.task === "custom" ? "bg-primary text-primary-foreground" : "bg-secondary"
+                }`}
+              >
+                我自己写
+              </button>
+            </div>
+            {ch.task === "custom" && (
+              <input
+                value={custom}
+                onChange={(e) => setCustom(e.target.value)}
+                onBlur={() => patch({ customTask: custom })}
+                placeholder="例如：帮我安排周六下午的运动和作业"
+                className="mt-3 w-full rounded-2xl border-2 border-border px-4 py-3 outline-none focus:border-primary"
+              />
+            )}
+            <p className="mt-3 flex items-start gap-2 rounded-2xl bg-sun/25 p-3 text-xs font-bold">
+              <ShieldCheck className="mt-0.5 size-4 shrink-0" />
+              涉及外出、花钱、食物或安全的方案，需要和家长或老师一起确认。
+            </p>
+          </div>
+
+          {/* 第 2 步 */}
+          <div className={`card-pop p-6 ${task ? "" : "opacity-50"}`}>
+            <p className="text-2xl font-extrabold">2. 试一试，找出 1 个要改的地方</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              带着这件小事去问你的智能体，看它给的方案哪里不对。
+            </p>
+            <button
+              disabled={!task}
+              onClick={() => {
+                patch({
+                  tested: true,
+                  prefill: `请帮我完成这件事：${task}。请先问我最重要的一个问题。`,
+                });
+                go(SLIDE.factory);
+              }}
+              className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 font-extrabold text-primary-foreground disabled:opacity-40"
+            >
+              <Rocket className="size-5" /> 带着这件事去问智能体
+            </button>
+
+            {ch.tested && (
+              <div className="mt-4 grid gap-2">
+                <p className="text-sm font-extrabold">我发现的问题：</p>
+                {ISSUES.map((x) => (
+                  <button
+                    key={x.id}
+                    onClick={() =>
+                      patch({
+                        issueType: x.id,
+                        field: x.field,
+                        applied: suggestFor(x.id, x.id === "custom" ? issueText : issueText),
+                      })
+                    }
+                    className={`rounded-2xl px-4 py-3 text-left text-sm font-bold ${
+                      ch.issueType === x.id ? "bg-accent text-accent-foreground" : "bg-secondary"
+                    }`}
+                  >
+                    {x.label}
+                    {x.hint && (
+                      <span className="block text-xs font-normal opacity-80">{x.hint}</span>
+                    )}
+                  </button>
+                ))}
+                {!!ch.issueType && (
+                  <input
+                    value={issueText}
+                    maxLength={60}
+                    onChange={(e) => setIssueText(e.target.value)}
+                    onBlur={() =>
+                      patch({
+                        issueText,
+                        applied: suggestFor(ch.issueType as IssueType, issueText),
+                      })
+                    }
+                    placeholder="用一句话写清楚：它哪里不对？（最多 60 字）"
+                    className="w-full rounded-2xl border-2 border-border px-4 py-3 text-sm outline-none focus:border-primary"
+                  />
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 第 3 步 */}
+          <div className={`card-pop p-6 ${ch.issueType ? "" : "opacity-50"}`}>
+            <p className="text-2xl font-extrabold">3. 带着发现回去修改</p>
+            {ch.applied && (
+              <p className="mt-3 rounded-2xl bg-sun/25 p-3 text-sm font-bold">
+                建议写进{ch.field === "check" ? "「它要检查什么」" : "「行动方式」"}：{ch.applied}
+              </p>
+            )}
+            <button
+              disabled={!ch.issueType}
+              onClick={() => go(SLIDE.factory)}
+              className="mt-4 inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 font-extrabold text-accent-foreground disabled:opacity-40"
+            >
+              <Wand2 className="size-5" /> 回到智能体工厂，修改我的指令卡
+            </button>
+            <p className="mt-3 text-xs text-muted-foreground">
+              先找出一个问题并改好它，再生成挑战卡。
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          <h3 className="text-center text-3xl font-extrabold">你让智能体变得更靠谱了！</h3>
+          <div className="card-pop whitespace-pre-wrap p-6 text-sm leading-relaxed">{cardText}</div>
+          <label className="card-soft flex items-start gap-3 p-4 text-sm font-bold">
+            <input
+              type="checkbox"
+              checked={ch.checked}
+              onChange={(e) => patch({ checked: e.target.checked })}
+              className="mt-1 size-4"
+            />
+            我已经检查过这份方案；涉及外出、花钱、食物或安全时，我会和家长/老师一起确认。
+          </label>
+          <div className="flex flex-wrap justify-center gap-3">
+            <button
+              disabled={!ch.checked}
+              onClick={() => download(`${card.name || "我的智能体"}-挑战卡.md`, cardText)}
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 font-extrabold text-primary-foreground disabled:opacity-40"
+            >
+              <ClipboardCheck className="size-5" /> 下载 / 打印挑战卡
+            </button>
+            <button
+              onClick={() => go(SLIDE.factory)}
+              className="rounded-full bg-secondary px-5 py-3 font-bold"
+            >
+              回到智能体工厂继续修改
+            </button>
+            <button
+              onClick={() => setFlow({ challenge: EMPTY_CHALLENGE })}
+              className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-3 font-bold"
+            >
+              <RefreshCw className="size-4" /> 再做一个新挑战
+            </button>
+          </div>
+        </div>
+      )}
+
+      <p className="mt-6 flex items-center justify-center gap-2 text-center text-base font-extrabold">
+        <MapPin className="size-5 text-berry" /> AI 可以出主意；你要检查，重要的事还要和大人一起确认。
+      </p>
+      <p className="mt-2 text-center text-xs text-muted-foreground">
+        所有内容只保存在你自己的浏览器里，不用注册、不会上传。
       </p>
     </Big>
   );
@@ -1829,6 +2134,6 @@ export const SLIDES: { title: string; C: (ctx: Ctx) => React.ReactElement }[] = 
   { title: "场景创作", C: Scenes },
   { title: "智能体工厂", C: Factory },
   { title: "课程收束", C: () => <Recap /> },
-  { title: "出口任务", C: Homework },
+  { title: "课后挑战", C: Homework },
 ];
 
