@@ -251,7 +251,70 @@ function Cover({ go }: Ctx) {
   );
 }
 
-/* ---------- 2. Journey map ---------- */
+/* ---------- 2. Video intro ---------- */
+
+function VideoIntro({ go }: Ctx) {
+  const [error, setError] = useState(false);
+  const [playing, setPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  return (
+    <Big>
+      <SlideTitle kicker="课堂导入" title="来看看它帮助老人办了什么事？" />
+      <p className="-mt-4 mb-5 text-center text-base font-bold text-muted-foreground">
+        认真观察：视频里的 AI 智能体帮老人做了哪些事？它问了什么、查了什么、最后又交给了谁决定？
+      </p>
+
+      <div className="card-pop mx-auto max-w-4xl overflow-hidden p-2">
+        <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-secondary">
+          {error ? (
+            <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
+              <Play className="size-12 text-muted-foreground/50" />
+              <p className="text-lg font-extrabold">视频待插入</p>
+              <p className="max-w-md text-sm text-muted-foreground">
+                请将视频文件命名为 <code className="rounded bg-card px-1.5 py-0.5 font-mono">class-video.mp4</code> 并放到 <code className="rounded bg-card px-1.5 py-0.5 font-mono">public/</code> 文件夹下，这里就会自动播放。
+              </p>
+            </div>
+          ) : (
+            <>
+              <video
+                ref={videoRef}
+                src="/class-video.mp4"
+                controls
+                className="h-full w-full"
+                onPlay={() => setPlaying(true)}
+                onPause={() => setPlaying(false)}
+                onError={() => setError(true)}
+              />
+              {!playing && (
+                <button
+                  onClick={() => videoRef.current?.play()}
+                  className="absolute inset-0 flex items-center justify-center bg-black/20 transition hover:bg-black/30"
+                  aria-label="播放视频"
+                >
+                  <span className="flex size-20 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg">
+                    <Play className="size-9 ml-1" fill="currentColor" />
+                  </span>
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <button
+          onClick={() => go(SLIDE.journey)}
+          className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[3px_3px_0_0_var(--ink)]"
+        >
+          继续看学习地图 <ArrowRight className="size-5" />
+        </button>
+      </div>
+    </Big>
+  );
+}
+
+/* ---------- 3. Journey map ---------- */
 
 const MILESTONES = [
   { emoji: "🎒", t: "遇到难题", d: "春游要怎么安排？", s: SLIDE.situation },
