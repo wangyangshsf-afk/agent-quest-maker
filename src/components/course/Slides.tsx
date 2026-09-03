@@ -2225,41 +2225,153 @@ function download(filename: string, text: string) {
 
 /* ---------- 12. Recap ---------- */
 
+const RECAP_CARDS = [
+  {
+    icon: Target,
+    t: "① 目标要说清楚",
+    d: "告诉智能体：要完成什么结果，有哪些重要条件。",
+    more: "这是给智能体下任务时的输入要求：说明目标、对象、时间、预算和其他关键条件。",
+    tag: "对应第 8 页 · 任务说明",
+  },
+  {
+    icon: ListChecks,
+    t: "② 行动要分步骤",
+    d: "让智能体把大任务拆成几个可以执行、可以检查的小步骤。",
+    more: "这是要求智能体做任务规划，步骤数量由任务复杂程度决定，不是固定三步。",
+    tag: "对应第 9 页 · 智能体处理任务",
+  },
+  {
+    icon: Eye,
+    t: "③ 结果要认真检查",
+    d: "对照时间、预算、安全和完成标准，看看方案是否真的可行。",
+    more: "这是人类检查智能体输出：找遗漏、算数字、查矛盾，判断是否满足任务说明。",
+    tag: "对应第 10-11 页 · 侦探与验收",
+  },
+];
+
+const RECAP_QUESTIONS = [
+  "我的目标是什么？",
+  "我需要提供哪些条件？",
+  "这个方案怎样才算完成？",
+  "哪些事情必须由大人确认？",
+];
+
 function Recap() {
+  const [open, setOpen] = useState<string | null>(null);
+  const [pick, setPick] = useState<string | null>(null);
+  const toggle = (k: string) => setOpen((o) => (o === k ? null : k));
+
   return (
     <Big>
-      <SlideTitle kicker="课程收束" title="🧠 今天记住三件半事" />
+      <SlideTitle kicker="课程收束" title="🧠 以后用智能体，记住这三件半事" />
+      <p className="-mt-2 mb-4 text-center text-lg font-bold text-muted-foreground">
+        这不是背答案，而是一张使用智能体的检查卡。
+      </p>
+      <div className="mb-5 rounded-3xl border-2 border-border bg-secondary/40 p-4 text-center text-base md:text-lg">
+        以后你让任何智能体帮忙时，都可以问自己四个问题：
+        <b>目标说清楚了吗？行动有步骤吗？结果检查过吗？重要决定由人确认了吗？</b>
+      </div>
       <div className="grid gap-4 md:grid-cols-3">
-        {[
-          { icon: Target, t: "① 目标要清楚", d: "说清楚要什么结果、给什么限制。" },
-          { icon: ListChecks, t: "② 行动要分步", d: "一件大事拆成三步小事。" },
-          { icon: Eye, t: "③ 检查要认真", d: "对照条件找矛盾，发现问题就改。" },
-        ].map((x, i) => (
-          <motion.div
+        {RECAP_CARDS.map((x, i) => (
+          <motion.button
             key={x.t}
+            type="button"
+            onClick={() => toggle(x.t)}
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.12 }}
-            className="card-pop p-6"
+            className="card-pop p-6 text-left"
           >
             <x.icon className="size-9 text-primary" />
             <p className="mt-3 text-2xl font-extrabold">{x.t}</p>
             <p className="text-base text-muted-foreground">{x.d}</p>
-          </motion.div>
+            <span className="mt-3 inline-block rounded-full bg-secondary px-3 py-1 text-xs font-bold text-muted-foreground">
+              {x.tag}
+            </span>
+            <AnimatePresence initial={false}>
+              {open === x.t && (
+                <motion.p
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mt-3 overflow-hidden text-sm font-medium text-foreground"
+                >
+                  使用智能体时的意思：{x.more}
+                </motion.p>
+              )}
+            </AnimatePresence>
+            <p className="mt-2 text-xs font-bold text-primary">
+              {open === x.t ? "收起 ▲" : "点开看看它是什么意思 ▼"}
+            </p>
+          </motion.button>
         ))}
       </div>
-      <div className="mt-5 rounded-3xl border-4 border-destructive bg-sun/25 p-6 text-center">
+
+      <button
+        type="button"
+        onClick={() => toggle("half")}
+        className="mt-5 block w-full rounded-3xl border-4 border-destructive bg-sun/25 p-6 text-center"
+      >
         <p className="text-3xl font-extrabold">
-          ＋半件事：<span className="text-destructive">人类最终决定</span> 🙋
+          ＋半件事：<span className="text-destructive">重要决定由人来做</span> 🙋
         </p>
-        <p className="mt-2 text-lg">AI 可以很能干，但人类必须负责检查、判断和最终决定。</p>
+        <p className="mt-2 text-lg">
+          AI 可以帮忙分析和提出方案，但付款、通知、外出、安全等重要动作，要由人确认。
+        </p>
+        <AnimatePresence initial={false}>
+          {open === "half" && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <p className="mt-3 text-base font-medium">
+                这是人类的授权和安全边界：通知同学、付款、预约、外出、涉及安全的事，都要先由大人或老师确认，人类承担最终结果。
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <p className="mt-2 text-xs font-bold text-destructive">
+          {open === "half" ? "收起 ▲" : "点开看看哪些事要确认 ▼"}
+        </p>
+      </button>
+
+      <div className="mt-5 rounded-3xl border-2 border-border bg-card p-5">
+        <p className="flex items-center gap-2 text-lg font-extrabold">
+          <Lightbulb className="size-6 text-accent" />
+          想一想：下次让智能体帮你做一件事时，你会先问哪一个问题？
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {RECAP_QUESTIONS.map((q) => (
+            <button
+              key={q}
+              type="button"
+              onClick={() => setPick(q)}
+              className={`rounded-full border-2 px-4 py-2 text-sm font-bold transition ${
+                pick === q
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-secondary/50 hover:border-primary/60"
+              }`}
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+        {pick && (
+          <p className="mt-3 text-base font-bold text-primary">
+            很好！下次就从「{pick}」开始问。
+          </p>
+        )}
       </div>
-      <div className="mt-5 flex items-center justify-center gap-2 text-lg text-muted-foreground">
-        <Lightbulb className="size-6 text-accent" /> 想一想：生活里还有哪件事，可以交给你的智能体？
-      </div>
+
+      <p className="mt-5 text-center text-xl font-extrabold">
+        目标 → 分步行动 → 检查结果 → 人类决定
+      </p>
     </Big>
   );
 }
+
 
 /* ---------- 15. 课后挑战 ---------- */
 
