@@ -869,30 +869,42 @@ function makeRun(fields: Fields, theme: AgentTheme, standard = ""): RunStep[] {
       : "❌ 没有安全说明，需补走失/受伤/天气三条预案",
   );
   checks.push(
-    hasHuman ? "✅ 已识别人类负责人，最终方案会留签字位" : "❌ 没有指定负责人，默认交老师签字",
+    hasHuman
+      ? "✅ 已识别人类最终确认人，最终方案会留签字位"
+      : "❌ 缺少最终确认人，智能体不能自行默认获得授权",
   );
+  const stdList = standard
+    .split(/[、,，;；\n]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const stdChecks = stdList.length
+    ? stdList.map((s) => `${new RegExp(s).test(`${all} ${standard}`) ? "✅" : "🔎"} 完成标准「${s}」：${
+        /确认|签字|老师|家长/.test(s) ? "需人类确认后才算达标" : "会在方案里逐项写出"
+      }`)
+    : ["⚠️ 你还没写完成标准，我无法判断方案是否合格"];
 
   return [
     {
       emoji: "🎧",
-      t: "听清任务要求",
-      d: "把你在指挥台写的原话逐条读进来",
+      t: "读取任务目标和已知信息",
+      d: "逐条读你写在任务说明卡上的四类信息",
       lines: [
-        `活动 = ${activity}`,
-        `人数 = ${count}${num ? `（识别为 ${num} 人）` : "（没读到数字）"}`,
-        `限制 = ${limits}`,
+        `任务目标 = ${activity}`,
+        `任务对象与规模 = ${count}${num ? `（识别为 ${num} 人）` : "（没读到数字）"}`,
+        `约束规则 = ${limits}`,
+        `完成标准 = ${standard || "（你还没写）"}`,
       ],
     },
     {
       emoji: "🔍",
       t: "找出缺少的信息",
-      d: missing.length ? `发现 ${missing.length} 处空白，先问清楚` : "关键信息齐全，无需追问",
-      lines: missing.length ? missing : ["地点、时间、预算、负责人、安全都已给出 ✅"],
+      d: missing.length ? `发现 ${missing.length} 处空白，只能追问，不能乱猜` : "关键信息齐全，无需追问",
+      lines: missing.length ? missing : ["地点、时间、预算、确认人、安全都已给出 ✅"],
     },
     {
       emoji: "📝",
-      t: "拆解行动计划",
-      d: `按 ${activity} 生成三步`,
+      t: "根据目标和约束拆解行动计划",
+      d: `每一步都来自你写的目标、人数、预算和时间`,
       lines: [
         `第 1 步：确认${hasPlace ? "地点与集合点" : "地点（待你补充）"}，通知${count}并统计特殊情况`,
         `第 2 步：${num ? `分 ${groups} 组，每组约 ${Math.ceil(num / groups)} 人，` : ""}排出${
@@ -903,21 +915,21 @@ function makeRun(fields: Fields, theme: AgentTheme, standard = ""): RunStep[] {
     },
     {
       emoji: "🛡️",
-      t: "做安全与常识检查",
-      d: "拿你的数字算一遍，能不能站得住",
-      lines: checks,
+      t: "对照完成标准做检查",
+      d: "用你写的完成标准和约束规则，逐条核对",
+      lines: [...stdChecks, ...checks],
     },
     {
       emoji: "✨",
-      t: "生成最终执行方案",
-      d: "交给人类检查签字",
+      t: "生成方案并提交人类确认",
+      d: "方案已生成，不代表已获批准或可自行执行",
       lines: [
-        `《${activity}执行方案》｜${count}${num ? `／${groups} 组` : ""}${
+        `《${activity}方案草案》｜${count}${num ? `／${groups} 组` : ""}${
           perHead > 0 ? `｜人均 ${perHead.toFixed(0)} 元` : ""
         }`,
         missing.length
-          ? `⚖️ 仍有 ${missing.length} 项待你确认，未确认前不算完成`
-          : "⚖️ 请检查后回复「通过」，我才算完成",
+          ? `⚖️ 仍有 ${missing.length} 项待你补充，未确认前不算完成`
+          : "⚖️ 通知、花钱、预约、外出等动作，需老师或家长确认后才能执行",
       ],
     },
   ];
