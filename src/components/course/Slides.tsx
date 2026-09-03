@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import coverArt from "@/assets/cover-illustration.png.asset.json";
+import classVideo from "@/assets/class-video.mp4.asset.json";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertTriangle,
@@ -276,7 +277,9 @@ function VideoIntro({ go }: Ctx) {
             <>
               <video
                 ref={videoRef}
-                src="/class-video.mp4"
+                src={classVideo.url}
+                playsInline
+                preload="metadata"
                 controls
                 className="h-full w-full"
                 onPlay={() => setPlaying(true)}
