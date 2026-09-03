@@ -19,7 +19,12 @@ import {
 import { toast } from "sonner";
 import { VoiceInput } from "@/components/course/VoiceInput";
 import { ChatMessage } from "@/components/course/ChatMessage";
-import { agentChat, type CardPayload } from "@/lib/agent-chat.functions";
+import {
+  agentChat,
+  type CardCheck,
+  type CardPayload,
+  type CardStage,
+} from "@/lib/agent-chat.functions";
 import {
   FACTORY_LIST,
   FACTORY_TYPES,
