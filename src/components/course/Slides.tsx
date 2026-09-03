@@ -2260,10 +2260,6 @@ function Recap() {
       <p className="-mt-2 mb-4 text-center text-lg font-bold text-muted-foreground">
         这不是背答案，而是一张使用智能体的检查卡。
       </p>
-      <div className="mb-5 rounded-3xl border-2 border-border bg-secondary/40 p-4 text-center text-base md:text-lg">
-        以后你让任何智能体帮忙时，都可以问自己四个问题：
-        <b>目标说清楚了吗？行动有步骤吗？结果检查过吗？重要决定由人确认了吗？</b>
-      </div>
       <div className="grid gap-4 md:grid-cols-3">
         {RECAP_CARDS.map((x, i) => (
           <motion.button
