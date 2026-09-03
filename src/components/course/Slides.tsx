@@ -662,27 +662,68 @@ function ConceptQuiz({ go }: Ctx) {
 
 
 const SAMPLE: Fields = {
-  activity: "五年级春游：去上海科技馆",
-  count: "50 人（2 位老师带队）",
-  limits: "每人 60 元，当天往返，地铁 2 号线，需提前预约学生票，下雨要有备选",
+  activity: "为周六五年级春游生成一份可执行方案：去上海科技馆",
+  count: "50 名学生 + 2 位老师带队；老师负责最终确认",
+  limits: "人均 60 元；9:00 出发、16:30 前回校；地铁 2 号线；需提前预约学生票；有同学花生过敏；下雨要有备选",
 };
+
+const SAMPLE_STANDARD =
+  "方案必须包含：集合点、路线、时间表、预算明细、安全预案；先由老师确认";
+
+const WHY: Record<string, string> = {
+  activity: "没有目标，智能体不知道要完成哪件事。",
+  count: "人数会影响分组、费用和通知范围。",
+  limits: "这些是它办事时不能违反的规则。",
+  standard: "没有标准，就不知道方案算不算合格。",
+};
+
+function WhyTip({ k }: { k: string }) {
+  const [on, setOn] = useState(false);
+  return (
+    <span className="inline-block">
+      <button
+        onClick={() => setOn((v) => !v)}
+        className="rounded-full bg-secondary px-2.5 py-1 text-xs font-extrabold text-secondary-foreground"
+      >
+        为什么要写？
+      </button>
+      {on && <span className="ml-2 text-xs font-bold text-primary">{WHY[k]}</span>}
+    </span>
+  );
+}
 
 export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
   const warnings = detectConflicts(fields);
+  const missingWarn = warnings.filter((w) => w.startsWith("❓") || w.startsWith("📍"));
+  const conflictWarn = warnings.filter((w) => !missingWarn.includes(w));
+  const extraMissing: string[] = [];
+  if (!flow.standard.trim()) extraMissing.push("❓ 还缺少「完成标准」：不写清楚，就没法判断方案是否合格。");
+  if (fields.limits.trim() && !/老师|家长|确认|签字/.test(fields.limits + flow.standard))
+    extraMissing.push("❓ 还缺少「最终确认人」：谁来做最后确认？");
+  const missing = [...missingWarn, ...extraMissing];
   const filled = Object.values(fields).some((v) => v.trim());
   const complete = fields.activity.trim() && fields.count.trim() && fields.limits.trim();
+  const confirmer = /家长/.test(fields.limits + flow.standard)
+    ? "老师或家长"
+    : /老师/.test(fields.limits + flow.standard)
+      ? "老师"
+      : "（还没指定）";
 
   const submit = () => {
     if (!fields.activity.trim()) {
-      toast.error("请先写清楚活动是什么");
+      toast.error("请先写清楚任务目标：希望智能体完成什么");
       return;
     }
     if (!fields.count.trim()) {
-      toast.error("请写上一共有多少人");
+      toast.error("请写上任务对象与规模：涉及谁、多少人");
       return;
     }
     if (!fields.limits.trim()) {
-      toast.error("请写一条限制条件，比如预算或时间");
+      toast.error("请至少写一条约束条件，比如预算或时间");
+      return;
+    }
+    if (!flow.standard.trim()) {
+      toast.error("请写完成标准：最后的方案必须包含什么");
       return;
     }
     setFlow(
@@ -702,47 +743,81 @@ export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
 
   return (
     <Big>
-      <SlideTitle kicker="指挥台 Command Center" title="🎛️ 轮到你来下达任务" />
+      <TaskBar active="brief" />
+      <SlideTitle kicker="任务说明卡" title="🎛️ 给智能体下达一份完整任务" />
+      <p className="mx-auto mb-5 max-w-3xl text-center text-sm font-bold text-muted-foreground">
+        智能体不能靠猜来办事。请告诉它：<b>要完成什么、涉及谁、有什么不能违反的条件、怎样才算完成。</b>
+      </p>
       <div className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
         <div className="card-pop space-y-5 p-6">
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-secondary/70 p-3">
+          <div className="rounded-2xl bg-secondary/70 p-3">
             <p className="text-sm font-bold">
-              灰色的字只是<b>示例</b>，下面三格要写<b>你自己的任务</b>。
+              你现在是<b>任务负责人</b>。把任务说明交给「春游规划助理」，它会用你给的信息制定方案；
+              你没写清楚的地方，它只能追问，或者做出不可靠的猜测。
             </p>
             <button
               onClick={() => {
                 setField("activity", SAMPLE.activity);
                 setField("count", SAMPLE.count);
                 setField("limits", SAMPLE.limits);
-                toast.success("已载入示例任务，可以随便改成你自己的 ✏️");
+                setFlow({ standard: SAMPLE_STANDARD });
+                toast.success("已载入示例任务说明，可以随便改成你自己的 ✏️");
               }}
-              className="rounded-full bg-card px-4 py-2 text-sm font-extrabold shadow"
+              className="mt-3 rounded-full bg-card px-4 py-2 text-sm font-extrabold shadow"
             >
-              加载示例任务
+              加载示例任务说明
             </button>
           </div>
-          <VoiceInput
-            emoji="🎪"
-            label="活动是什么"
-            placeholder="示例：五年级春游：去上海科技馆"
-            value={fields.activity}
-            onChange={(v) => setField("activity", v)}
-          />
-          <VoiceInput
-            emoji="👥"
-            label="有多少人"
-            placeholder="示例：50 人（2 位老师带队）"
-            value={fields.count}
-            onChange={(v) => setField("count", v)}
-          />
-          <VoiceInput
-            emoji="🚧"
-            label="限制条件 / 预算"
-            placeholder="示例：每人 60 元，当天往返，地铁 2 号线，需要预约"
-            value={fields.limits}
-            onChange={(v) => setField("limits", v)}
-            multiline
-          />
+          <div>
+            <VoiceInput
+              emoji="🎯"
+              label="1 任务目标：希望智能体完成什么？"
+              placeholder="示例：为周六去上海科技馆的活动生成一份可执行方案"
+              value={fields.activity}
+              onChange={(v) => setField("activity", v)}
+            />
+            <p className="mt-1.5">
+              <WhyTip k="activity" />
+            </p>
+          </div>
+          <div>
+            <VoiceInput
+              emoji="👥"
+              label="2 任务对象与规模：这件事涉及谁、多少人？"
+              placeholder="示例：50 名学生 + 2 位老师；老师负责最终确认"
+              value={fields.count}
+              onChange={(v) => setField("count", v)}
+            />
+            <p className="mt-1.5">
+              <WhyTip k="count" />
+            </p>
+          </div>
+          <div>
+            <VoiceInput
+              emoji="🚧"
+              label="3 约束条件：哪些条件不能违反？"
+              placeholder="示例：人均 120 元；10:00 出发；17:00 前回家；有人花生过敏"
+              value={fields.limits}
+              onChange={(v) => setField("limits", v)}
+              multiline
+            />
+            <p className="mt-1.5">
+              <WhyTip k="limits" />
+            </p>
+          </div>
+          <div>
+            <VoiceInput
+              emoji="🏁"
+              label="4 完成标准：最后的方案必须包含什么？"
+              placeholder="示例：集合点、路线、时间表、预算明细、安全预案；先由老师确认"
+              value={flow.standard}
+              onChange={(v) => setFlow({ standard: v })}
+              multiline
+            />
+            <p className="mt-1.5">
+              <WhyTip k="standard" />
+            </p>
+          </div>
           <p className="text-sm text-muted-foreground">
             🎙️ 课堂上建议直接打字。课后在家可以点麦克风用说的；没有麦克风或不给权限时，打字一样能完成。
           </p>
@@ -751,26 +826,27 @@ export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
         <div className="space-y-4">
           <div className="card-soft p-5">
             <h3 className="flex items-center gap-2 text-xl font-extrabold">
-              <ShieldCheck className="size-6 text-primary" /> 冲突与漏洞检测器
+              <ShieldCheck className="size-6 text-primary" /> 任务说明完整度检查
             </h3>
+            <p className="mt-2 text-xs font-extrabold text-muted-foreground">缺少信息</p>
             <AnimatePresence mode="popLayout">
-              {warnings.length === 0 ? (
+              {missing.length === 0 ? (
                 <motion.p
-                  key="ok"
+                  key="mok"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="mt-3 rounded-xl bg-grass/15 p-3 text-base font-bold"
+                  className="mt-1 rounded-xl bg-grass/15 p-3 text-sm font-bold"
                 >
-                  {filled ? "✅ 暂时没发现矛盾，可以交给智能体啦！" : "先填一项，我来帮你挑毛病 👀"}
+                  {filled ? "✅ 四类信息都写了" : "先写一项，我来帮你检查 👀"}
                 </motion.p>
               ) : (
-                <motion.ul key="warn" className="mt-3 space-y-2">
-                  {warnings.map((w) => (
+                <motion.ul key="mwarn" className="mt-1 space-y-2">
+                  {missing.map((w) => (
                     <motion.li
                       key={w}
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      className="rounded-xl bg-destructive/10 p-3 text-base font-medium"
+                      className="rounded-xl bg-secondary/70 p-3 text-sm font-medium"
                     >
                       {w}
                     </motion.li>
@@ -778,30 +854,48 @@ export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
                 </motion.ul>
               )}
             </AnimatePresence>
+            <p className="mt-3 text-xs font-extrabold text-muted-foreground">规则冲突</p>
+            {conflictWarn.length === 0 ? (
+              <p className="mt-1 rounded-xl bg-grass/15 p-3 text-sm font-bold">
+                ✅ 暂时没发现规则冲突
+              </p>
+            ) : (
+              <ul className="mt-1 space-y-2">
+                {conflictWarn.map((w) => (
+                  <li key={w} className="rounded-xl bg-destructive/10 p-3 text-sm font-medium">
+                    {w}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {filled && (
             <div className="card-soft p-5">
-              <p className="text-sm font-extrabold text-primary">我的任务摘要</p>
-              <p className="mt-2 text-sm font-medium">
-                🎪 {fields.activity || "（还没写活动）"}
-                <br />👥 {fields.count || "（还没写人数）"}
-                <br />🚧 {fields.limits || "（还没写限制）"}
+              <p className="text-sm font-extrabold text-primary">任务说明摘要</p>
+              <pre className="mt-2 whitespace-pre-wrap font-sans text-sm font-medium">
+{`任务目标 = ${fields.activity || "（还没写）"}
+任务对象与规模 = ${fields.count || "（还没写）"}
+约束规则 = ${fields.limits || "（还没写）"}
+完成标准 = ${flow.standard || "（还没写）"}
+最终确认人 = ${confirmer}`}
+              </pre>
+              <p className="mt-2 text-xs text-muted-foreground">
+                这不是答案，而是决定智能体后面怎么行动的输入和规则。写错了可以直接在左边改。
               </p>
-              <p className="mt-2 text-xs text-muted-foreground">写错了可以直接在左边改。</p>
             </div>
           )}
 
           <button
             onClick={submit}
-            className="w-full rounded-3xl bg-primary px-6 py-5 text-2xl font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)] transition hover:brightness-110"
+            className="w-full rounded-3xl bg-primary px-6 py-5 text-xl font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)] transition hover:brightness-110"
           >
-            🚀 交给智能体办事
+            🚀 把任务说明交给智能体
           </button>
 
           {!complete && (
             <p className="text-center text-sm text-muted-foreground">
-              三格都写上，智能体才知道要做什么
+              四项都写上，智能体才知道要做什么、怎样算完成
             </p>
           )}
         </div>
