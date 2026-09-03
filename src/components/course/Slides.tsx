@@ -1449,73 +1449,153 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
                   </div>
                 </div>
 
-                {/* 结果卡片：多模态呈现 */}
+                {/* 结果卡片：每格可点击批注（找漏洞） */}
                 <div className="rounded-2xl border-2 border-ink bg-card p-4">
+                  <p className="mb-3 flex items-center gap-2 text-xs font-extrabold text-muted-foreground">
+                    <Search className="size-4 text-berry" /> 侦探任务：点任意一格，写下你觉得写错或不合理的地方
+                  </p>
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
                     <ul className="grid gap-2 sm:grid-cols-2">
-                      {draft.items.map((it, k) => (
-                        <motion.li
-                          key={it.label}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.1 * k }}
-                          className={`rounded-xl p-3 ${
-                            it.verified ? "bg-grass/10" : "bg-muted"
-                          }`}
-                        >
-                          <p className="flex flex-wrap items-center gap-2 text-sm font-extrabold">
-                            {it.icon && <span className="inline-flex">{it.icon}</span>}
-                            {it.label}
-                            {it.verified && (
-                              <span className="inline-flex" title="已联网核验">
-                                <CheckCircle2 className="size-4 text-grass" />
+                      {draft.items.map((it, k) => {
+                        const fixed = (applied[it.label] ?? "").trim();
+                        const note = notes[it.label] ?? "";
+                        const open = editing === it.label;
+                        return (
+                          <motion.li
+                            key={it.label}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.1 * k }}
+                            onClick={() => setEditing(open ? null : it.label)}
+                            className={`group cursor-pointer rounded-xl p-3 transition ${
+                              note.trim()
+                                ? "bg-sun/20 ring-2 ring-berry"
+                                : fixed
+                                  ? "bg-grass/15 ring-2 ring-grass"
+                                  : it.verified
+                                    ? "bg-grass/10 hover:ring-2 hover:ring-primary/50"
+                                    : "bg-muted hover:ring-2 hover:ring-primary/50"
+                            }`}
+                          >
+                            <p className="flex flex-wrap items-center gap-2 text-sm font-extrabold">
+                              {it.icon && <span className="inline-flex">{it.icon}</span>}
+                              {it.label}
+                              {it.verified && !fixed && (
+                                <span className="inline-flex" title="已联网核验">
+                                  <CheckCircle2 className="size-4 text-grass" />
+                                </span>
+                              )}
+                              <span className="ml-auto text-[11px] font-bold text-muted-foreground opacity-0 transition group-hover:opacity-100">
+                                ✏️ 批注
                               </span>
-                            )}
-                          </p>
-                          <p className="mt-1 text-sm font-medium leading-snug">{it.text}</p>
-                          <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <span
-                              className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${TAG_CLASS[it.tag]}`}
-                            >
-                              {TAG_TEXT[it.tag]}
-                            </span>
-                            {it.source && (
-                              <span className="text-[11px] font-bold text-muted-foreground">
-                                来源：{it.source}
+                            </p>
+                            <p className="mt-1 text-sm font-medium leading-snug">
+                              {fixed ? `已按你的批注修改：${fixed}` : it.text}
+                            </p>
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${
+                                  fixed ? "bg-grass/25 text-ink" : TAG_CLASS[it.tag]
+                                }`}
+                              >
+                                {fixed ? "已按学生批注修正" : TAG_TEXT[it.tag]}
                               </span>
+                              {it.source && !fixed && (
+                                <span className="text-[11px] font-bold text-muted-foreground">
+                                  来源：{it.source}
+                                </span>
+                              )}
+                            </div>
+                            {note.trim() && !open && (
+                              <p className="mt-2 rounded-lg bg-card px-2 py-1 text-[11px] font-bold text-berry">
+                                🕵️ 我的批注：{note}
+                              </p>
                             )}
-                          </div>
-                        </motion.li>
-                      ))}
+                            <AnimatePresence>
+                              {open && (
+                                <motion.div
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: "auto" }}
+                                  exit={{ opacity: 0, height: 0 }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="overflow-hidden"
+                                >
+                                  <textarea
+                                    autoFocus
+                                    value={note}
+                                    onChange={(e) =>
+                                      setNotes((v) => ({ ...v, [it.label]: e.target.value }))
+                                    }
+                                    placeholder="这里哪里不对？例如：预算算超了 / 分组人太多 / 时间来不及"
+                                    className="mt-2 w-full rounded-xl border-2 border-border bg-card p-2 text-sm font-medium outline-none focus:border-primary"
+                                    rows={2}
+                                  />
+                                  <div className="mt-1 flex gap-2">
+                                    <button
+                                      onClick={() => setEditing(null)}
+                                      className="rounded-full bg-primary px-3 py-1 text-xs font-extrabold text-primary-foreground"
+                                    >
+                                      记下这条
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setNotes((v) => ({ ...v, [it.label]: "" }));
+                                        setEditing(null);
+                                      }}
+                                      className="rounded-full bg-secondary px-3 py-1 text-xs font-bold"
+                                    >
+                                      清空
+                                    </button>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </motion.li>
+                        );
+                      })}
                     </ul>
-                    <p className="mt-3 rounded-xl bg-sun/25 p-3 text-sm font-bold">{draft.verdict}</p>
-
+                    <p className="mt-3 rounded-xl bg-sun/25 p-3 text-sm font-bold">
+                      {appliedCount > 0
+                        ? `✅ 第 ${version} 版：已按你标出的 ${appliedCount} 处批注重新生成，其余内容仍需人类确认。`
+                        : draft.verdict}
+                    </p>
                   </motion.div>
                 </div>
 
                 <div className="flex flex-wrap gap-3">
                   <button
-                    onClick={() => go(SLIDE.detective)}
+                    onClick={() => {
+                      if (noteCount === 0) {
+                        toast.info("先点一格写下你找到的问题，再让智能体重新生成 🕵️");
+                        return;
+                      }
+                      setApplied({ ...notes });
+                      setNotes({});
+                      setEditing(null);
+                      setVersion((v) => v + 1);
+                      setN(0);
+                      toast.success(`已把 ${noteCount} 处批注交给智能体，正在重新生成…`);
+                    }}
                     className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)]"
                   >
-                    <Search className="size-5" /> 去侦探模式找漏洞
+                    <RefreshCw className="size-5" /> 重新生成（{noteCount} 处批注）
                   </button>
-
-                  {isRerun && (
-                    <button
-                      onClick={() => go(SLIDE.review)}
-                      className="inline-flex items-center gap-2 rounded-full bg-grass px-6 py-3 text-lg font-extrabold text-ink"
-                    >
-                      <ClipboardCheck className="size-5" /> 去验收台
-                    </button>
-                  )}
                   <button
-                    onClick={() => setN(0)}
-                    className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-3 font-extrabold"
+                    onClick={() => {
+                      setFlow({
+                        approved: true,
+                        state: "approved",
+                        unlocked: Math.max(flow.unlocked, SLIDE.homework),
+                      });
+                      toast.success("方案已由你确认，去创建专属智能体 🚀");
+                      go(SLIDE.scenes);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-full bg-grass px-6 py-3 text-lg font-extrabold text-ink shadow-[4px_4px_0_0_var(--ink)]"
                   >
-                    <RefreshCw className="size-5" /> 重新播放
+                    <ClipboardCheck className="size-5" /> 确认此方案
                   </button>
                 </div>
+
               </motion.div>
             }
           </div>
