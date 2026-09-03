@@ -27,7 +27,6 @@ import { toast } from "sonner";
 import { VoiceInput } from "./VoiceInput";
 import {
   THEMES,
-  detectConflicts,
   type AgentCard,
   type AgentTheme,
   type Fields,
