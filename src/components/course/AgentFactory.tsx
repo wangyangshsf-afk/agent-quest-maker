@@ -340,6 +340,7 @@ export function AgentFactory({
 
       {stage === 1 && (
         <div className="space-y-4">
+          <TaskProgress data={live} approved={approved} slots={T.slots} />
           <div className="card-soft relative flex h-[52vh] flex-col p-5">
             <div ref={scrollRef} className="flex-1 space-y-3 overflow-auto pr-1">
               {msgs.length === 0 && (
