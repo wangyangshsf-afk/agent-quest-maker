@@ -805,7 +805,13 @@ function downloadPng(d: CardPayload, approved: boolean) {
     "行动步骤",
     (d.plan ?? []).map((s, i) => `${i + 1}. ${s}`),
   );
-  sec("检查结论", d.checks ?? []);
+  sec(
+    "规则检查",
+    normalizeChecks(d.checks ?? []).map(
+      (c) =>
+        `${c.status === "pass" ? "通过" : c.status === "adjust" ? "需调整" : "待确认"}：${c.rule}${c.reason ? `（${c.reason}）` : ""}`,
+    ),
+  );
   sec("风险与冲突", d.risks ?? []);
   sec("人类最终决定", [
     d.humanConfirm || "需要本人或老师确认。",
