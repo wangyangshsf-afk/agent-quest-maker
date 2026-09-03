@@ -985,21 +985,6 @@ export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
         </div>
 
         <div className="space-y-4">
-          {filled && (
-            <div className="card-soft p-5">
-              <p className="text-sm font-extrabold text-primary">任务说明摘要</p>
-              <pre className="mt-2 whitespace-pre-wrap font-sans text-sm font-medium">
-{`任务目标 = ${fields.activity || "（还没写）"}
-任务对象与规模 = ${fields.count || "（还没写）"}
-约束规则 = ${fields.limits || "（还没写）"}
-完成标准 = ${flow.standard || "（还没写）"}
-最终确认人 = ${confirmer}`}
-              </pre>
-              <p className="mt-2 text-xs text-muted-foreground">
-                这不是答案，而是决定智能体后面怎么行动的输入和规则。写错了可以直接在左边改。
-              </p>
-            </div>
-          )}
 
           <button
             onClick={submit}
@@ -1362,7 +1347,7 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
       state: holes.length + badChecks.length > 0 ? "needs_fix" : "rerunning",
       unlocked: Math.max(
         flow.unlocked,
-        isRerun ? SLIDE.review : flow.doubt ? SLIDE.detective : SLIDE.execution,
+        isRerun ? SLIDE.review : SLIDE.detective,
       ),
     });
 
@@ -1507,44 +1492,13 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
                     </ul>
                     <p className="mt-3 rounded-xl bg-sun/25 p-3 text-sm font-bold">{draft.verdict}</p>
 
-                    <p className="mt-4 text-sm font-extrabold">
-                      👇 指出一个你不相信或需要核实的地方（选一条才能进入侦探模式）
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {draft.items.map((it) => (
-                        <button
-                          key={it.label}
-                          onClick={() => {
-                            setFlow({
-                              doubt: it.label,
-                              unlocked: Math.max(flow.unlocked, SLIDE.detective),
-                            });
-                            toast.success(`已记下：我要核实「${it.label}」`);
-                          }}
-                          className={`rounded-full px-4 py-2 text-sm font-extrabold ${
-                            flow.doubt === it.label ? "bg-grass text-ink" : "bg-secondary"
-                          }`}
-                        >
-                          {flow.doubt === it.label ? "✅ " : ""}
-                          {it.label}
-                        </button>
-                      ))}
-                    </div>
                   </motion.div>
                 </div>
 
                 <div className="flex flex-wrap gap-3">
                   <button
-                    onClick={() => {
-                      if (!flow.doubt) {
-                        toast.info("先在上面的结果卡片里指出一个你要核实的地方 🔍");
-                        return;
-                      }
-                      go(SLIDE.detective);
-                    }}
-                    className={`inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)] ${
-                      flow.doubt ? "" : "opacity-60"
-                    }`}
+                    onClick={() => go(SLIDE.detective)}
+                    className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)]"
                   >
                     <Search className="size-5" /> 去侦探模式找漏洞
                   </button>
@@ -1879,11 +1833,6 @@ function Detective({ fields, theme, setField, go, flow, setFlow }: Ctx) {
         今天我们看 2 个案件，每一步点两次：先想，再看答案。
       </p>
 
-      {flow.doubt && (
-        <p className="mx-auto mb-4 max-w-3xl rounded-2xl border-2 border-ink bg-card p-3 text-center text-sm font-bold">
-          你在第 9 页标记要核实的是：<b>「{flow.doubt}」</b>。下面的案件就来自智能体那份方案草案。
-        </p>
-      )}
 
 
       <div className="mb-4 flex flex-wrap justify-center gap-2">
