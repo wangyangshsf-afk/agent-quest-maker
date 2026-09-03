@@ -1040,7 +1040,7 @@ function makeRun(fields: Fields, theme: AgentTheme, standard = ""): RunStep[] {
       t: "生成方案并提交人类确认",
       d: "方案已生成，不代表已获批准或可自行执行",
       lines: [
-        `《${activity}方案草案》｜${count}${num ? `／${groups} 组` : ""}${
+        `《${activity}智能体生成的方案》｜${count}${num ? `／${groups} 组` : ""}${
           perHead > 0 ? `｜人均 ${perHead.toFixed(0)} 元` : ""
         }`,
         missing.length
@@ -1161,7 +1161,7 @@ export function makeDraft(fields: Fields, theme: AgentTheme, standard = ""): Age
   ];
 
   return {
-    title: `《${activity}》方案草案（智能体初版产出）`,
+    title: `《${activity}》智能体生成的方案`,
     items,
     flaws,
     verdict:
@@ -1252,7 +1252,7 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
                   className="mb-4 size-10 rounded-full border-4 border-primary border-t-transparent"
                 />
                 <p className="text-lg font-extrabold">智能体正在按步骤产出方案…</p>
-                <p className="mt-1 text-sm text-muted-foreground">完成后会在这里显示方案草案</p>
+                <p className="mt-1 text-sm text-muted-foreground">完成后会在这里显示智能体生成的方案</p>
               </div>
             ) : (
               <motion.div
@@ -1260,9 +1260,7 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
                 animate={{ opacity: 1, y: 0 }}
                 className="card-soft space-y-4 p-5"
               >
-                <p className="text-2xl font-extrabold">
-                  {isRerun ? "🔁 第二版：待人类验收的方案草案" : "📄 待人类验收的方案草案（不等于已获批准）"}
-                </p>
+                <p className="text-2xl font-extrabold">🤖 智能体生成的方案</p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <div className="rounded-2xl bg-destructive/10 p-3">
                     <p className="text-sm font-extrabold text-destructive">
@@ -1289,11 +1287,7 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
                 </div>
 
                 <div className="rounded-2xl border-2 border-ink bg-card p-4">
-                  <p className="text-lg font-extrabold">🤖 {draft.title}</p>
-                  <p className="mt-1 text-sm font-bold text-muted-foreground">
-                    下面是智能体自己边推测边写出来的初版方案，不一定正确，请检查。
-                  </p>
-                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-3">
+                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
                     <ul className="space-y-2">
                       {draft.items.map((it, k) => (
                         <motion.li
