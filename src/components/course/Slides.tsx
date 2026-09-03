@@ -985,21 +985,6 @@ export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
         </div>
 
         <div className="space-y-4">
-          {filled && (
-            <div className="card-soft p-5">
-              <p className="text-sm font-extrabold text-primary">任务说明摘要</p>
-              <pre className="mt-2 whitespace-pre-wrap font-sans text-sm font-medium">
-{`任务目标 = ${fields.activity || "（还没写）"}
-任务对象与规模 = ${fields.count || "（还没写）"}
-约束规则 = ${fields.limits || "（还没写）"}
-完成标准 = ${flow.standard || "（还没写）"}
-最终确认人 = ${confirmer}`}
-              </pre>
-              <p className="mt-2 text-xs text-muted-foreground">
-                这不是答案，而是决定智能体后面怎么行动的输入和规则。写错了可以直接在左边改。
-              </p>
-            </div>
-          )}
 
           <button
             onClick={submit}
