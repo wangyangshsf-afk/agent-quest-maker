@@ -1144,11 +1144,29 @@ function makeRun(fields: Fields, theme: AgentTheme, standard = ""): RunStep[] {
   ];
 }
 
-/* ---------- 8b. 智能体自己的产出：方案草案 ---------- */
+/* ---------- 8b. 智能体自己的产出：已完成结果 ---------- */
 
 type DraftTag = "fact" | "guess" | "confirm";
-type DraftItem = { label: string; text: string; tag: DraftTag; flaw?: string | undefined };
-export type AgentDraft = { title: string; items: DraftItem[]; flaws: string[]; verdict: string };
+type DraftItem = {
+  label: string;
+  text: string;
+  tag: DraftTag;
+  flaw?: string | undefined;
+  /** 是否已调用互联网资源核验 */
+  verified?: boolean;
+  /** 模拟的核验来源 */
+  source?: string;
+  /** 多模态呈现用的图标 */
+  icon?: React.ReactNode;
+};
+export type AgentDraft = {
+  title: string;
+  items: DraftItem[];
+  flaws: string[];
+  verdict: string;
+  /** 联网核验摘要 */
+  webChecks: { icon: React.ReactNode; label: string; result: string; ok: boolean }[];
+};
 
 const TAG_TEXT: Record<DraftTag, string> = {
   fact: "已知事实",
