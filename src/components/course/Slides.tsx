@@ -1214,44 +1214,73 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
         它会读取你的任务说明、补齐缺失信息、制定计划、检查规则，再把方案交给人类确认。
       </p>
       <div className="card-pop p-6">
-        <ol className="space-y-2.5">
-          {steps.map((s, i) => (
-            <motion.li
-              key={s.t}
-              animate={{ opacity: i < n ? 1 : 0.3, x: i < n ? 0 : -10 }}
-              className="rounded-2xl border-2 border-border px-4 py-3"
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{s.emoji}</span>
-                <div className="flex-1">
-                  <p className="text-base font-extrabold sm:text-lg">{s.t}</p>
-                  <p className="text-xs text-muted-foreground">{s.d}</p>
-                </div>
+        <div className="grid gap-5 lg:grid-cols-[260px_1fr]">
+          {/* 左侧：竖排步骤 + 绿色确认 */}
+          <ol className="space-y-2">
+            {steps.map((s, i) => (
+              <motion.li
+                key={s.t}
+                animate={{ opacity: i <= n ? 1 : 0.35, x: i <= n ? 0 : -8 }}
+                className={`flex items-center gap-3 rounded-2xl border-2 px-3 py-3 ${
+                  i === n ? "border-primary bg-secondary/60" : "border-border"
+                }`}
+              >
+                <span className="text-xl">{s.emoji}</span>
+                <p className="flex-1 text-sm font-extrabold leading-snug">{s.t}</p>
                 {i < n ? (
-                  <CheckCircle2 className="size-5 text-grass" />
-                ) : (
-                  <span className="text-xs text-muted-foreground">推测中…</span>
-                )}
-              </div>
-              {i < n && (
-                <motion.ul
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  className="mt-2 flex flex-wrap gap-1.5 overflow-hidden pl-9"
+                  <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                    <CheckCircle2 className="size-5 text-grass" />
+                  </motion.span>
+                ) : i === n ? (
+                  <motion.span
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
+                    className="size-4 rounded-full border-2 border-primary border-t-transparent"
+                  />
+                ) : null}
+              </motion.li>
+            ))}
+          </ol>
+
+          {/* 右侧：智能体实际产出的动态过程 */}
+          <div className="min-h-[360px] rounded-2xl border-2 border-ink bg-card p-4">
+            <p className="mb-3 text-xs font-extrabold text-muted-foreground">
+              🤖 智能体产出实况
+            </p>
+            <div className="space-y-3">
+              {steps.slice(0, Math.min(n + 1, steps.length)).map((s, i) => (
+                <motion.div
+                  key={s.t}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="rounded-xl bg-muted/60 p-3"
                 >
-                  {s.lines.map((l) => (
-                    <li
-                      key={l}
-                      className="rounded-lg bg-muted px-2.5 py-1 text-xs font-medium leading-snug"
-                    >
-                      {l}
-                    </li>
-                  ))}
-                </motion.ul>
-              )}
-            </motion.li>
-          ))}
-        </ol>
+                  <p className="text-xs font-extrabold text-muted-foreground">
+                    {s.emoji} {s.t}
+                  </p>
+                  {i < n ? (
+                    <ul className="mt-2 space-y-1.5">
+                      {s.lines.map((l, k) => (
+                        <motion.li
+                          key={l}
+                          initial={{ opacity: 0, x: -8 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.1 * k }}
+                          className="rounded-lg bg-card px-3 py-2 text-sm font-medium leading-snug"
+                        >
+                          {l}
+                        </motion.li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-sm font-bold text-primary">正在推测…</p>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+
 
 
         {done && (
