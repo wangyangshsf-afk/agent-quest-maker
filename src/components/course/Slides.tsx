@@ -1267,12 +1267,8 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
         它会读取你的任务说明、补齐缺失信息、制定计划、检查规则，再把方案交给人类确认。
       </p>
       <div className="card-pop p-6">
-        <p className="mb-4 rounded-xl bg-secondary p-3 text-base">
-          任务目标：<b>{fields.activity || theme.activity || "（未填写）"}</b>｜对象与规模：
-          <b>{fields.count || theme.count || "（未填写）"}</b>｜约束规则：
-          <b>{fields.limits || theme.limits || "（未填写）"}</b>｜完成标准：
-          <b>{flow.standard || "（未填写）"}</b>
-        </p>
+
+
         <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl bg-grass/15 p-3">
             <p className="text-xs font-extrabold">已知信息</p>
