@@ -1484,7 +1484,9 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
                             {it.icon && <span className="inline-flex">{it.icon}</span>}
                             {it.label}
                             {it.verified && (
-                              <CheckCircle2 className="size-4 text-grass" title="已联网核验" />
+                              <span className="inline-flex" title="已联网核验">
+                                <CheckCircle2 className="size-4 text-grass" />
+                              </span>
                             )}
                           </p>
                           <p className="mt-1 text-sm font-medium leading-snug">{it.text}</p>
