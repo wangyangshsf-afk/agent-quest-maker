@@ -1550,16 +1550,17 @@ function makeCases(fields: Fields, theme: AgentTheme, standard = ""): DCase[] {
         },
         {
           hint: "问「安全吗」太虚。要问：谁在什么时候做什么？",
-          answer: `❓ 问：「请列出 3 个风险场景。每个写清：谁负责、第一步做什么、联系谁。」`,
+          answer: `❓ 问：「${activity}请列出 3 个风险场景（${count}规模）。每个写清：谁负责、第一步做什么、联系谁。」`,
         },
         {
           hint: "把安全要求写回指挥台，下一版才会落实。",
-          answer: "✏️ 加上：登记过敏情况，写出走失/受伤/天气应急预案。",
+          answer: `✏️ 加上：登记过敏情况，写出走失/受伤/天气应急预案，由${confirmer}兜底。`,
         },
       ],
       fixField: "limits",
-      fixValue: `${limits}${limits ? "；" : ""}需提前登记过敏与身体情况，并写出走失/受伤/天气三种应急预案`,
-      fixLabel: "补上：安全与应急预案",
+      fixValue: `${limits}${limits ? "；" : ""}${activity}前登记过敏与身体情况，写出走失/受伤/天气三种应急预案，紧急时联系${confirmer}${stdTail}`,
+      fixLabel: `补上：${activity}的安全与应急预案`,
+
     }),
   });
 
