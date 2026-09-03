@@ -1153,11 +1153,11 @@ type DraftItem = {
   tag: DraftTag;
   flaw?: string | undefined;
   /** 是否已调用互联网资源核验 */
-  verified?: boolean;
+  verified?: boolean | undefined;
   /** 模拟的核验来源 */
-  source?: string;
+  source?: string | undefined;
   /** 多模态呈现用的图标 */
-  icon?: React.ReactNode;
+  icon?: React.ReactNode | undefined;
 };
 export type AgentDraft = {
   title: string;
