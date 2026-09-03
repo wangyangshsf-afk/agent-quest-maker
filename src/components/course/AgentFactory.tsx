@@ -432,6 +432,134 @@ export function AgentFactory({
   );
 }
 
+/* ---------- 任务进度：agentSession 的可视化状态 ---------- */
+
+function normalizeChecks(list: (string | CardCheck)[]): CardCheck[] {
+  return (list ?? []).map((c) =>
+    typeof c === "string"
+      ? { rule: c, status: "confirm" as const, reason: "" }
+      : {
+          rule: c.rule ?? "",
+          status: c.status === "pass" || c.status === "adjust" ? c.status : "confirm",
+          reason: c.reason ?? "",
+          ...(c.suggestion ? { suggestion: c.suggestion } : {}),
+        },
+  );
+}
+
+function deriveStage(data: CardPayload | null, approved: boolean): CardStage | "completed" {
+  if (approved) return "completed";
+  if (!data) return "collecting";
+  const valid: CardStage[] = ["collecting", "planning", "checking", "awaiting_student_confirmation"];
+  if (data.stage && valid.includes(data.stage)) return data.stage;
+  if ((data.missing?.length ?? 0) > 0) return "collecting";
+  if ((data.checks?.length ?? 0) === 0) return (data.plan?.length ?? 0) > 0 ? "planning" : "collecting";
+  return "awaiting_student_confirmation";
+}
+
+const PHASES: { key: CardStage; emoji: string; label: string }[] = [
+  { key: "collecting", emoji: "🔍", label: "收集信息" },
+  { key: "planning", emoji: "🗺️", label: "制定方案" },
+  { key: "checking", emoji: "🛡️", label: "规则检查" },
+  { key: "awaiting_student_confirmation", emoji: "🎁", label: "成果与确认" },
+];
+
+function TaskProgress({
+  data,
+  approved,
+  slots,
+}: {
+  data: CardPayload | null;
+  approved: boolean;
+  slots: string[];
+}) {
+  const [open, setOpen] = useState(false);
+  const stage = deriveStage(data, approved);
+  const idx = stage === "completed" ? PHASES.length : PHASES.findIndex((p) => p.key === stage);
+  const asking = data?.nextMissingField || data?.missing?.[0] || slots[0] || "";
+  const got = data?.collected ?? [];
+
+  const status = (i: number) =>
+    approved && i === PHASES.length - 1
+      ? { text: "已由学生核对", icon: "✅" }
+      : i < idx
+        ? { text: "已完成", icon: "✅" }
+        : i === idx
+          ? i === PHASES.length - 1
+            ? { text: "需要学生确认", icon: "🙋" }
+            : { text: "进行中", icon: "⏳" }
+          : { text: "未开始", icon: "⬜" };
+
+  return (
+    <div className="card-soft p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-extrabold">🧭 任务进度</p>
+          <p className="text-xs text-muted-foreground">它会按目标一步步办事，不是随便聊天。</p>
+        </div>
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="rounded-full bg-secondary px-3 py-1.5 text-xs font-bold sm:hidden"
+        >
+          {open ? "收起详情" : "展开详情"}
+        </button>
+      </div>
+
+      <ol className="mt-3 grid gap-2 sm:grid-cols-4">
+        {PHASES.map((p, i) => {
+          const s = status(i);
+          const active = i === idx;
+          return (
+            <li
+              key={p.key}
+              className={`rounded-2xl border-2 px-3 py-2 text-xs font-bold ${
+                active
+                  ? "border-primary bg-primary/10"
+                  : i < idx
+                    ? "border-grass/50 bg-grass/10"
+                    : "border-border bg-muted/50"
+              }`}
+            >
+              <span className="block">
+                {p.emoji} {i + 1}. {p.label}
+              </span>
+              <span className="text-muted-foreground">
+                {s.icon} {s.text}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+
+      <div className={`mt-3 space-y-2 text-xs ${open ? "" : "hidden sm:block"}`}>
+        <div>
+          <p className="font-extrabold">📥 已知信息</p>
+          {got.length ? (
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {got.map((c, i) => (
+                <span key={i} className="rounded-full bg-secondary px-2.5 py-1 font-bold">
+                  {c.key}：{c.value}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-1 text-muted-foreground">还没有，回答第一个问题就会出现在这里。</p>
+          )}
+        </div>
+        {stage === "collecting" && asking && (
+          <p className="rounded-xl bg-sun/25 px-3 py-2 font-bold">❓ 正在问你：{asking}</p>
+        )}
+        {data?.actionLog && (
+          <p className="rounded-xl bg-muted px-3 py-2">🧾 刚刚做了：{data.actionLog}</p>
+        )}
+        <p className="text-muted-foreground">
+          记忆只保留本次会话；刷新页面后这段对话就会重新开始。
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- 生成中的期待感动画 ---------- */
 
 const GEN_STEPS = [
