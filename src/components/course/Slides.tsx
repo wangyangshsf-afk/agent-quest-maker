@@ -1221,8 +1221,11 @@ export function makeDraft(fields: Fields, theme: AgentTheme, standard = ""): Age
 function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
   const sig = `${fields.activity}|${fields.count}|${fields.limits}|${flow.standard}|${theme.id}`;
   const steps = useMemo(() => makeRun(fields, theme, flow.standard), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
+  const draft = useMemo(() => makeDraft(fields, theme, flow.standard), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [showDraft, setShowDraft] = useState(false);
   const [n, setN] = useState(0);
   useEffect(() => setN(0), [sig]);
+
   useEffect(() => {
     if (n >= steps.length) return;
     const id = window.setTimeout(() => setN((x) => x + 1), 1100);
