@@ -1442,7 +1442,7 @@ function makeCases(fields: Fields, theme: AgentTheme, standard = ""): DCase[] {
       ai: `${activity}方案：${hasTime ? `按你写的 ${start} 集合出发` : "早上 8:00 集合出发"}，中途休息用餐，结束后原路返回。参加人数 ${count}。`,
       steps: [
         {
-          hint: `读一遍 AI 的方案。对照你写的${q(activity)}，地点在哪里？`,
+          hint: `读一遍 AI 的方案。对照你写的「${activity}」，地点在哪里？`,
           answer: `🔍 AI 只说了时间和人数，没说地点。📍 没有地点，算不出路程和${hasMoney ? "门票花费" : "路上时间"}。`,
         },
         {
