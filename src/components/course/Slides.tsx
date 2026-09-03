@@ -93,6 +93,8 @@ export type Flow = {
   checks: string[];
   /** 完成标准：怎样才算这件事做完了 */
   standard: string;
+  /** 学生在第 9 页标记的「我不相信 / 要核实」的那一条 */
+  doubt: string;
   /** 学生主流程解锁到第几页（教师演示模式可无视） */
   unlocked: number;
   challenge: Challenge;
@@ -104,9 +106,11 @@ export const EMPTY_FLOW: Flow = {
   approved: false,
   checks: [],
   standard: "",
+  doubt: "",
   unlocked: 7,
   challenge: EMPTY_CHALLENGE,
 };
+
 
 
 
