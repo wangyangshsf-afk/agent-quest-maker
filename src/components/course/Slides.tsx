@@ -1766,6 +1766,12 @@ function Detective({ fields, theme, setField, go, flow, setFlow }: Ctx) {
           🛑 <b>规则缺失</b>：没写清哪些动作必须由人确认。通知、花钱、预约、外出不能由它自己决定。
         </p>
       </div>
+      {flow.doubt && (
+        <p className="mx-auto mb-4 max-w-3xl rounded-2xl border-2 border-ink bg-card p-3 text-center text-sm font-bold">
+          你在第 9 页标记要核实的是：<b>「{flow.doubt}」</b>。下面的案件就来自智能体那份方案草案。
+        </p>
+      )}
+
 
       <div className="mb-4 flex flex-wrap justify-center gap-2">
         {cases.map((x, k) => (
