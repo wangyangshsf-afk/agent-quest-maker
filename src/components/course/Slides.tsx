@@ -1242,169 +1242,142 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
             ))}
           </ol>
 
-          {/* 右侧：智能体实际产出的动态过程 */}
-          <div className="min-h-[360px] rounded-2xl border-2 border-ink bg-card p-4">
-            <p className="mb-3 text-xs font-extrabold text-muted-foreground">
-              🤖 智能体产出实况
-            </p>
-            <div className="space-y-3">
-              {steps.slice(0, Math.min(n + 1, steps.length)).map((s, i) => (
-                <motion.div
-                  key={s.t}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="rounded-xl bg-muted/60 p-3"
-                >
-                  <p className="text-xs font-extrabold text-muted-foreground">
-                    {s.emoji} {s.t}
+          {/* 右侧：智能体方案框 */}
+          <div className="min-h-[360px]">
+            {!done ? (
+              <div className="flex h-full min-h-[360px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-card p-6 text-center">
+                <motion.span
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
+                  className="mb-4 size-10 rounded-full border-4 border-primary border-t-transparent"
+                />
+                <p className="text-lg font-extrabold">智能体正在按步骤产出方案…</p>
+                <p className="mt-1 text-sm text-muted-foreground">完成后会在这里显示方案草案</p>
+              </div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="card-soft space-y-4 p-5"
+              >
+                <p className="text-2xl font-extrabold">
+                  {isRerun ? "🔁 第二版：待人类验收的方案草案" : "📄 待人类验收的方案草案（不等于已获批准）"}
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="rounded-2xl bg-destructive/10 p-3">
+                    <p className="text-sm font-extrabold text-destructive">
+                      缺少的信息 {holes.length} 处
+                    </p>
+                    <ul className="mt-1 space-y-1 text-sm font-medium">
+                      {holes.length ? (
+                        holes.map((h) => <li key={h}>· {h}</li>)
+                      ) : (
+                        <li>· 关键信息都齐了 ✅</li>
+                      )}
+                    </ul>
+                  </div>
+                  <div className="rounded-2xl bg-sun/25 p-3">
+                    <p className="text-sm font-extrabold">检查没过的地方 {badChecks.length} 处</p>
+                    <ul className="mt-1 space-y-1 text-sm font-medium">
+                      {badChecks.length ? (
+                        badChecks.map((h) => <li key={h}>· {h}</li>)
+                      ) : (
+                        <li>· 预算、人数、安全都算得过来 ✅</li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border-2 border-ink bg-card p-4">
+                  <p className="text-lg font-extrabold">🤖 {draft.title}</p>
+                  <p className="mt-1 text-sm font-bold text-muted-foreground">
+                    下面是智能体自己边推测边写出来的初版方案，不一定正确，请检查。
                   </p>
-                  {i < n ? (
-                    <ul className="mt-2 space-y-1.5">
-                      {s.lines.map((l, k) => (
+                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-3">
+                    <ul className="space-y-2">
+                      {draft.items.map((it, k) => (
                         <motion.li
-                          key={l}
-                          initial={{ opacity: 0, x: -8 }}
+                          key={it.label}
+                          initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.1 * k }}
-                          className="rounded-lg bg-card px-3 py-2 text-sm font-medium leading-snug"
+                          transition={{ delay: 0.12 * k }}
+                          className="rounded-xl bg-muted p-3"
                         >
-                          {l}
+                          <p className="flex flex-wrap items-center gap-2 text-sm font-extrabold">
+                            {it.label}
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${TAG_CLASS[it.tag]}`}
+                            >
+                              {TAG_TEXT[it.tag]}
+                            </span>
+                          </p>
+                          <p className="mt-1 text-sm font-medium">{it.text}</p>
                         </motion.li>
                       ))}
                     </ul>
-                  ) : (
-                    <p className="mt-2 text-sm font-bold text-primary">正在推测…</p>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </div>
+                    <p className="mt-3 rounded-xl bg-sun/25 p-3 text-sm font-bold">{draft.verdict}</p>
 
-
-
-        {done && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="card-soft mt-5 space-y-4 p-5"
-          >
-            <p className="text-2xl font-extrabold">
-              {isRerun ? "🔁 第二版：待人类验收的方案草案" : "📄 待人类验收的方案草案（不等于已获批准）"}
-            </p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <div className="rounded-2xl bg-destructive/10 p-3">
-                <p className="text-sm font-extrabold text-destructive">
-                  缺少的信息 {holes.length} 处
-                </p>
-                <ul className="mt-1 space-y-1 text-sm font-medium">
-                  {holes.length ? (
-                    holes.map((h) => <li key={h}>· {h}</li>)
-                  ) : (
-                    <li>· 关键信息都齐了 ✅</li>
-                  )}
-                </ul>
-              </div>
-              <div className="rounded-2xl bg-sun/25 p-3">
-                <p className="text-sm font-extrabold">检查没过的地方 {badChecks.length} 处</p>
-                <ul className="mt-1 space-y-1 text-sm font-medium">
-                  {badChecks.length ? (
-                    badChecks.map((h) => <li key={h}>· {h}</li>)
-                  ) : (
-                    <li>· 预算、人数、安全都算得过来 ✅</li>
-                  )}
-                </ul>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border-2 border-ink bg-card p-4">
-              <p className="text-lg font-extrabold">🤖 {draft.title}</p>
-              <p className="mt-1 text-sm font-bold text-muted-foreground">
-                下面是智能体自己边推测边写出来的初版方案，不一定正确，请检查。
-              </p>
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-3">
-                <ul className="space-y-2">
-                  {draft.items.map((it, k) => (
-                    <motion.li
-                      key={it.label}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.12 * k }}
-                      className="rounded-xl bg-muted p-3"
-                    >
-                      <p className="flex flex-wrap items-center gap-2 text-sm font-extrabold">
-                        {it.label}
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${TAG_CLASS[it.tag]}`}
+                    <p className="mt-4 text-sm font-extrabold">
+                      👇 指出一个你不相信或需要核实的地方（选一条才能进入侦探模式）
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {draft.items.map((it) => (
+                        <button
+                          key={it.label}
+                          onClick={() => {
+                            setFlow({
+                              doubt: it.label,
+                              unlocked: Math.max(flow.unlocked, SLIDE.detective),
+                            });
+                            toast.success(`已记下：我要核实「${it.label}」`);
+                          }}
+                          className={`rounded-full px-4 py-2 text-sm font-extrabold ${
+                            flow.doubt === it.label ? "bg-grass text-ink" : "bg-secondary"
+                          }`}
                         >
-                          {TAG_TEXT[it.tag]}
-                        </span>
-                      </p>
-                      <p className="mt-1 text-sm font-medium">{it.text}</p>
-                    </motion.li>
-                  ))}
-                </ul>
-                <p className="mt-3 rounded-xl bg-sun/25 p-3 text-sm font-bold">{draft.verdict}</p>
+                          {flow.doubt === it.label ? "✅ " : ""}
+                          {it.label}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                </div>
 
-                <p className="mt-4 text-sm font-extrabold">
-                  👇 指出一个你不相信或需要核实的地方（选一条才能进入侦探模式）
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {draft.items.map((it) => (
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={() => {
+                      if (!flow.doubt) {
+                        toast.info("先在上面的方案草案里指出一个你要核实的地方 🔍");
+                        return;
+                      }
+                      go(SLIDE.detective);
+                    }}
+                    className={`inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)] ${
+                      flow.doubt ? "" : "opacity-60"
+                    }`}
+                  >
+                    <Search className="size-5" /> 去侦探模式找漏洞
+                  </button>
+
+                  {isRerun && (
                     <button
-                      key={it.label}
-                      onClick={() => {
-                        setFlow({
-                          doubt: it.label,
-                          unlocked: Math.max(flow.unlocked, SLIDE.detective),
-                        });
-                        toast.success(`已记下：我要核实「${it.label}」`);
-                      }}
-                      className={`rounded-full px-4 py-2 text-sm font-extrabold ${
-                        flow.doubt === it.label ? "bg-grass text-ink" : "bg-secondary"
-                      }`}
+                      onClick={() => go(SLIDE.review)}
+                      className="inline-flex items-center gap-2 rounded-full bg-grass px-6 py-3 text-lg font-extrabold text-ink"
                     >
-                      {flow.doubt === it.label ? "✅ " : ""}
-                      {it.label}
+                      <ClipboardCheck className="size-5" /> 去验收台
                     </button>
-                  ))}
+                  )}
+                  <button
+                    onClick={() => setN(0)}
+                    className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-3 font-extrabold"
+                  >
+                    <RefreshCw className="size-5" /> 重新播放
+                  </button>
                 </div>
               </motion.div>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => {
-                  if (!flow.doubt) {
-                    toast.info("先在上面的方案草案里指出一个你要核实的地方 🔍");
-                    return;
-                  }
-                  go(SLIDE.detective);
-                }}
-                className={`inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)] ${
-                  flow.doubt ? "" : "opacity-60"
-                }`}
-              >
-                <Search className="size-5" /> 去侦探模式找漏洞
-              </button>
-
-              {isRerun && (
-                <button
-                  onClick={() => go(SLIDE.review)}
-                  className="inline-flex items-center gap-2 rounded-full bg-grass px-6 py-3 text-lg font-extrabold text-ink"
-                >
-                  <ClipboardCheck className="size-5" /> 去验收台
-                </button>
-              )}
-              <button
-                onClick={() => setN(0)}
-                className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-3 font-extrabold"
-              >
-                <RefreshCw className="size-5" /> 重新播放
-              </button>
-            </div>
-          </motion.div>
-        )}
+            )}
+          </div>
+        </div>
       </div>
     </Big>
   );
