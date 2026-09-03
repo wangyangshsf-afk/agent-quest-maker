@@ -1509,9 +1509,9 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
                   </button>
                 </div>
               </motion.div>
-            )}
+            }
           </div>
-        </div>
+        )}
       </div>
     </Big>
   );
