@@ -8,8 +8,10 @@ import {
   Bot,
   CheckCircle2,
   ClipboardCheck,
+  CloudSun,
   Eye,
   Gavel,
+  Globe,
   Lightbulb,
   ListChecks,
   MapPin,
@@ -21,6 +23,7 @@ import {
   ShieldCheck,
   Sparkle,
   Target,
+  TrainFront,
   Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -1141,11 +1144,29 @@ function makeRun(fields: Fields, theme: AgentTheme, standard = ""): RunStep[] {
   ];
 }
 
-/* ---------- 8b. 智能体自己的产出：方案草案 ---------- */
+/* ---------- 8b. 智能体自己的产出：已完成结果 ---------- */
 
 type DraftTag = "fact" | "guess" | "confirm";
-type DraftItem = { label: string; text: string; tag: DraftTag; flaw?: string | undefined };
-export type AgentDraft = { title: string; items: DraftItem[]; flaws: string[]; verdict: string };
+type DraftItem = {
+  label: string;
+  text: string;
+  tag: DraftTag;
+  flaw?: string | undefined;
+  /** 是否已调用互联网资源核验 */
+  verified?: boolean | undefined;
+  /** 模拟的核验来源 */
+  source?: string | undefined;
+  /** 多模态呈现用的图标 */
+  icon?: React.ReactNode | undefined;
+};
+export type AgentDraft = {
+  title: string;
+  items: DraftItem[];
+  flaws: string[];
+  verdict: string;
+  /** 联网核验摘要 */
+  webChecks: { icon: React.ReactNode; label: string; result: string; ok: boolean }[];
+};
 
 const TAG_TEXT: Record<DraftTag, string> = {
   fact: "已知事实",
@@ -1197,67 +1218,119 @@ export function makeDraft(fields: Fields, theme: AgentTheme, standard = ""): Age
 
   const items: DraftItem[] = [
     {
-      label: "备选地点",
+      label: "地点与集合点",
       text: hasPlace
-        ? `主选 ${place}（你已写明）；备选：市区少年宫（车程更短，门票更低）。`
-        : `你没写地点，我先按${place}做方案，备选市区少年宫——这只是我的推测。`,
+        ? `已完成：${place}（来源：你写的任务说明）。备选：市区少年宫。`
+        : `待确认：你未写明地点，我暂按「${place}」占位，需你确认或修改。`,
       tag: hasPlace ? "fact" : "guess",
       flaw: hasPlace ? undefined : "place",
+      verified: hasPlace,
+      source: hasPlace ? "任务说明 + 公开地图" : undefined,
+      icon: <MapPin className="size-4 text-primary" />,
     },
     {
-      label: "建议路线",
-      text: `学校 → 地铁 2 号线 → ${place}，单程约 35 分钟（我按地图估算，未查当天班次）。`,
-      tag: "guess",
+      label: "交通路线",
+      text: `已完成：学校 → 地铁 2 号线 → ${place}，单程约 35 分钟。`,
+      tag: "fact",
+      verified: true,
+      source: "上海地铁官网 + 地图导航",
+      icon: <TrainFront className="size-4 text-primary" />,
     },
     {
       label: "时间表",
-      text: `${start} 集合出发 → 10:00 到达 → 12:00 午餐 → 15:00 返程 → ${end} 到校。返程只留 90 分钟。`,
+      text: `已完成：${start} 集合出发 → 10:00 到达 → 12:00 午餐 → 15:00 返程 → ${end} 到校。`,
       tag: "guess",
       flaw: "time",
+      verified: hasTime,
+      source: hasTime ? "任务说明" : "智能体按常规时段推测",
+      icon: <Target className="size-4 text-primary" />,
     },
     {
-      label: "预算草案",
-      text: `交通 ${bus} 元 + 门票 ${ticket} 元 + 午餐 ${lunch} 元 + 应急 ${spare} 元 = 每人 ${sum} 元（你的上限是每人 ${Math.round(perHead)} 元）。`,
+      label: "预算明细",
+      text: `已完成：交通 ${bus} 元 + 门票 ${ticket} 元 + 午餐 ${lunch} 元 + 应急 ${spare} 元 = 每人 ${sum} 元（上限 ${Math.round(perHead)} 元）。`,
       tag: "guess",
       flaw: "money",
+      verified: money > 0,
+      source: money > 0 ? "公开票价 + 交通费估算" : "智能体估算",
+      icon: <ShieldCheck className="size-4 text-primary" />,
     },
     {
       label: "分组与负责人",
-      text: `${count}分成 ${aiGroups} 组，每组约 ${num ? Math.ceil(num / aiGroups) : "?"} 人，各由 1 位老师带队。`,
+      text: `已完成：${count}分为 ${aiGroups} 组，每组约 ${num ? Math.ceil(num / aiGroups) : "?"} 人，各由 1 位老师带队。`,
       tag: "guess",
       flaw: "group",
+      verified: false,
+      source: "智能体按人数拆分",
+      icon: <ListChecks className="size-4 text-primary" />,
     },
     {
       label: "安全预案",
       text: hasSafety
-        ? "已读到你写的安全要求：出发前登记过敏与身体情况，走失先原地等待并联系带队老师。"
-        : "提醒大家注意安全、注意天气。（我没有拿到具体的安全要求，这一条不可执行。）",
-      tag: hasSafety ? "fact" : "guess",
+        ? "已完成：出发前登记过敏与身体情况，走失先原地等待并联系带队老师。"
+        : "待补充：未收到具体安全要求，需补走失/受伤/天气三条预案。",
+      tag: hasSafety ? "fact" : "confirm",
       flaw: hasSafety ? undefined : "safety",
+      verified: hasSafety,
+      source: hasSafety ? "任务说明" : undefined,
+      icon: <ShieldCheck className="size-4 text-primary" />,
     },
     {
-      label: "通知与下单",
+      label: "通知与确认",
       text: hasHuman
-        ? "通知与付款的草稿我来写，必须由你写明的确认人签字后才能发出。"
-        : "我可以直接把通知发给全班家长并预订门票——但你没有写谁来确认，这一步我不能自行获得授权。",
-      tag: "confirm",
+        ? `已完成：通知与付款草稿已生成，待${/家长/.test(limits + standard) ? "家长" : "老师"}签字后发出。`
+        : "待确认：未指定最终确认人，智能体不能自行获得授权。",
+      tag: hasHuman ? "confirm" : "confirm",
       flaw: hasHuman ? undefined : "human",
+      verified: false,
+      source: "任务说明",
+      icon: <MessageSquare className="size-4 text-primary" />,
     },
     {
-      label: "待人类核实",
-      text: "预约是否成功、门票实际价格、集合点、最终负责人——这四项我查不到，必须由人确认。",
-      tag: "confirm",
+      label: "最终交付物",
+      text: `已完成：一份包含集合点、路线、时间表、预算明细、安全预案的${activity}方案。`,
+      tag: "fact",
+      verified: false,
+      source: "智能体汇总",
+      icon: <ClipboardCheck className="size-4 text-primary" />,
+    },
+  ];
+
+  const webChecks = [
+    {
+      icon: <Globe className="size-4" />,
+      label: "场馆开放",
+      result: `${place} 周六正常开放，9:00–17:00。`,
+      ok: true,
+    },
+    {
+      icon: <TrainFront className="size-4" />,
+      label: "地铁班次",
+      result: "地铁 2 号线可达，车程约 35 分钟。",
+      ok: true,
+    },
+    {
+      icon: <CloudSun className="size-4" />,
+      label: "天气预报",
+      result: "周六多云，气温 22–28℃，适合外出。",
+      ok: true,
+    },
+    {
+      icon: <ShieldCheck className="size-4" />,
+      label: "门票价格",
+      result: `学生票约 ${ticket} 元/人（已按公开信息核验）。`,
+      ok: money > 0,
     },
   ];
 
   return {
-    title: `《${activity}》智能体生成的方案`,
+    title: `《${activity}》已完成 ✅`,
     items,
     flaws,
+    webChecks,
     verdict:
       sum > perHead
-        ? `⚠️ 我的判断：有风险。预算明细合计每人 ${sum} 元，已超过你写的每人 ${Math.round(perHead)} 元。`
-        : "⚠️ 我的判断：信息不足，部分内容是推测，需要你核实。",
+        ? `⚠️ 核验结果：预算明细合计每人 ${sum} 元，超过你写的每人 ${Math.round(perHead)} 元。需要修改。`
+        : `✅ 核验结果：方案已按目标生成，但部分信息为智能体推测，标「需要人类确认」的项需你核实。`,
   };
 }
 
@@ -1350,52 +1423,85 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
                 animate={{ opacity: 1, y: 0 }}
                 className="card-soft space-y-4 p-5"
               >
-                <p className="text-2xl font-extrabold">🤖 智能体生成的方案</p>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div className="rounded-2xl bg-destructive/10 p-3">
-                    <p className="text-sm font-extrabold text-destructive">
-                      缺少的信息 {holes.length} 处
-                    </p>
-                    <ul className="mt-1 space-y-1 text-sm font-medium">
-                      {holes.length ? (
-                        holes.map((h) => <li key={h}>· {h}</li>)
-                      ) : (
-                        <li>· 关键信息都齐了 ✅</li>
-                      )}
-                    </ul>
-                  </div>
-                  <div className="rounded-2xl bg-sun/25 p-3">
-                    <p className="text-sm font-extrabold">检查没过的地方 {badChecks.length} 处</p>
-                    <ul className="mt-1 space-y-1 text-sm font-medium">
-                      {badChecks.length ? (
-                        badChecks.map((h) => <li key={h}>· {h}</li>)
-                      ) : (
-                        <li>· 预算、人数、安全都算得过来 ✅</li>
-                      )}
-                    </ul>
+                {/* 标题与状态摘要 */}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-2xl font-extrabold">已完成 ✅</p>
+                  <span className="rounded-full bg-grass/20 px-3 py-1 text-xs font-extrabold text-ink">
+                    智能体已调用互联网资源核验
+                  </span>
+                </div>
+                <p className="text-sm font-bold text-muted-foreground">
+                  {fields.activity || theme.activity}｜{fields.count || theme.count}
+                  {holes.length === 0 && badChecks.length === 0
+                    ? "｜关键信息齐全，方案已生成"
+                    : `｜发现 ${holes.length + badChecks.length} 处待确认项`}
+                </p>
+
+                {/* 联网核验面板 */}
+                <div className="rounded-2xl border-2 border-primary/30 bg-primary/5 p-4">
+                  <p className="mb-3 flex items-center gap-2 text-sm font-extrabold text-primary">
+                    <Globe className="size-4" /> 联网资源核验
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {draft.webChecks.map((wc, idx) => (
+                      <motion.div
+                        key={wc.label}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.08 * idx }}
+                        className="flex items-start gap-2 rounded-xl bg-card p-2.5"
+                      >
+                        <span className="mt-0.5 text-primary">{wc.icon}</span>
+                        <div className="flex-1">
+                          <p className="text-xs font-extrabold">{wc.label}</p>
+                          <p className="text-xs font-medium text-muted-foreground">{wc.result}</p>
+                        </div>
+                        {wc.ok ? (
+                          <CheckCircle2 className="size-4 text-grass" />
+                        ) : (
+                          <AlertTriangle className="size-4 text-destructive" />
+                        )}
+                      </motion.div>
+                    ))}
                   </div>
                 </div>
 
+                {/* 结果卡片：多模态呈现 */}
                 <div className="rounded-2xl border-2 border-ink bg-card p-4">
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-                    <ul className="space-y-2">
+                    <ul className="grid gap-2 sm:grid-cols-2">
                       {draft.items.map((it, k) => (
                         <motion.li
                           key={it.label}
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.12 * k }}
-                          className="rounded-xl bg-muted p-3"
+                          transition={{ delay: 0.1 * k }}
+                          className={`rounded-xl p-3 ${
+                            it.verified ? "bg-grass/10" : "bg-muted"
+                          }`}
                         >
                           <p className="flex flex-wrap items-center gap-2 text-sm font-extrabold">
+                            {it.icon && <span className="inline-flex">{it.icon}</span>}
                             {it.label}
+                            {it.verified && (
+                              <span className="inline-flex" title="已联网核验">
+                                <CheckCircle2 className="size-4 text-grass" />
+                              </span>
+                            )}
+                          </p>
+                          <p className="mt-1 text-sm font-medium leading-snug">{it.text}</p>
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
                             <span
                               className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${TAG_CLASS[it.tag]}`}
                             >
                               {TAG_TEXT[it.tag]}
                             </span>
-                          </p>
-                          <p className="mt-1 text-sm font-medium">{it.text}</p>
+                            {it.source && (
+                              <span className="text-[11px] font-bold text-muted-foreground">
+                                来源：{it.source}
+                              </span>
+                            )}
+                          </div>
                         </motion.li>
                       ))}
                     </ul>
@@ -1431,7 +1537,7 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
                   <button
                     onClick={() => {
                       if (!flow.doubt) {
-                        toast.info("先在上面的方案草案里指出一个你要核实的地方 🔍");
+                        toast.info("先在上面的结果卡片里指出一个你要核实的地方 🔍");
                         return;
                       }
                       go(SLIDE.detective);
