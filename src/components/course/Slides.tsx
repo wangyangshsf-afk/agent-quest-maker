@@ -91,6 +91,8 @@ export type Flow = {
   baseline: Fields | null;
   approved: boolean;
   checks: string[];
+  /** 完成标准：怎样才算这件事做完了 */
+  standard: string;
   /** 学生主流程解锁到第几页（教师演示模式可无视） */
   unlocked: number;
   challenge: Challenge;
@@ -101,6 +103,7 @@ export const EMPTY_FLOW: Flow = {
   baseline: null,
   approved: false,
   checks: [],
+  standard: "",
   unlocked: 7,
   challenge: EMPTY_CHALLENGE,
 };
@@ -132,6 +135,66 @@ export function SlideTitle({ kicker, title }: { kicker?: string; title: string }
         </p>
       )}
       <h2 className="text-4xl font-extrabold sm:text-5xl">{title}</h2>
+    </div>
+  );
+}
+
+/* ---------- 任务结构条：8-11 页共用 ---------- */
+
+const TASK_STEPS = [
+  { id: "goal", emoji: "🎯", t: "任务目标", d: "你希望智能体完成哪一件事。" },
+  { id: "info", emoji: "🧾", t: "任务信息", d: "时间、地点、人数这些它必须知道的事实。" },
+  { id: "rule", emoji: "🚧", t: "约束规则", d: "钱、时间、安全上不能违反的条件。" },
+  { id: "run", emoji: "⚙️", t: "智能体行动", d: "它按你的说明拆解步骤、做出方案草案。" },
+  { id: "check", emoji: "🔍", t: "检查结果", d: "看方案有没有漏信息、有没有违反规则。" },
+  { id: "human", emoji: "🙋", t: "人类决定", d: "花钱、通知、外出，最后由人来确认。" },
+] as const;
+
+export function TaskBar({ active }: { active: "brief" | "run" | "check" | "human" }) {
+  const [open, setOpen] = useState<string | null>(null);
+  const isOn = (id: string) =>
+    active === "brief"
+      ? ["goal", "info", "rule"].includes(id)
+      : active === "run"
+        ? id === "run"
+        : active === "check"
+          ? id === "check"
+          : id === "human";
+  return (
+    <div className="mx-auto mb-5 w-full max-w-4xl">
+      <div className="flex flex-wrap items-stretch justify-center gap-1.5">
+        {TASK_STEPS.map((s, i) => (
+          <div key={s.id} className="flex items-center gap-1.5">
+            <button
+              onMouseEnter={() => setOpen(s.id)}
+              onMouseLeave={() => setOpen(null)}
+              onClick={() => setOpen((o) => (o === s.id ? null : s.id))}
+              className={`rounded-full border-2 px-3 py-1.5 text-xs font-extrabold transition ${
+                isOn(s.id)
+                  ? "border-ink bg-primary text-primary-foreground shadow-[2px_2px_0_0_var(--ink)]"
+                  : "border-border bg-card text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {s.emoji} {s.t}
+            </button>
+            {i < TASK_STEPS.length - 1 && (
+              <span className="text-xs font-extrabold text-border">→</span>
+            )}
+          </div>
+        ))}
+      </div>
+      <AnimatePresence>
+        {open && (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="mx-auto mt-2 max-w-2xl rounded-2xl bg-secondary/70 px-4 py-2 text-center text-sm font-bold"
+          >
+            {TASK_STEPS.find((s) => s.id === open)!.d}
+          </motion.p>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
