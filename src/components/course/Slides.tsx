@@ -1390,7 +1390,13 @@ function Detective({ fields, theme, setField, go, setFlow }: Ctx) {
               >
                 <Icon className="mb-2 size-6" />
                 <p className="font-extrabold">
-                  {["第 1 步 找出来 🔍", "第 2 步 问一问 ❓", "第 3 步 改一改 ✏️"][k]}
+                  {
+                    [
+                      "第 1 步 找出：哪条任务信息缺失，或哪条规则有风险？🔍",
+                      "第 2 步 追问：怎样问，才能得到可比较、可执行的信息？❓",
+                      "第 3 步 修订：把新要求写回智能体指令卡 ✏️",
+                    ][k]
+                  }
                 </p>
                 {seenHint && (
                   <p className="mt-2 rounded-xl bg-card/70 p-2 text-sm">💭 {c.steps[k]!.hint}</p>
