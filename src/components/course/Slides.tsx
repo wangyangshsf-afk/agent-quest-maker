@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import coverArt from "@/assets/cover-illustration.png.asset.json";
 import { motion, AnimatePresence } from "framer-motion";
 import {
