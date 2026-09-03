@@ -878,7 +878,7 @@ function makeRun(fields: Fields, theme: AgentTheme, standard = ""): RunStep[] {
     .map((s) => s.trim())
     .filter(Boolean);
   const stdChecks = stdList.length
-    ? stdList.map((s) => `${new RegExp(s).test(`${all} ${standard}`) ? "✅" : "🔎"} 完成标准「${s}」：${
+    ? stdList.map((s) => `${all.includes(s) ? "✅" : "🔎"} 完成标准「${s}」：${
         /确认|签字|老师|家长/.test(s) ? "需人类确认后才算达标" : "会在方案里逐项写出"
       }`)
     : ["⚠️ 你还没写完成标准，我无法判断方案是否合格"];
