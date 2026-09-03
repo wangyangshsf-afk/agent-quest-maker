@@ -1423,52 +1423,83 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
                 animate={{ opacity: 1, y: 0 }}
                 className="card-soft space-y-4 p-5"
               >
-                <p className="text-2xl font-extrabold">🤖 智能体生成的方案</p>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div className="rounded-2xl bg-destructive/10 p-3">
-                    <p className="text-sm font-extrabold text-destructive">
-                      缺少的信息 {holes.length} 处
-                    </p>
-                    <ul className="mt-1 space-y-1 text-sm font-medium">
-                      {holes.length ? (
-                        holes.map((h) => <li key={h}>· {h}</li>)
-                      ) : (
-                        <li>· 关键信息都齐了 ✅</li>
-                      )}
-                    </ul>
-                  </div>
-                  <div className="rounded-2xl bg-sun/25 p-3">
-                    <p className="text-sm font-extrabold">检查没过的地方 {badChecks.length} 处</p>
-                    <ul className="mt-1 space-y-1 text-sm font-medium">
-                      {badChecks.length ? (
-                        badChecks.map((h) => <li key={h}>· {h}</li>)
-                      ) : (
-                        <li>· 预算、人数、安全都算得过来 ✅</li>
-                      )}
-                    </ul>
+                {/* 标题与状态摘要 */}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-2xl font-extrabold">已完成 ✅</p>
+                  <span className="rounded-full bg-grass/20 px-3 py-1 text-xs font-extrabold text-ink">
+                    智能体已调用互联网资源核验
+                  </span>
+                </div>
+                <p className="text-sm font-bold text-muted-foreground">
+                  {fields.activity || theme.activity}｜{fields.count || theme.count}
+                  {holes.length === 0 && badChecks.length === 0
+                    ? "｜关键信息齐全，方案已生成"
+                    : `｜发现 ${holes.length + badChecks.length} 处待确认项`}
+                </p>
+
+                {/* 联网核验面板 */}
+                <div className="rounded-2xl border-2 border-primary/30 bg-primary/5 p-4">
+                  <p className="mb-3 flex items-center gap-2 text-sm font-extrabold text-primary">
+                    <Globe className="size-4" /> 联网资源核验
+                  </p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {draft.webChecks.map((wc, idx) => (
+                      <motion.div
+                        key={wc.label}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.08 * idx }}
+                        className="flex items-start gap-2 rounded-xl bg-card p-2.5"
+                      >
+                        <span className="mt-0.5 text-primary">{wc.icon}</span>
+                        <div className="flex-1">
+                          <p className="text-xs font-extrabold">{wc.label}</p>
+                          <p className="text-xs font-medium text-muted-foreground">{wc.result}</p>
+                        </div>
+                        {wc.ok ? (
+                          <CheckCircle2 className="size-4 text-grass" />
+                        ) : (
+                          <AlertTriangle className="size-4 text-destructive" />
+                        )}
+                      </motion.div>
+                    ))}
                   </div>
                 </div>
 
+                {/* 结果卡片：多模态呈现 */}
                 <div className="rounded-2xl border-2 border-ink bg-card p-4">
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-                    <ul className="space-y-2">
+                    <ul className="grid gap-2 sm:grid-cols-2">
                       {draft.items.map((it, k) => (
                         <motion.li
                           key={it.label}
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.12 * k }}
-                          className="rounded-xl bg-muted p-3"
+                          transition={{ delay: 0.1 * k }}
+                          className={`rounded-xl p-3 ${
+                            it.verified ? "bg-grass/10" : "bg-muted"
+                          }`}
                         >
                           <p className="flex flex-wrap items-center gap-2 text-sm font-extrabold">
+                            {it.icon && <span className="inline-flex">{it.icon}</span>}
                             {it.label}
+                            {it.verified && (
+                              <CheckCircle2 className="size-4 text-grass" title="已联网核验" />
+                            )}
+                          </p>
+                          <p className="mt-1 text-sm font-medium leading-snug">{it.text}</p>
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
                             <span
                               className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${TAG_CLASS[it.tag]}`}
                             >
                               {TAG_TEXT[it.tag]}
                             </span>
-                          </p>
-                          <p className="mt-1 text-sm font-medium">{it.text}</p>
+                            {it.source && (
+                              <span className="text-[11px] font-bold text-muted-foreground">
+                                来源：{it.source}
+                              </span>
+                            )}
+                          </div>
                         </motion.li>
                       ))}
                     </ul>
@@ -1504,7 +1535,7 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
                   <button
                     onClick={() => {
                       if (!flow.doubt) {
-                        toast.info("先在上面的方案草案里指出一个你要核实的地方 🔍");
+                        toast.info("先在上面的结果卡片里指出一个你要核实的地方 🔍");
                         return;
                       }
                       go(SLIDE.detective);
