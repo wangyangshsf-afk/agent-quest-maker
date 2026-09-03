@@ -1478,7 +1478,7 @@ function Detective({ fields, theme, setField, go, setFlow }: Ctx) {
           >
             <ClipboardCheck className="size-6 text-grass" />
             <p className="font-bold">
-              变更摘要：{done[i]} —— 已写回指挥台，你就是那个「负责检查的人类」！
+              已写回任务说明卡：{done[i]} —— 下一次运行，智能体会按这条新规则工作。
             </p>
             <button
               onClick={() => go(SLIDE.commandCenter)}
