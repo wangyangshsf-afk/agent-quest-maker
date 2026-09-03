@@ -1040,7 +1040,7 @@ function makeRun(fields: Fields, theme: AgentTheme, standard = ""): RunStep[] {
       t: "生成方案并提交人类确认",
       d: "方案已生成，不代表已获批准或可自行执行",
       lines: [
-        `《${activity}方案草案》｜${count}${num ? `／${groups} 组` : ""}${
+        `《${activity}智能体生成的方案》｜${count}${num ? `／${groups} 组` : ""}${
           perHead > 0 ? `｜人均 ${perHead.toFixed(0)} 元` : ""
         }`,
         missing.length
