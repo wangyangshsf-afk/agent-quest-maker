@@ -36,8 +36,8 @@ import { AgentFactory } from "@/components/course/AgentFactory";
 
 /** 集中管理的页面索引，避免魔法数字 */
 export const SLIDE = {
-  cover: 0,
-  video: 1,
+  video: 0,
+  cover: 1,
   journey: 2,
   situation: 3,
   roleVote: 4,
@@ -236,7 +236,7 @@ function Cover({ go }: Ctx) {
         <p className="mt-3 text-xl font-bold text-primary sm:text-2xl">让 AI 帮我完成一件事</p>
         <p className="mt-2 text-base text-muted-foreground">45 分钟沉浸互动课件 · 适合 8-15 岁</p>
         <motion.button
-          onClick={() => go(SLIDE.video)}
+          onClick={() => go(SLIDE.journey)}
           animate={{ scale: [1, 1.06, 1] }}
           transition={{ repeat: Infinity, duration: 1.6 }}
           className="mt-8 inline-flex items-center gap-3 rounded-full bg-primary px-10 py-4 text-xl font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)] sm:mt-10 sm:py-5 sm:text-2xl"
@@ -251,7 +251,7 @@ function Cover({ go }: Ctx) {
   );
 }
 
-/* ---------- 2. Video intro ---------- */
+/* ---------- 0. Video intro ---------- */
 
 function VideoIntro({ go }: Ctx) {
   const [error, setError] = useState(false);
@@ -261,9 +261,6 @@ function VideoIntro({ go }: Ctx) {
   return (
     <Big>
       <SlideTitle kicker="课堂导入" title="来看看它帮助老人办了什么事？" />
-      <p className="-mt-4 mb-5 text-center text-base font-bold text-muted-foreground">
-        认真观察：视频里的 AI 智能体帮老人做了哪些事？它问了什么、查了什么、最后又交给了谁决定？
-      </p>
 
       <div className="card-pop mx-auto max-w-4xl overflow-hidden p-2">
         <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-secondary">
@@ -304,10 +301,10 @@ function VideoIntro({ go }: Ctx) {
 
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         <button
-          onClick={() => go(SLIDE.journey)}
+          onClick={() => go(SLIDE.cover)}
           className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[3px_3px_0_0_var(--ink)]"
         >
-          继续看学习地图 <ArrowRight className="size-5" />
+          进入课程封面 <ArrowRight className="size-5" />
         </button>
       </div>
     </Big>
@@ -2646,8 +2643,8 @@ function Homework({ card, flow, setFlow, go }: Ctx) {
 
 
 export const SLIDES: { title: string; C: (ctx: Ctx) => React.ReactElement }[] = [
-  { title: "封面", C: Cover },
   { title: "课堂导入", C: VideoIntro },
+  { title: "封面", C: Cover },
   { title: "学习地图", C: Journey },
   { title: "情境引入", C: Situation },
   { title: "角色投票", C: () => <RoleVote /> },
