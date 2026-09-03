@@ -1522,16 +1522,17 @@ function makeCases(fields: Fields, theme: AgentTheme, standard = ""): DCase[] {
         },
         {
           hint: "AI 很能干，但最终决定权归谁？把它变成要求。",
-          answer: `❓ 问：「${activity}哪一步必须老师签字？请分『AI 能做』和『必须人确认』两栏。」`,
+          answer: `❓ 问：「${activity}哪一步必须${confirmer}签字？请分『AI 能做』和『必须人确认』两栏。」`,
         },
         {
           hint: "把人类确认规则写进指挥台。",
-          answer: "✏️ 加上：所有通知和花钱步骤，必须老师确认后执行。",
+          answer: `✏️ 加上：所有通知和花钱步骤，必须${confirmer}确认后执行。`,
         },
       ],
       fixField: "limits",
-      fixValue: `${limits}${limits ? "；" : ""}所有通知与花钱的步骤必须由老师确认后才执行`,
-      fixLabel: "补上：人类最终确认规则",
+      fixValue: `${limits}${limits ? "；" : ""}${activity}中所有通知与花钱的步骤，必须由${confirmer}确认后才执行${stdTail}`,
+      fixLabel: `补上：${confirmer}最终确认规则`,
+
     }),
   });
 
