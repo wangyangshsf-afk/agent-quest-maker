@@ -1362,47 +1362,37 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
         它会读取你的任务说明、补齐缺失信息、制定计划、检查规则，再把方案交给人类确认。
       </p>
       <div className="card-pop p-6">
-        <div className="grid gap-5 lg:grid-cols-[260px_1fr]">
-          {/* 左侧：竖排步骤 + 绿色确认 */}
-          <ol className="space-y-2">
+        {!done ? (
+          /* 生成过程：五步动态图，跑完即消失 */
+          <ol className="mx-auto max-w-3xl space-y-4">
             {steps.map((s, i) => (
               <motion.li
                 key={s.t}
-                animate={{ opacity: i <= n ? 1 : 0.35, x: i <= n ? 0 : -8 }}
-                className={`flex items-center gap-3 rounded-2xl border-2 px-3 py-3 ${
-                  i === n ? "border-primary bg-secondary/60" : "border-border"
+                animate={{ opacity: i <= n ? 1 : 0.35, x: i <= n ? 0 : -10 }}
+                className={`flex items-center gap-4 rounded-full border-2 px-7 py-5 ${
+                  i === n ? "border-primary bg-secondary/60" : "border-border bg-card"
                 }`}
               >
-                <span className="text-xl">{s.emoji}</span>
-                <p className="flex-1 text-sm font-extrabold leading-snug">{s.t}</p>
+                <span className="text-2xl">{s.emoji}</span>
+                <p className="flex-1 text-xl font-extrabold leading-snug">{s.t}</p>
                 {i < n ? (
                   <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                    <CheckCircle2 className="size-5 text-grass" />
+                    <CheckCircle2 className="size-7 text-grass" />
                   </motion.span>
                 ) : i === n ? (
                   <motion.span
                     animate={{ rotate: 360 }}
                     transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
-                    className="size-4 rounded-full border-2 border-primary border-t-transparent"
+                    className="size-5 rounded-full border-2 border-primary border-t-transparent"
                   />
                 ) : null}
               </motion.li>
             ))}
           </ol>
-
-          {/* 右侧：智能体方案框 */}
+        ) : (
+          /* 生成完成：只显示「已完成」结果框 */
           <div className="min-h-[360px]">
-            {!done ? (
-              <div className="flex h-full min-h-[360px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-card p-6 text-center">
-                <motion.span
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
-                  className="mb-4 size-10 rounded-full border-4 border-primary border-t-transparent"
-                />
-                <p className="text-lg font-extrabold">智能体正在按步骤产出方案…</p>
-                <p className="mt-1 text-sm text-muted-foreground">完成后会在这里显示智能体生成的方案</p>
-              </div>
-            ) : (
+            {(
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
