@@ -1177,7 +1177,6 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
   const sig = `${fields.activity}|${fields.count}|${fields.limits}|${flow.standard}|${theme.id}`;
   const steps = useMemo(() => makeRun(fields, theme, flow.standard), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
   const draft = useMemo(() => makeDraft(fields, theme, flow.standard), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [showDraft, setShowDraft] = useState(false);
   const [n, setN] = useState(0);
   useEffect(() => setN(0), [sig]);
 
@@ -1192,13 +1191,6 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
   // 进入本页时的版本判定，跑完后不会把第一版误标成第二版
   const [isRerun] = useState(flow.state === "rerunning" || flow.approved);
   const done = n >= steps.length;
-  const plan = steps[2]!.lines;
-  const needHuman = [
-    "通知同学和家长",
-    "任何花钱、预约或下单",
-    "外出路线与集合安排",
-    "安全与应急措施",
-  ];
 
   useEffect(() => {
     if (!done) return;
@@ -1222,70 +1214,36 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
         它会读取你的任务说明、补齐缺失信息、制定计划、检查规则，再把方案交给人类确认。
       </p>
       <div className="card-pop p-6">
-
-
-        <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl bg-grass/15 p-3">
-            <p className="text-xs font-extrabold">已知信息</p>
-            <p className="mt-1 text-sm font-medium">
-              {[fields.activity, fields.count, fields.limits, flow.standard]
-                .filter((x) => x.trim())
-                .length}{" "}
-              类已读取
-            </p>
-          </div>
-          <div className="rounded-2xl bg-destructive/10 p-3">
-            <p className="text-xs font-extrabold text-destructive">缺少信息</p>
-            <p className="mt-1 text-sm font-medium">
-              {holes.length ? `${holes.length} 项要追问` : "暂时没有 ✅"}
-            </p>
-            <p className="mt-1 text-[11px] font-bold text-muted-foreground">
-              为什么这项信息会影响方案：缺一项，路线、预算或安全就只能靠推测。
-            </p>
-          </div>
-          <div className="rounded-2xl bg-secondary/70 p-3">
-            <p className="text-xs font-extrabold">智能体生成的方案草案</p>
-            <p className="mt-1 text-sm font-medium">
-              {plan.length} 步，并说明每一步如何由任务目标和约束推导出来
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-sun/25 p-3">
-            <p className="text-xs font-extrabold">等待人类确认的动作</p>
-            <ul className="mt-1 space-y-0.5 text-xs font-medium">
-              {needHuman.map((h) => (
-                <li key={h}>· {h}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-        <ol className="space-y-3">
+        <ol className="space-y-2.5">
           {steps.map((s, i) => (
             <motion.li
               key={s.t}
-              animate={{ opacity: i < n ? 1 : 0.25, x: i < n ? 0 : -12 }}
-              className="rounded-2xl border-2 border-border p-4"
+              animate={{ opacity: i < n ? 1 : 0.3, x: i < n ? 0 : -10 }}
+              className="rounded-2xl border-2 border-border px-4 py-3"
             >
-              <div className="flex items-center gap-4">
-                <span className="text-3xl">{s.emoji}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{s.emoji}</span>
                 <div className="flex-1">
-                  <p className="text-xl font-extrabold">{s.t}</p>
-                  <p className="text-sm text-muted-foreground">{s.d}</p>
+                  <p className="text-base font-extrabold sm:text-lg">{s.t}</p>
+                  <p className="text-xs text-muted-foreground">{s.d}</p>
                 </div>
                 {i < n ? (
-                  <CheckCircle2 className="size-7 text-grass" />
+                  <CheckCircle2 className="size-5 text-grass" />
                 ) : (
-                  <span className="text-sm text-muted-foreground">等待中</span>
+                  <span className="text-xs text-muted-foreground">推测中…</span>
                 )}
               </div>
               {i < n && (
                 <motion.ul
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
-                  className="mt-3 space-y-1.5 overflow-hidden pl-12"
+                  className="mt-2 flex flex-wrap gap-1.5 overflow-hidden pl-9"
                 >
                   {s.lines.map((l) => (
-                    <li key={l} className="rounded-xl bg-muted px-3 py-2 text-sm font-medium">
+                    <li
+                      key={l}
+                      className="rounded-lg bg-muted px-2.5 py-1 text-xs font-medium leading-snug"
+                    >
                       {l}
                     </li>
                   ))}
@@ -1294,6 +1252,7 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
             </motion.li>
           ))}
         </ol>
+
 
         {done && (
           <motion.div
@@ -1330,74 +1289,65 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
             </div>
 
             <div className="rounded-2xl border-2 border-ink bg-card p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-lg font-extrabold">🤖 {draft.title}</p>
-                <button
-                  onClick={() => setShowDraft((v) => !v)}
-                  className="rounded-full bg-primary px-4 py-2 text-sm font-extrabold text-primary-foreground"
-                >
-                  {showDraft ? "收起方案草案" : "查看智能体方案草案"}
-                </button>
-              </div>
+              <p className="text-lg font-extrabold">🤖 {draft.title}</p>
               <p className="mt-1 text-sm font-bold text-muted-foreground">
-                下面的方案是智能体的初版产出，不一定正确，请准备检查。
+                下面是智能体自己边推测边写出来的初版方案，不一定正确，请检查。
               </p>
-              {showDraft && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  className="mt-3 overflow-hidden"
-                >
-                  <ul className="space-y-2">
-                    {draft.items.map((it) => (
-                      <li key={it.label} className="rounded-xl bg-muted p-3">
-                        <p className="flex flex-wrap items-center gap-2 text-sm font-extrabold">
-                          {it.label}
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${TAG_CLASS[it.tag]}`}
-                          >
-                            {TAG_TEXT[it.tag]}
-                          </span>
-                        </p>
-                        <p className="mt-1 text-sm font-medium">{it.text}</p>
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="mt-3 rounded-xl bg-sun/25 p-3 text-sm font-bold">{draft.verdict}</p>
-
-                  <p className="mt-4 text-sm font-extrabold">
-                    👇 指出一个你不相信或需要核实的地方（选一条才能进入侦探模式）
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {draft.items.map((it) => (
-                      <button
-                        key={it.label}
-                        onClick={() => {
-                          setFlow({
-                            doubt: it.label,
-                            unlocked: Math.max(flow.unlocked, SLIDE.detective),
-                          });
-                          toast.success(`已记下：我要核实「${it.label}」`);
-                        }}
-                        className={`rounded-full px-4 py-2 text-sm font-extrabold ${
-                          flow.doubt === it.label ? "bg-grass text-ink" : "bg-secondary"
-                        }`}
-                      >
-                        {flow.doubt === it.label ? "✅ " : ""}
+              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-3">
+                <ul className="space-y-2">
+                  {draft.items.map((it, k) => (
+                    <motion.li
+                      key={it.label}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.12 * k }}
+                      className="rounded-xl bg-muted p-3"
+                    >
+                      <p className="flex flex-wrap items-center gap-2 text-sm font-extrabold">
                         {it.label}
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${TAG_CLASS[it.tag]}`}
+                        >
+                          {TAG_TEXT[it.tag]}
+                        </span>
+                      </p>
+                      <p className="mt-1 text-sm font-medium">{it.text}</p>
+                    </motion.li>
+                  ))}
+                </ul>
+                <p className="mt-3 rounded-xl bg-sun/25 p-3 text-sm font-bold">{draft.verdict}</p>
+
+                <p className="mt-4 text-sm font-extrabold">
+                  👇 指出一个你不相信或需要核实的地方（选一条才能进入侦探模式）
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {draft.items.map((it) => (
+                    <button
+                      key={it.label}
+                      onClick={() => {
+                        setFlow({
+                          doubt: it.label,
+                          unlocked: Math.max(flow.unlocked, SLIDE.detective),
+                        });
+                        toast.success(`已记下：我要核实「${it.label}」`);
+                      }}
+                      className={`rounded-full px-4 py-2 text-sm font-extrabold ${
+                        flow.doubt === it.label ? "bg-grass text-ink" : "bg-secondary"
+                      }`}
+                    >
+                      {flow.doubt === it.label ? "✅ " : ""}
+                      {it.label}
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
             </div>
 
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => {
                   if (!flow.doubt) {
-                    setShowDraft(true);
-                    toast.info("先看方案草案，并指出一个你要核实的地方 🔍");
+                    toast.info("先在上面的方案草案里指出一个你要核实的地方 🔍");
                     return;
                   }
                   go(SLIDE.detective);
