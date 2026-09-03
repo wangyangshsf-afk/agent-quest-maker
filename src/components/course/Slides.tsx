@@ -8,8 +8,10 @@ import {
   Bot,
   CheckCircle2,
   ClipboardCheck,
+  CloudSun,
   Eye,
   Gavel,
+  Globe,
   Lightbulb,
   ListChecks,
   MapPin,
@@ -21,6 +23,7 @@ import {
   ShieldCheck,
   Sparkle,
   Target,
+  TrainFront,
   Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
