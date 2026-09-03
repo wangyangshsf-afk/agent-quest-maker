@@ -1704,10 +1704,14 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
     }),
   });
 
+  // 第 9 页方案草案里真实出现的破绽，优先成为案件（第 10 页要能追溯到第 9 页）
+  const fromDraft = makeDraft(fields, theme).flaws;
+
   return pool
-    .map((c, idx) => ({ ...c, idx }))
+    .map((c, idx) => ({ ...c, idx, score: c.score + (fromDraft.includes(c.key) ? 200 : 0) }))
     .sort((a, b) => b.score - a.score || a.idx - b.idx)
     .slice(0, 2)
+
     .map((c, k) => {
       const d = c.make();
       return { ...d, title: `案件${["一", "二"][k]}：${d.title.replace(/^案件[：:]/, "")}` };
