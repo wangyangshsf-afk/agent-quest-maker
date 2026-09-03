@@ -623,13 +623,24 @@ function ResultCard({
                   </div>
                 </Block>
               )}
-              {data.checks?.length > 0 && (
-                <Block delay={0.14} title="🛡️ 检查结论">
-                  <ul className="space-y-1 text-sm">
-                    {data.checks.map((c, i) => (
+          {data.checks?.length > 0 && (
+                <Block delay={0.14} title="🛡️ 规则检查（逐条写清依据）">
+                  <ul className="space-y-1.5 text-sm">
+                    {normalizeChecks(data.checks).map((c, i) => (
                       <li key={i} className="flex gap-2">
-                        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-grass" />
-                        <span>{c}</span>
+                        {c.status === "pass" ? (
+                          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-grass" />
+                        ) : (
+                          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-berry" />
+                        )}
+                        <span>
+                          <b>
+                            {c.status === "pass" ? "通过" : c.status === "adjust" ? "需调整" : "待确认"}
+                          </b>
+                          ：{c.rule}
+                          {c.reason ? <span className="text-muted-foreground">（{c.reason}）</span> : null}
+                          {c.suggestion ? <span className="block text-xs">💡 {c.suggestion}</span> : null}
+                        </span>
                       </li>
                     ))}
                   </ul>
