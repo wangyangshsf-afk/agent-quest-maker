@@ -57,7 +57,7 @@ export type FlowState = "draft" | "running" | "needs_fix" | "detective" | "rerun
 
 export type IssueType = "missing_info" | "unreasonable_plan" | "rule_violation" | "unclear" | "custom";
 
-/** 课后挑战：选任务 → 试一试 → 找问题 → 修改并再试 → 挑战卡 */
+/** 课后挑战：选任务 → 试一试 → 找问题 → 修改并再试 */
 export type Challenge = {
   agentId: string;
   task: string;
@@ -2143,7 +2143,7 @@ function Factory({ card, setCard, fields, theme, flow, setFlow, go }: Ctx) {
               onClick={() => go(SLIDE.homework)}
               className="rounded-full bg-secondary px-5 py-2.5 text-sm font-bold"
             >
-              回到挑战卡
+              回到课后挑战
             </button>
           </div>
         </div>
@@ -2151,12 +2151,12 @@ function Factory({ card, setCard, fields, theme, flow, setFlow, go }: Ctx) {
       {!editing && ch.retested && (
         <div className="card-soft mb-4 flex flex-wrap items-center gap-3 p-4">
           <CheckCircle2 className="size-5 text-grass" />
-          <p className="text-sm font-bold">规则已更新，和智能体再聊一次，然后回去生成挑战卡。</p>
+          <p className="text-sm font-bold">规则已更新，和智能体再聊一次，然后回去完成课后挑战。</p>
           <button
             onClick={() => go(SLIDE.homework)}
             className="rounded-full bg-secondary px-4 py-2 text-xs font-bold"
           >
-            回到挑战卡
+            回到课后挑战
           </button>
         </div>
       )}
@@ -2261,7 +2261,7 @@ function Recap() {
   );
 }
 
-/* ---------- 15. 课后挑战：智能体挑战卡 ---------- */
+/* ---------- 15. 课后挑战 ---------- */
 
 const TASK_OPTIONS = [
   "整理明天的书包和作业",
@@ -2318,37 +2318,8 @@ function Homework({ card, flow, setFlow, go }: Ctx) {
   const [custom, setCustom] = useState(ch.customTask);
   const [issueText, setIssueText] = useState(ch.issueText);
 
-  const steps = ["选任务", "试一试", "找问题", "修改并再试", "挑战卡"];
-  const stepIdx = !task ? 0 : !ch.tested ? 1 : !ch.issueType ? 2 : !ch.retested ? 3 : 4;
-
-  const cardText = [
-    "我的智能体挑战卡",
-    "",
-    `我的智能体：${card.name || "我的智能体"}`,
-    `它要帮我完成：${card.goal}`,
-    `我今晚挑战的小事：${task || "（未选择）"}`,
-    "",
-    "1. 我告诉它的关键信息",
-    ...card.steps.slice(0, 2).map((s) => `- ${s}`),
-    "",
-    "2. 它给我的方案",
-    ...card.steps.map((s, i) => `${i + 1}. ${s}`),
-    "",
-    "3. 我发现的问题",
-    `- ${ISSUES.find((x) => x.id === ch.issueType)?.label ?? ""}${ch.issueText ? `：${ch.issueText}` : ""}`,
-    "",
-    "4. 我怎么修改它",
-    `- ${ch.applied}`,
-    "",
-    "5. 再试一次后的变化",
-    `- ${ch.field === "check" ? "它现在会先按新规则检查，再给方案。" : "它现在会先问清楚关键信息，再安排。"}`,
-    "",
-    "我的核对",
-    `${ch.checked ? "☑" : "□"} 我已经检查过这份方案。`,
-    `${ch.checked ? "☑" : "□"} 涉及外出、花钱、食物或安全时，我会和家长/老师一起确认。`,
-    "",
-    `日期：${new Date().toLocaleDateString("zh-CN")}`,
-  ].join("\n");
+  const steps = ["选任务", "试一试", "找问题", "修改并再试"];
+  const stepIdx = !task ? 0 : !ch.tested ? 1 : !ch.issueType ? 2 : 3;
 
   return (
     <Big>
@@ -2493,31 +2464,22 @@ function Homework({ card, flow, setFlow, go }: Ctx) {
               <Wand2 className="size-5" /> 回到智能体工厂，修改我的指令卡
             </button>
             <p className="mt-3 text-xs text-muted-foreground">
-              先找出一个问题并改好它，再生成挑战卡。
+              先找出一个问题并改好它，就算完成课后挑战。
             </p>
           </div>
         </div>
       ) : (
         <div className="grid gap-4">
           <h3 className="text-center text-3xl font-extrabold">你让智能体变得更靠谱了！</h3>
-          <div className="card-pop whitespace-pre-wrap p-6 text-sm leading-relaxed">{cardText}</div>
-          <label className="card-soft flex items-start gap-3 p-4 text-sm font-bold">
-            <input
-              type="checkbox"
-              checked={ch.checked}
-              onChange={(e) => patch({ checked: e.target.checked })}
-              className="mt-1 size-4"
-            />
-            我已经检查过这份方案；涉及外出、花钱、食物或安全时，我会和家长/老师一起确认。
-          </label>
+          <div className="card-pop p-6 text-center">
+            <p className="text-lg font-bold">
+              你完成了「选任务 → 试一试 → 找问题 → 修改并再试」四步循环。
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              重要提醒：涉及外出、花钱、食物或安全时，要和家长/老师一起确认。
+            </p>
+          </div>
           <div className="flex flex-wrap justify-center gap-3">
-            <button
-              disabled={!ch.checked}
-              onClick={() => download(`${card.name || "我的智能体"}-挑战卡.md`, cardText)}
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 font-extrabold text-primary-foreground disabled:opacity-40"
-            >
-              <ClipboardCheck className="size-5" /> 下载 / 打印挑战卡
-            </button>
             <button
               onClick={() => go(SLIDE.factory)}
               className="rounded-full bg-secondary px-5 py-3 font-bold"
