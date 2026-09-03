@@ -1678,9 +1678,64 @@ function Scenes({ theme, applyTheme, go, flow }: Ctx) {
 
 /* ---------- 13. 智能体工厂（实时生成） ---------- */
 
-function Factory({ card, setCard, fields, theme, flow }: Ctx) {
+function Factory({ card, setCard, fields, theme, flow, setFlow, go }: Ctx) {
+  const ch = flow.challenge;
+  const editing = !!ch.issueType && !ch.retested;
+  const suggestion = ch.applied;
+
+  const applyFix = () => {
+    if (!suggestion) return;
+    if (ch.field === "check") {
+      setCard({ ...card, check: `${card.check}｜${suggestion}` });
+    } else {
+      setCard({ ...card, steps: [suggestion, card.steps[1]!, card.steps[2]!] });
+    }
+    setFlow({
+      challenge: {
+        ...ch,
+        retested: true,
+        prefill: `我刚刚修改了你的规则。请用新规则重新帮我完成：${ch.task || ch.customTask}。`,
+      },
+    });
+    toast.success("已写入指令卡，再和智能体试一次吧 ✅");
+  };
+
   return (
     <Big>
+      {editing && (
+        <div className="card-pop mb-4 border-accent p-4">
+          <p className="text-sm font-extrabold">
+            ✏️ 课后挑战：把你发现的问题写进{ch.field === "check" ? "「它要检查什么」" : "「行动方式」"}
+          </p>
+          <p className="mt-2 rounded-2xl bg-sun/25 p-3 text-sm font-bold">{suggestion}</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              onClick={applyFix}
+              className="rounded-full bg-primary px-5 py-2.5 text-sm font-extrabold text-primary-foreground"
+            >
+              保存修改，再试一次
+            </button>
+            <button
+              onClick={() => go(SLIDE.homework)}
+              className="rounded-full bg-secondary px-5 py-2.5 text-sm font-bold"
+            >
+              回到挑战卡
+            </button>
+          </div>
+        </div>
+      )}
+      {!editing && ch.retested && (
+        <div className="card-soft mb-4 flex flex-wrap items-center gap-3 p-4">
+          <CheckCircle2 className="size-5 text-grass" />
+          <p className="text-sm font-bold">规则已更新，和智能体再聊一次，然后回去生成挑战卡。</p>
+          <button
+            onClick={() => go(SLIDE.homework)}
+            className="rounded-full bg-secondary px-4 py-2 text-xs font-bold"
+          >
+            回到挑战卡
+          </button>
+        </div>
+      )}
       <div className="card-soft mb-4 flex flex-wrap items-center gap-3 p-4">
         <Sparkle className="size-5 text-primary" />
         <p className="text-sm font-bold">
@@ -1689,7 +1744,13 @@ function Factory({ card, setCard, fields, theme, flow }: Ctx) {
             : "还没完成人类验收，指令卡先用当前指挥台的内容，验收后会更准确。"}
         </p>
       </div>
-      <AgentFactory card={card} setCard={setCard} fields={fields} theme={theme} />
+      <AgentFactory
+        card={card}
+        setCard={setCard}
+        fields={fields}
+        theme={theme}
+        initialAction={ch.prefill}
+      />
     </Big>
   );
 }
