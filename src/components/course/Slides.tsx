@@ -815,7 +815,7 @@ export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
 
 type RunStep = { emoji: string; t: string; d: string; lines: string[] };
 
-function makeRun(fields: Fields, theme: AgentTheme): RunStep[] {
+function makeRun(fields: Fields, theme: AgentTheme, standard = ""): RunStep[] {
   const activity = fields.activity.trim() || theme.activity;
   const count = fields.count.trim() || theme.count;
   const limits = fields.limits.trim() || theme.limits;
