@@ -1422,7 +1422,10 @@ function Detective({ fields, theme, setField, go, setFlow }: Ctx) {
             className="mt-4 space-y-3 rounded-2xl bg-sun/25 p-4"
           >
             <p className="flex items-center gap-2 text-lg font-extrabold">
-              <Lightbulb className="size-5" /> AI 的修改建议（要不要采纳，你说了算）
+              <Lightbulb className="size-5" /> AI 的修改建议
+            </p>
+            <p className="rounded-xl bg-card/70 p-2 text-sm font-bold">
+              AI 可以提出修改建议；是否采纳、以及怎么改，由人类负责决定。
             </p>
             <p className="rounded-xl bg-card p-3 text-base font-medium">{c.fixValue}</p>
             {editing ? (
