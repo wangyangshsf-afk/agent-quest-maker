@@ -1161,7 +1161,7 @@ export function makeDraft(fields: Fields, theme: AgentTheme, standard = ""): Age
   ];
 
   return {
-    title: `《${activity}》方案草案（智能体初版产出）`,
+    title: `《${activity}》智能体生成的方案`,
     items,
     flaws,
     verdict:
@@ -1252,7 +1252,7 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
                   className="mb-4 size-10 rounded-full border-4 border-primary border-t-transparent"
                 />
                 <p className="text-lg font-extrabold">智能体正在按步骤产出方案…</p>
-                <p className="mt-1 text-sm text-muted-foreground">完成后会在这里显示方案草案</p>
+                <p className="mt-1 text-sm text-muted-foreground">完成后会在这里显示智能体生成的方案</p>
               </div>
             ) : (
               <motion.div
