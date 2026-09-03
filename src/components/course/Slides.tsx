@@ -1096,6 +1096,128 @@ function makeRun(fields: Fields, theme: AgentTheme, standard = ""): RunStep[] {
   ];
 }
 
+/* ---------- 8b. 智能体自己的产出：方案草案 ---------- */
+
+type DraftTag = "fact" | "guess" | "confirm";
+type DraftItem = { label: string; text: string; tag: DraftTag; flaw?: string };
+export type AgentDraft = { title: string; items: DraftItem[]; flaws: string[]; verdict: string };
+
+const TAG_TEXT: Record<DraftTag, string> = {
+  fact: "已知事实",
+  guess: "智能体推测",
+  confirm: "需要人类确认",
+};
+const TAG_CLASS: Record<DraftTag, string> = {
+  fact: "bg-grass/20 text-ink",
+  guess: "bg-sun/30 text-ink",
+  confirm: "bg-destructive/15 text-destructive",
+};
+
+export function makeDraft(fields: Fields, theme: AgentTheme, standard = ""): AgentDraft {
+  const activity = fields.activity.trim() || theme.activity;
+  const count = fields.count.trim() || theme.count;
+  const limits = fields.limits.trim() || theme.limits;
+  const all = `${activity} ${count} ${limits} ${standard}`;
+
+  const num = Number((count.match(/\d+/) ?? ["0"])[0]) || 0;
+  const moneyM = limits.match(/(\d+(?:\.\d+)?)\s*(?:元|块|¥)/);
+  const money = moneyM ? Number(moneyM[1]) : 0;
+  const perHeadDeclared = /每人|人均/.test(limits) && money > 0;
+  const perHead = money > 0 ? (perHeadDeclared || num === 0 ? money : money / num) : 60;
+
+  const placeM = all.match(/([\u4e00-\u9fa5]{2,10}(?:公园|博物馆|科技馆|美术馆|体育馆|图书馆|动物园|植物园|基地))/);
+  const hasPlace = !!placeM;
+  const place = placeM?.[1] ?? "城郊森林公园";
+  const clockM = limits.match(/\d{1,2}\s*[:：]\s*\d{2}/g) ?? [];
+  const hasTime = clockM.length > 0 || /\d\s*点|上午|下午|当天/.test(all);
+  const hasHuman = /老师|家长|签字|确认|审核|批准/.test(limits + standard);
+  const hasSafety = /安全|过敏|急救|受伤|晕车|应急|风险|防/.test(all);
+  const start = clockM[0] ?? "09:00";
+  const end = clockM[1] ?? "16:30";
+
+  // 智能体自己算的预算明细：故意合计超过人均预算（学生可验证）
+  const bus = Math.round(perHead * 0.25);
+  const ticket = Math.round(perHead * 0.35);
+  const lunch = Math.round(perHead * 0.5);
+  const spare = Math.round(perHead * 0.1);
+  const sum = bus + ticket + lunch + spare;
+  // 智能体自己的分组：故意只分 2 组（带队人手不足）
+  const aiGroups = 2;
+
+  const flaws: string[] = ["money", "group"];
+  if (!hasPlace) flaws.push("place");
+  if (!hasHuman) flaws.push("human");
+  if (!hasSafety) flaws.push("safety");
+  if (!hasTime) flaws.push("time");
+
+  const items: DraftItem[] = [
+    {
+      label: "备选地点",
+      text: hasPlace
+        ? `主选 ${place}（你已写明）；备选：市区少年宫（车程更短，门票更低）。`
+        : `你没写地点，我先按${place}做方案，备选市区少年宫——这只是我的推测。`,
+      tag: hasPlace ? "fact" : "guess",
+      flaw: hasPlace ? undefined : "place",
+    },
+    {
+      label: "建议路线",
+      text: `学校 → 地铁 2 号线 → ${place}，单程约 35 分钟（我按地图估算，未查当天班次）。`,
+      tag: "guess",
+    },
+    {
+      label: "时间表",
+      text: `${start} 集合出发 → 10:00 到达 → 12:00 午餐 → 15:00 返程 → ${end} 到校。返程只留 90 分钟。`,
+      tag: "guess",
+      flaw: "time",
+    },
+    {
+      label: "预算草案",
+      text: `交通 ${bus} 元 + 门票 ${ticket} 元 + 午餐 ${lunch} 元 + 应急 ${spare} 元 = 每人 ${sum} 元（你的上限是每人 ${Math.round(perHead)} 元）。`,
+      tag: "guess",
+      flaw: "money",
+    },
+    {
+      label: "分组与负责人",
+      text: `${count}分成 ${aiGroups} 组，每组约 ${num ? Math.ceil(num / aiGroups) : "?"} 人，各由 1 位老师带队。`,
+      tag: "guess",
+      flaw: "group",
+    },
+    {
+      label: "安全预案",
+      text: hasSafety
+        ? "已读到你写的安全要求：出发前登记过敏与身体情况，走失先原地等待并联系带队老师。"
+        : "提醒大家注意安全、注意天气。（我没有拿到具体的安全要求，这一条不可执行。）",
+      tag: hasSafety ? "fact" : "guess",
+      flaw: hasSafety ? undefined : "safety",
+    },
+    {
+      label: "通知与下单",
+      text: hasHuman
+        ? "通知与付款的草稿我来写，必须由你写明的确认人签字后才能发出。"
+        : "我可以直接把通知发给全班家长并预订门票——但你没有写谁来确认，这一步我不能自行获得授权。",
+      tag: "confirm",
+      flaw: hasHuman ? undefined : "human",
+    },
+    {
+      label: "待人类核实",
+      text: "预约是否成功、门票实际价格、集合点、最终负责人——这四项我查不到，必须由人确认。",
+      tag: "confirm",
+    },
+  ];
+
+  return {
+    title: `《${activity}》方案草案（智能体初版产出）`,
+    items,
+    flaws,
+    verdict:
+      sum > perHead
+        ? `⚠️ 我的判断：有风险。预算明细合计每人 ${sum} 元，已超过你写的每人 ${Math.round(perHead)} 元。`
+        : "⚠️ 我的判断：信息不足，部分内容是推测，需要你核实。",
+  };
+}
+
+
+
 function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
   const sig = `${fields.activity}|${fields.count}|${fields.limits}|${flow.standard}|${theme.id}`;
   const steps = useMemo(() => makeRun(fields, theme, flow.standard), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
