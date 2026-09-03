@@ -1284,11 +1284,17 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
             <p className="mt-1 text-sm font-medium">
               {holes.length ? `${holes.length} 项要追问` : "暂时没有 ✅"}
             </p>
+            <p className="mt-1 text-[11px] font-bold text-muted-foreground">
+              为什么这项信息会影响方案：缺一项，路线、预算或安全就只能靠推测。
+            </p>
           </div>
           <div className="rounded-2xl bg-secondary/70 p-3">
-            <p className="text-xs font-extrabold">当前计划</p>
-            <p className="mt-1 text-sm font-medium">{plan.length} 步（来自你的目标与约束）</p>
+            <p className="text-xs font-extrabold">智能体生成的方案草案</p>
+            <p className="mt-1 text-sm font-medium">
+              {plan.length} 步，并说明每一步如何由任务目标和约束推导出来
+            </p>
           </div>
+
           <div className="rounded-2xl bg-sun/25 p-3">
             <p className="text-xs font-extrabold">等待人类确认的动作</p>
             <ul className="mt-1 space-y-0.5 text-xs font-medium">
