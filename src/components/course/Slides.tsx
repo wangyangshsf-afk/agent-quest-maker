@@ -153,11 +153,15 @@ function Cover({ go }: Ctx) {
     <Big>
       <div className="card-pop relative overflow-hidden px-6 py-14 text-center sm:px-14">
         <motion.div
-          animate={{ y: [0, -12, 0] }}
-          transition={{ repeat: Infinity, duration: 3 }}
-          className="mx-auto mb-4 w-fit rounded-full bg-sun/40 p-5 text-6xl"
+          animate={{ y: [0, -10, 0] }}
+          transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
+          className="mx-auto mb-6 w-full max-w-md"
         >
-          🤖
+          <img
+            src={coverArt.url}
+            alt="三位同学和 AI 智能机器人一起完成任务的插画"
+            className="mx-auto w-full rounded-3xl border-[3px] border-ink shadow-[6px_6px_0_0_var(--ink)]"
+          />
         </motion.div>
         <h1 className="text-5xl font-extrabold sm:text-7xl">什么是智能体？</h1>
         <p className="mt-4 text-2xl font-bold text-primary sm:text-3xl">让 AI 帮我完成一件事</p>
