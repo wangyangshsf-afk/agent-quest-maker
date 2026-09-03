@@ -2464,7 +2464,7 @@ function Homework({ card, flow, setFlow, go }: Ctx) {
               <Wand2 className="size-5" /> 回到智能体工厂，修改我的指令卡
             </button>
             <p className="mt-3 text-xs text-muted-foreground">
-              先找出一个问题并改好它，再生成挑战卡。
+              先找出一个问题并改好它，就算完成课后挑战。
             </p>
           </div>
         </div>
