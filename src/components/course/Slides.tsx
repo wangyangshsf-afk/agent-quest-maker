@@ -1399,11 +1399,12 @@ type DCase = {
   fixLabel: string;
 };
 
-function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
+function makeCases(fields: Fields, theme: AgentTheme, standard = ""): DCase[] {
   const activity = fields.activity.trim() || theme.activity;
   const count = fields.count.trim() || theme.count;
   const limits = fields.limits.trim() || theme.limits;
-  const all = `${activity} ${count} ${limits}`;
+  const std = standard.trim();
+  const all = `${activity} ${count} ${limits} ${std}`;
 
   const num = Number((count.match(/\d+/) ?? ["0"])[0]) || 0;
   const moneyM = limits.match(/(\d+(?:\.\d+)?)\s*(?:元|块|¥)/);
@@ -1411,19 +1412,26 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
   const perHeadDeclared = /每人|人均/.test(limits) && money > 0;
   const perHead = money > 0 && num > 0 ? (perHeadDeclared ? money : money / num) : 0;
 
-  const hasPlace =
-    /地点|在.{0,6}(公园|馆|校|室|场|山|园|教室|操场)|公园|博物馆|操场|教室|图书|体育馆/.test(all);
-  const hasTime = /\d\s*(点|:|：|小时|分钟|天|周|号|月)|上午|下午|早上|晚上|当天|截止/.test(all);
-  const hasMoney = money > 0 || /预算|费用|元|块|免费|不花钱/.test(limits);
-  const hasHuman = /老师|家长|签字|确认|审核|批准|复核|值日|委员/.test(limits);
+  // 与第 9 页方案草案保持同一套推导（地点、时间点都取自你在指挥台写的内容）
+  const placeM = all.match(
+    /([\u4e00-\u9fa5]{2,10}(?:公园|博物馆|科技馆|美术馆|体育馆|图书馆|动物园|植物园|基地|广场|剧场|校区|教室|操场))/,
+  );
+  const hasPlace = !!placeM;
+  const placeGuess = placeM?.[1] ?? `${activity.slice(0, 6)}的场地`;
+  const clockM = all.match(/\d{1,2}\s*[:：]\s*\d{2}/g) ?? [];
+  const hasTime = clockM.length > 0 || /\d\s*(点|小时|分钟|天|周|号|月)|上午|下午|早上|晚上|当天|截止/.test(all);
+  const start = clockM[0] ?? "09:00";
+  const end = clockM[1] ?? "16:30";
+  const hasMoney = money > 0 || /预算|费用|元|块|免费|不花钱/.test(limits + std);
+  const hasHuman = /老师|家长|签字|确认|审核|批准|复核|值日|委员/.test(limits + std);
   const hasSafety = /安全|过敏|急救|受伤|晕车|应急|风险|防/.test(all);
   const hasGroup = /分组|小组|每组|人一组|组长|分工/.test(all);
-
-  const q = (s: string) => `「${s}」`;
-  const src = `你在指挥台写的是${q(`${activity}｜${count}｜${limits}`)}`;
+  const confirmer = /家长/.test(limits + std) ? "家长" : "老师";
+  const stdTail = std ? `；完成标准：${std}` : "";
 
   type Cand = { key: string; score: number; make: () => DCase };
   const pool: Cand[] = [];
+
 
   // 1. 缺地点
   pool.push({
