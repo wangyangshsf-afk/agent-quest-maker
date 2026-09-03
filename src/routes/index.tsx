@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Home, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
-import { EMPTY_FLOW, SLIDES, type Ctx, type Flow } from "@/components/course/Slides";
+import { EMPTY_CHALLENGE, EMPTY_FLOW, SLIDES, type Ctx, type Flow } from "@/components/course/Slides";
 import { AgentModal } from "@/components/course/AgentModal";
 import { EMPTY_CARD, THEMES, type AgentCard, type AgentTheme, type Fields } from "@/lib/agent-themes";
 
@@ -140,6 +140,7 @@ function CoursePage() {
       check: keep(c.check, theme.card.check, t.card.check),
     }));
     setTheme(t);
+    setFlowState((f) => ({ ...f, challenge: EMPTY_CHALLENGE }));
   };
 
   const ctx: Ctx = {

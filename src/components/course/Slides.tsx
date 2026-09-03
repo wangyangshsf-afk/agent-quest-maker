@@ -6,7 +6,6 @@ import {
   Bot,
   CheckCircle2,
   ClipboardCheck,
-  Copy,
   Eye,
   Gavel,
   Lightbulb,
@@ -26,7 +25,6 @@ import { toast } from "sonner";
 import { VoiceInput } from "./VoiceInput";
 import {
   THEMES,
-  buildPrompt,
   detectConflicts,
   type AgentCard,
   type AgentTheme,
