@@ -49,12 +49,10 @@ export const SLIDE = {
   quiz: 7,
   commandCenter: 8,
   execution: 9,
-  detective: 10,
-  review: 11,
-  scenes: 12,
-  factory: 13,
-  wrap: 14,
-  homework: 15,
+  scenes: 10,
+  factory: 11,
+  wrap: 12,
+  homework: 13,
 } as const;
 
 export type FlowState = "draft" | "running" | "needs_fix" | "detective" | "rerunning" | "approved";
@@ -322,8 +320,7 @@ const MILESTONES = [
   { emoji: "🎒", t: "遇到难题", d: "春游要怎么安排？", s: SLIDE.situation },
   { emoji: "🆚", t: "分清角色", d: "聊天 AI ≠ 智能体", s: SLIDE.compare },
   { emoji: "🎛️", t: "亲手指挥", d: "填写指挥台下达任务", s: SLIDE.commandCenter },
-  { emoji: "🕵️", t: "侦探挑战", d: "找出 AI 的错误并修改", s: SLIDE.detective },
-  { emoji: "✅", t: "人类验收", d: "第二版能执行吗？", s: SLIDE.review },
+  { emoji: "🕵️", t: "找漏洞", d: "在成果里批注 AI 的错误", s: SLIDE.execution },
   { emoji: "🚀", t: "造一个它", d: "生成专属智能体", s: SLIDE.factory },
 ];
 
@@ -1328,6 +1325,19 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
   const [n, setN] = useState(0);
   useEffect(() => setN(0), [sig]);
 
+  /** 学生在单元格里写下的批注（隐藏入口，点击单元格才出现） */
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  /** 已经在「重新生成」里生效的批注 */
+  const [applied, setApplied] = useState<Record<string, string>>({});
+  const [editing, setEditing] = useState<string | null>(null);
+  const [version, setVersion] = useState(1);
+  useEffect(() => {
+    setNotes({});
+    setApplied({});
+    setEditing(null);
+    setVersion(1);
+  }, [sig]);
+
   useEffect(() => {
     if (n >= steps.length) return;
     const id = window.setTimeout(() => setN((x) => x + 1), 1100);
@@ -1336,23 +1346,21 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
 
   const holes = steps[1]!.lines.filter((l) => !l.includes("✅"));
   const badChecks = steps[3]!.lines.filter((l) => l.startsWith("❌") || l.startsWith("⚠️"));
-  // 进入本页时的版本判定，跑完后不会把第一版误标成第二版
-  const [isRerun] = useState(flow.state === "rerunning" || flow.approved);
   const done = n >= steps.length;
+  const noteCount = Object.values(notes).filter((v) => v.trim()).length;
+  const appliedCount = Object.values(applied).filter((v) => v.trim()).length;
 
   useEffect(() => {
     if (!done) return;
     if (flow.approved) return;
     setFlow({
       state: holes.length + badChecks.length > 0 ? "needs_fix" : "rerunning",
-      unlocked: Math.max(
-        flow.unlocked,
-        isRerun ? SLIDE.review : SLIDE.detective,
-      ),
+      unlocked: Math.max(flow.unlocked, SLIDE.execution),
     });
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [done, sig]);
+
 
   return (
     <Big>
@@ -1441,718 +1449,158 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
                   </div>
                 </div>
 
-                {/* 结果卡片：多模态呈现 */}
+                {/* 结果卡片：每格可点击批注（找漏洞） */}
                 <div className="rounded-2xl border-2 border-ink bg-card p-4">
+                  <p className="mb-3 flex items-center gap-2 text-xs font-extrabold text-muted-foreground">
+                    <Search className="size-4 text-berry" /> 侦探任务：点任意一格，写下你觉得写错或不合理的地方
+                  </p>
                   <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
                     <ul className="grid gap-2 sm:grid-cols-2">
-                      {draft.items.map((it, k) => (
-                        <motion.li
-                          key={it.label}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.1 * k }}
-                          className={`rounded-xl p-3 ${
-                            it.verified ? "bg-grass/10" : "bg-muted"
-                          }`}
-                        >
-                          <p className="flex flex-wrap items-center gap-2 text-sm font-extrabold">
-                            {it.icon && <span className="inline-flex">{it.icon}</span>}
-                            {it.label}
-                            {it.verified && (
-                              <span className="inline-flex" title="已联网核验">
-                                <CheckCircle2 className="size-4 text-grass" />
+                      {draft.items.map((it, k) => {
+                        const fixed = (applied[it.label] ?? "").trim();
+                        const note = notes[it.label] ?? "";
+                        const open = editing === it.label;
+                        return (
+                          <motion.li
+                            key={it.label}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.1 * k }}
+                            onClick={() => setEditing(open ? null : it.label)}
+                            className={`group cursor-pointer rounded-xl p-3 transition ${
+                              note.trim()
+                                ? "bg-sun/20 ring-2 ring-berry"
+                                : fixed
+                                  ? "bg-grass/15 ring-2 ring-grass"
+                                  : it.verified
+                                    ? "bg-grass/10 hover:ring-2 hover:ring-primary/50"
+                                    : "bg-muted hover:ring-2 hover:ring-primary/50"
+                            }`}
+                          >
+                            <p className="flex flex-wrap items-center gap-2 text-sm font-extrabold">
+                              {it.icon && <span className="inline-flex">{it.icon}</span>}
+                              {it.label}
+                              {it.verified && !fixed && (
+                                <span className="inline-flex" title="已联网核验">
+                                  <CheckCircle2 className="size-4 text-grass" />
+                                </span>
+                              )}
+                              <span className="ml-auto text-[11px] font-bold text-muted-foreground opacity-0 transition group-hover:opacity-100">
+                                ✏️ 批注
                               </span>
-                            )}
-                          </p>
-                          <p className="mt-1 text-sm font-medium leading-snug">{it.text}</p>
-                          <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <span
-                              className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${TAG_CLASS[it.tag]}`}
-                            >
-                              {TAG_TEXT[it.tag]}
-                            </span>
-                            {it.source && (
-                              <span className="text-[11px] font-bold text-muted-foreground">
-                                来源：{it.source}
+                            </p>
+                            <p className="mt-1 text-sm font-medium leading-snug">
+                              {fixed ? `已按你的批注修改：${fixed}` : it.text}
+                            </p>
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              <span
+                                className={`rounded-full px-2 py-0.5 text-[11px] font-extrabold ${
+                                  fixed ? "bg-grass/25 text-ink" : TAG_CLASS[it.tag]
+                                }`}
+                              >
+                                {fixed ? "已按学生批注修正" : TAG_TEXT[it.tag]}
                               </span>
+                              {it.source && !fixed && (
+                                <span className="text-[11px] font-bold text-muted-foreground">
+                                  来源：{it.source}
+                                </span>
+                              )}
+                            </div>
+                            {note.trim() && !open && (
+                              <p className="mt-2 rounded-lg bg-card px-2 py-1 text-[11px] font-bold text-berry">
+                                🕵️ 我的批注：{note}
+                              </p>
                             )}
-                          </div>
-                        </motion.li>
-                      ))}
+                            <AnimatePresence>
+                              {open && (
+                                <motion.div
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: "auto" }}
+                                  exit={{ opacity: 0, height: 0 }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="overflow-hidden"
+                                >
+                                  <textarea
+                                    autoFocus
+                                    value={note}
+                                    onChange={(e) =>
+                                      setNotes((v) => ({ ...v, [it.label]: e.target.value }))
+                                    }
+                                    placeholder="这里哪里不对？例如：预算算超了 / 分组人太多 / 时间来不及"
+                                    className="mt-2 w-full rounded-xl border-2 border-border bg-card p-2 text-sm font-medium outline-none focus:border-primary"
+                                    rows={2}
+                                  />
+                                  <div className="mt-1 flex gap-2">
+                                    <button
+                                      onClick={() => setEditing(null)}
+                                      className="rounded-full bg-primary px-3 py-1 text-xs font-extrabold text-primary-foreground"
+                                    >
+                                      记下这条
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setNotes((v) => ({ ...v, [it.label]: "" }));
+                                        setEditing(null);
+                                      }}
+                                      className="rounded-full bg-secondary px-3 py-1 text-xs font-bold"
+                                    >
+                                      清空
+                                    </button>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </motion.li>
+                        );
+                      })}
                     </ul>
-                    <p className="mt-3 rounded-xl bg-sun/25 p-3 text-sm font-bold">{draft.verdict}</p>
-
+                    <p className="mt-3 rounded-xl bg-sun/25 p-3 text-sm font-bold">
+                      {appliedCount > 0
+                        ? `✅ 第 ${version} 版：已按你标出的 ${appliedCount} 处批注重新生成，其余内容仍需人类确认。`
+                        : draft.verdict}
+                    </p>
                   </motion.div>
                 </div>
 
                 <div className="flex flex-wrap gap-3">
                   <button
-                    onClick={() => go(SLIDE.detective)}
+                    onClick={() => {
+                      if (noteCount === 0) {
+                        toast.info("先点一格写下你找到的问题，再让智能体重新生成 🕵️");
+                        return;
+                      }
+                      setApplied({ ...notes });
+                      setNotes({});
+                      setEditing(null);
+                      setVersion((v) => v + 1);
+                      setN(0);
+                      toast.success(`已把 ${noteCount} 处批注交给智能体，正在重新生成…`);
+                    }}
                     className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)]"
                   >
-                    <Search className="size-5" /> 去侦探模式找漏洞
+                    <RefreshCw className="size-5" /> 重新生成（{noteCount} 处批注）
                   </button>
-
-                  {isRerun && (
-                    <button
-                      onClick={() => go(SLIDE.review)}
-                      className="inline-flex items-center gap-2 rounded-full bg-grass px-6 py-3 text-lg font-extrabold text-ink"
-                    >
-                      <ClipboardCheck className="size-5" /> 去验收台
-                    </button>
-                  )}
                   <button
-                    onClick={() => setN(0)}
-                    className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-3 font-extrabold"
+                    onClick={() => {
+                      setFlow({
+                        approved: true,
+                        state: "approved",
+                        unlocked: Math.max(flow.unlocked, SLIDE.homework),
+                      });
+                      toast.success("方案已由你确认，去创建专属智能体 🚀");
+                      go(SLIDE.scenes);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-full bg-grass px-6 py-3 text-lg font-extrabold text-ink shadow-[4px_4px_0_0_var(--ink)]"
                   >
-                    <RefreshCw className="size-5" /> 重新播放
+                    <ClipboardCheck className="size-5" /> 确认此方案
                   </button>
                 </div>
+
               </motion.div>
             }
           </div>
         )}
       </div>
-    </Big>
-  );
-}
-
-
-/* ---------- 9. Detective ---------- */
-
-type DCase = {
-  title: string;
-  ai: string;
-  steps: [
-    { hint: string; answer: string },
-    { hint: string; answer: string },
-    { hint: string; answer: string },
-  ];
-  fixField: keyof Fields;
-  fixValue: string;
-  fixLabel: string;
-};
-
-function makeCases(fields: Fields, theme: AgentTheme, standard = ""): DCase[] {
-  const activity = fields.activity.trim() || theme.activity;
-  const count = fields.count.trim() || theme.count;
-  const limits = fields.limits.trim() || theme.limits;
-  const std = standard.trim();
-  const all = `${activity} ${count} ${limits} ${std}`;
-
-  const num = Number((count.match(/\d+/) ?? ["0"])[0]) || 0;
-  const moneyM = limits.match(/(\d+(?:\.\d+)?)\s*(?:元|块|¥)/);
-  const money = moneyM ? Number(moneyM[1]) : 0;
-  const perHeadDeclared = /每人|人均/.test(limits) && money > 0;
-  const perHead = money > 0 && num > 0 ? (perHeadDeclared ? money : money / num) : 0;
-
-  // 与第 9 页方案草案保持同一套推导（地点、时间点都取自你在指挥台写的内容）
-  const placeM = all.match(
-    /([\u4e00-\u9fa5]{2,10}(?:公园|博物馆|科技馆|美术馆|体育馆|图书馆|动物园|植物园|基地|广场|剧场|校区|教室|操场))/,
-  );
-  const hasPlace = !!placeM;
-  const placeGuess = placeM?.[1] ?? `${activity.slice(0, 6)}的场地`;
-  const clockM = all.match(/\d{1,2}\s*[:：]\s*\d{2}/g) ?? [];
-  const hasTime = clockM.length > 0 || /\d\s*(点|小时|分钟|天|周|号|月)|上午|下午|早上|晚上|当天|截止/.test(all);
-  const start = clockM[0] ?? "09:00";
-  const end = clockM[1] ?? "16:30";
-  const hasMoney = money > 0 || /预算|费用|元|块|免费|不花钱/.test(limits + std);
-  const hasHuman = /老师|家长|签字|确认|审核|批准|复核|值日|委员/.test(limits + std);
-  const hasSafety = /安全|过敏|急救|受伤|晕车|应急|风险|防/.test(all);
-  const hasGroup = /分组|小组|每组|人一组|组长|分工/.test(all);
-  const confirmer = /家长/.test(limits + std) ? "家长" : "老师";
-  const stdTail = std ? `；完成标准：${std}` : "";
-
-  type Cand = { key: string; score: number; make: () => DCase };
-  const pool: Cand[] = [];
-
-
-  // 1. 缺地点
-  pool.push({
-    key: "place",
-    score: hasPlace ? 10 : 100,
-    make: () => ({
-      title: "案件：消失的地点",
-      ai: `${activity}方案：${hasTime ? `按你写的 ${start} 集合出发` : "早上 8:00 集合出发"}，中途休息用餐，结束后原路返回。参加人数 ${count}。`,
-      steps: [
-        {
-          hint: `读一遍 AI 的方案。对照你写的「${activity}」，地点在哪里？`,
-          answer: `🔍 AI 只说了时间和人数，没说地点。📍 没有地点，算不出路程和${hasMoney ? "门票花费" : "路上时间"}。`,
-        },
-        {
-          hint: "只问「去哪」不够。要让 AI 给可比较的答案，问题里还要加什么？",
-          answer: `❓ 问：「${activity}具体在哪里？给我 2 个备选，写清路程、门票${perHead > 0 ? `，并控制在每人 ${Math.round(perHead)} 元内` : ""}。」`,
-        },
-        {
-          hint: "把谈好的结果写回指挥台，方案才算改好。",
-          answer: `✏️ 把地点和路程时间补进限制条件（${count}都要去得了）。`,
-        },
-      ],
-      fixField: "limits",
-      fixValue: `${limits}${limits ? "；" : ""}地点：${placeGuess}（写清车程与门票，${count}同行）${stdTail}`,
-      fixLabel: `补上地点：${placeGuess}`,
-
-    }),
-  });
-
-  // 2. 钱算不过来
-  const aiTreatedPerHeadAsTotal = perHead >= 5;
-  const fakeTotal = aiTreatedPerHeadAsTotal
-    ? Math.round(perHead)
-    : Math.max(5, Math.round(num > 0 ? num * 0.4 : 20));
-  pool.push({
-    key: "money",
-    score: hasMoney && perHead < 5 ? 100 : hasMoney ? 60 : 30,
-    make: () => ({
-      title: aiTreatedPerHeadAsTotal ? "案件：人均预算被当成总预算" : "案件：算不过来的钱",
-      ai: `${count}参加${activity}，总预算 ${fakeTotal} 元，安排门票 + 午餐 + 往返交通，保证人人都有份。`,
-      steps: [
-        {
-          hint: aiTreatedPerHeadAsTotal
-            ? "线索藏在单位里。把人数和预算放一起，算一算人均多少。"
-            : "线索藏在数字里。把人数和预算放一起，算一算人均多少。",
-          answer: aiTreatedPerHeadAsTotal
-            ? `🔍 ${count}有 ${num > 0 ? num : "?"} 人，总预算才 ${fakeTotal} 元，人均约 ${num > 0 ? (fakeTotal / num).toFixed(2) : "?"} 元。📉 AI 把「每人预算」当成了「总预算」。`
-            : `🔍 ${count}只有 ${fakeTotal} 元${num > 0 ? `，人均约 ${(fakeTotal / num).toFixed(2)} 元` : ""}。💸 这点钱连水都买不到。`,
-        },
-        {
-          hint: aiTreatedPerHeadAsTotal
-            ? "别直接说「你算错了」。让 AI 自己把账目摊开。"
-            : "让 AI 列出花费清单，比让它道歉有用。",
-          answer: aiTreatedPerHeadAsTotal
-            ? `❓ 问：「这是每人预算还是全班总预算？请按 ${count} 重新核算并列出清单。」`
-            : `❓ 问：「这是每人还是总预算？请列出门票/午餐/交通各多少。」`,
-        },
-        {
-          hint: "把真实预算写回指挥台，AI 才会守着它。",
-          answer: aiTreatedPerHeadAsTotal
-            ? `✏️ 写进限制条件：每人 ${perHead.toFixed(0)} 元，全班约 ${num > 0 ? (perHead * num).toFixed(0) : "?"} 元。`
-            : `✏️ 写进限制条件：每人预算 ${perHead > 0 ? perHead.toFixed(0) : 60} 元。`,
-        },
-      ],
-      fixField: "limits",
-      fixValue: aiTreatedPerHeadAsTotal
-        ? `每人预算 ${perHead.toFixed(0)} 元，全班总预算约 ${num > 0 ? (perHead * num).toFixed(0) : "?"} 元（含交通与门票）`
-        : `每人预算 ${perHead > 0 ? perHead.toFixed(0) : 60} 元（含交通与门票）${
-            limits && !perHeadDeclared ? `；${limits}` : ""
-          }`,
-      fixLabel: aiTreatedPerHeadAsTotal
-        ? `改成：每人 ${perHead.toFixed(0)} 元，全班约 ${num > 0 ? (perHead * num).toFixed(0) : "?"} 元`
-        : `改成：每人预算 ${perHead > 0 ? perHead.toFixed(0) : 60} 元`,
-    }),
-  });
-
-  // 3. 没有人类检查点
-  pool.push({
-    key: "human",
-    score: hasHuman ? 10 : 100,
-    make: () => ({
-      title: "案件：没人负责的方案",
-      ai: `${activity}安排已生成，AI 将自动通知全部 ${count}、直接下单物资，并在当天自行调整流程，无需再确认。`,
-      steps: [
-        {
-          hint: "读一遍方案。出现过「人」吗？谁最后拍板？",
-          answer: `🔍 方案写「自动下单、自行调整、无需确认」。🚫 没有一个人类检查点。`,
-        },
-        {
-          hint: "AI 很能干，但最终决定权归谁？把它变成要求。",
-          answer: `❓ 问：「${activity}哪一步必须${confirmer}签字？请分『AI 能做』和『必须人确认』两栏。」`,
-        },
-        {
-          hint: "把人类确认规则写进指挥台。",
-          answer: `✏️ 加上：所有通知和花钱步骤，必须${confirmer}确认后执行。`,
-        },
-      ],
-      fixField: "limits",
-      fixValue: `${limits}${limits ? "；" : ""}${activity}中所有通知与花钱的步骤，必须由${confirmer}确认后才执行${stdTail}`,
-      fixLabel: `补上：${confirmer}最终确认规则`,
-
-    }),
-  });
-
-  // 4. 缺安全 / 特殊情况
-  pool.push({
-    key: "safety",
-    score: hasSafety ? 10 : 100,
-    make: () => ({
-      title: "案件：被忽略的安全",
-      ai: `${activity}流程：${count}全员一起行动，按顺序完成每个环节，遇到情况现场随机应变即可。`,
-      steps: [
-        {
-          hint: "想想现场：有人过敏、走丢、下雨。方案写了吗？",
-          answer: `🔍 方案只写顺利时怎么做，没写出事怎么办。⚠️ 「随机应变」等于没有预案。`,
-        },
-        {
-          hint: "问「安全吗」太虚。要问：谁在什么时候做什么？",
-          answer: `❓ 问：「${activity}请列出 3 个风险场景（${count}规模）。每个写清：谁负责、第一步做什么、联系谁。」`,
-        },
-        {
-          hint: "把安全要求写回指挥台，下一版才会落实。",
-          answer: `✏️ 加上：登记过敏情况，写出走失/受伤/天气应急预案，由${confirmer}兜底。`,
-        },
-      ],
-      fixField: "limits",
-      fixValue: `${limits}${limits ? "；" : ""}${activity}前登记过敏与身体情况，写出走失/受伤/天气三种应急预案，紧急时联系${confirmer}${stdTail}`,
-      fixLabel: `补上：${activity}的安全与应急预案`,
-
-    }),
-  });
-
-  // 5. 人数对不上 / 没分组
-  pool.push({
-    key: "group",
-    score: num > 0 && !hasGroup ? 85 : 45,
-    make: () => ({
-      title: "案件：对不上的人数",
-      ai: `${activity}：把${count}分成 2 组，每组约 ${num > 0 ? Math.ceil(num / 2) : "?"} 人，各由 1 位${confirmer}带队，同时进行不同任务。`,
-      steps: [
-        {
-          hint: `算一算：2 组带队够吗？每组 ${num > 0 ? Math.ceil(num / 2) : "?"} 人，一个人看得过来吗？`,
-          answer: `🔍 ${count}只分 2 组，每组约 ${num > 0 ? Math.ceil(num / 2) : "?"} 人。📊 人手不够，分工和物资都会错。`,
-        },
-        {
-          hint: "让 AI 把分组算式写出来，自己检查。",
-          answer: `❓ 问：「请按 ${count} 重新分组，每组不超过 8 人。写出：组数×每组人数=总人数。」`,
-        },
-        {
-          hint: "把分组规则写回指挥台。",
-          answer: `✏️ 加上：${count}按每组不超过 8 人分组，每组 1 名组长。`,
-        },
-      ],
-      fixField: "limits",
-      fixValue: `${limits}${limits ? "；" : ""}${count}按每组不超过 8 人分组（约 ${num > 0 ? Math.ceil(num / 8) : "?"} 组），每组指定 1 名组长并写出分组算式${stdTail}`,
-      fixLabel: `改成：${num > 0 ? Math.ceil(num / 8) : "?"} 组，每组不超过 8 人`,
-
-    }),
-  });
-
-  // 6. 缺时间
-  pool.push({
-    key: "time",
-    score: hasTime ? 10 : 100,
-    make: () => ({
-      title: "案件：糊涂的时间表",
-      ai: `${activity}：先做准备工作，然后开始活动，做完就结束，${count}都参加。`,
-      steps: [
-        {
-          hint: "你能知道几点集合吗？对照限制条件，时间在哪？",
-          answer: `🔍 「先准备，再开始，后结束」全是模糊词。⏰ 没有时间点，现场会乱。`,
-        },
-        {
-          hint: "给 AI 一个时间格式，它才能输出你要的样子。",
-          answer: `❓ 问：「${activity}请做成时间表。每行写『几点—几点｜做什么｜谁负责』。」`,
-        },
-        {
-          hint: "把确定的时间写回指挥台。",
-          answer: `✏️ 加上：${start} 开始、${end} 前结束，再留 10 分钟机动。`,
-        },
-      ],
-      fixField: "limits",
-      fixValue: `${limits}${limits ? "；" : ""}时间：${start} 开始，${end} 前结束（含 10 分钟机动）${stdTail}`,
-      fixLabel: `补上时间：${start}—${end}`,
-    }),
-  });
-
-  // 第 9 页方案草案里真实出现的破绽，优先成为案件（第 10 页要能追溯到第 9 页）
-  const fromDraft = makeDraft(fields, theme, std).flaws;
-
-  return pool
-    .map((c, idx) => ({ ...c, idx, score: c.score + (fromDraft.includes(c.key) ? 200 : 0) }))
-    .sort((a, b) => b.score - a.score || a.idx - b.idx)
-    .slice(0, 2)
-
-    .map((c, k) => {
-      const d = c.make();
-      return { ...d, title: `案件${["一", "二"][k]}：${d.title.replace(/^案件[：:]/, "")}` };
-    });
-}
-
-function Detective({ fields, theme, setField, go, flow, setFlow }: Ctx) {
-  const sig = `${fields.activity}|${fields.count}|${fields.limits}|${flow.standard}|${theme.id}`;
-  const live: DCase[] = useMemo(() => makeCases(fields, theme, flow.standard), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // 一旦开始破案就冻结案件，避免写回指挥台后案件被重算、进度丢失
-  const [frozen, setFrozen] = useState<DCase[] | null>(null);
-  const cases = frozen ?? live;
-  const [i, setI] = useState(0);
-  // progress: 每一步两次点击（0=未开始, 奇数=看到提示, 偶数=看到答案）
-  const [p, setP] = useState(0);
-  const [done, setDone] = useState<Record<number, string>>({});
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState("");
-  // 记录「因采纳修改而产生的那次变化」，其余任何指挥台改动都要让案件重新同步
-  const expectedSig = useRef<string | null>(null);
-  useEffect(() => {
-    if (frozen && expectedSig.current !== null && sig !== expectedSig.current) {
-      setFrozen(null);
-      setI(0);
-      setP(0);
-      setDone({});
-      setEditing(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sig]);
-  useEffect(() => {
-    if (frozen) return;
-    setI(0);
-    setP(0);
-    setDone({});
-    setEditing(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [live]);
-  const c = cases[i] ?? cases[0]!;
-  const allDone = cases.every((_, k) => done[k]);
-
-  const apply = (value: string, label: string) => {
-    const next = { ...fields, [c.fixField]: value } as Fields;
-    expectedSig.current = `${next.activity}|${next.count}|${next.limits}|${flow.standard}|${theme.id}`;
-    setFrozen(cases);
-    setField(c.fixField, value);
-    setDone((d) => ({ ...d, [i]: label }));
-    setEditing(false);
-    toast.success("已写回指挥台 ✅");
-  };
-
-
-
-  return (
-    <Big>
-      <TaskBar active="check" />
-      <SlideTitle kicker="侦探模式" title="🕵️ 发现指令缺口，修订智能体规则" />
-      <p className="mx-auto mb-4 max-w-3xl text-center text-sm font-bold text-muted-foreground">
-        今天我们看 2 个案件，每一步点两次：先想，再看答案。
-      </p>
-
-
-
-      <div className="mb-4 flex flex-wrap justify-center gap-2">
-        {cases.map((x, k) => (
-          <button
-            key={x.title}
-            onClick={() => {
-              setI(k);
-              setP(0);
-              setEditing(false);
-            }}
-            className={`rounded-full px-4 py-2 font-bold ${
-              k === i ? "bg-primary text-primary-foreground" : "bg-secondary"
-            }`}
-          >
-            {done[k] ? "✅ " : ""}
-            {x.title}
-          </button>
-        ))}
-      </div>
-      <div className="card-pop p-6">
-        <div className="rounded-2xl bg-muted p-4">
-          <p className="mb-1 flex items-center gap-2 text-sm font-extrabold text-muted-foreground">
-            <Bot className="size-4" /> AI 给出的方案
-          </p>
-          <p className="text-lg">{c.ai}</p>
-        </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          {[Search, MessageSquare, Wand2].map((Icon, k) => {
-            const seenHint = p >= k * 2 + 1;
-            const seenAnswer = p >= k * 2 + 2;
-            const active = p === k * 2 || p === k * 2 + 1;
-            return (
-              <motion.button
-                key={k}
-                disabled={!active}
-                onClick={() => setP(p + 1)}
-                whileHover={{ y: active ? -4 : 0 }}
-                whileTap={{ scale: active ? 0.97 : 1 }}
-                className={`rounded-2xl border-2 p-4 text-left transition ${
-                  seenAnswer
-                    ? "border-grass bg-grass/15"
-                    : active
-                      ? "border-primary bg-primary/10"
-                      : "border-border opacity-40"
-                }`}
-              >
-                <Icon className="mb-2 size-6" />
-                <p className="font-extrabold">
-                  {
-                    [
-                      "第 1 步 找出：哪条任务信息缺失，或哪条规则有风险？🔍",
-                      "第 2 步 追问：怎样问，才能得到可比较、可执行的信息？❓",
-                      "第 3 步 修订：把新要求写回智能体指令卡 ✏️",
-                    ][k]
-                  }
-                </p>
-                {seenHint && (
-                  <p className="mt-2 rounded-xl bg-card/70 p-2 text-sm">💭 {c.steps[k]!.hint}</p>
-                )}
-                {seenAnswer ? (
-                  <p className="mt-2 text-sm font-bold">{c.steps[k]!.answer}</p>
-                ) : (
-                  active && (
-                    <p className="mt-2 text-xs font-extrabold text-primary">
-                      {seenHint ? "👉 再点一次，看看答案" : "👉 点一下，先看思考提示"}
-                    </p>
-                  )
-                )}
-              </motion.button>
-            );
-          })}
-        </div>
-
-        {p >= 6 && !done[i] && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-4 space-y-3 rounded-2xl bg-sun/25 p-4"
-          >
-            <p className="flex items-center gap-2 text-lg font-extrabold">
-              <Lightbulb className="size-5" /> AI 的修改建议
-            </p>
-            <p className="rounded-xl bg-card/70 p-2 text-sm font-bold">
-              AI 可以提出修改建议；是否采纳、以及怎么改，由人类负责决定。
-            </p>
-            <p className="rounded-xl bg-card p-3 text-base font-medium">{c.fixValue}</p>
-            {editing ? (
-              <div className="space-y-3">
-                <textarea
-                  value={draft}
-                  rows={3}
-                  onChange={(e) => setDraft(e.target.value)}
-                  className="w-full resize-none rounded-2xl border-2 border-border bg-card px-4 py-3 outline-none focus:border-primary"
-                />
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    onClick={() => apply(draft, "你自己改的版本")}
-                    className="rounded-full bg-primary px-5 py-2.5 font-extrabold text-primary-foreground"
-                  >
-                    保存我的修改
-                  </button>
-                  <button
-                    onClick={() => setEditing(false)}
-                    className="rounded-full bg-secondary px-5 py-2.5 font-bold"
-                  >
-                    取消
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => apply(c.fixValue, c.fixLabel)}
-                  className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 font-extrabold text-primary-foreground"
-                >
-                  <CheckCircle2 className="size-5" /> 采纳这条修改
-                </button>
-                <button
-                  onClick={() => {
-                    setDraft(c.fixValue);
-                    setEditing(true);
-                  }}
-                  className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-2.5 font-bold"
-                >
-                  <Wand2 className="size-5" /> 我自己编辑
-                </button>
-              </div>
-            )}
-          </motion.div>
-        )}
-
-        {done[i] && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl bg-grass/15 p-4"
-          >
-            <ClipboardCheck className="size-6 text-grass" />
-            <p className="font-bold">
-              已写回任务说明卡：{done[i]} —— 下一次运行，智能体会按这条新规则工作。
-            </p>
-            <button
-              onClick={() => go(SLIDE.commandCenter)}
-              className="rounded-full bg-secondary px-4 py-2 font-bold"
-            >
-              回指挥台看看
-            </button>
-            {i < cases.length - 1 && (
-              <button
-                onClick={() => {
-                  setI(i + 1);
-                  setP(0);
-                }}
-                className="rounded-full bg-primary px-4 py-2 font-bold text-primary-foreground"
-              >
-                下一个案件 →
-              </button>
-            )}
-            {allDone && (
-              <button
-                onClick={() => {
-                  setFlow({ state: "rerunning", unlocked: SLIDE.review });
-                  go(SLIDE.execution);
-                }}
-                className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)]"
-              >
-                <RefreshCw className="size-5" /> 带着修改结果去重新运行
-              </button>
-            )}
-          </motion.div>
-        )}
-      </div>
-    </Big>
-  );
-}
-
-/* ---------- 11. 验收台 ---------- */
-
-const CHECKLIST = [
-  { id: "goal", t: "目标和人数是否一致？", map: "对应：任务目标 + 任务对象与规模", why: "方案要做的事，和你写的目标、人数是同一件事吗？" },
-  { id: "when", t: "时间和地点是否明确？", map: "对应：任务信息是否完整", why: "没有时间和地点，路程、门票、预约都算不准。" },
-  { id: "money", t: "预算是否算得过来？", map: "对应：约束规则是否被遵守", why: "把人均 × 人数算一遍，看看有没有超出你写的约束。" },
-  { id: "safe", t: "安全风险是否有预案？", map: "对应：完成标准与安全规则", why: "走失、受伤、天气变化，方案里有没有写清楚怎么办？" },
-  { id: "human", t: "有没有老师 / 家长做最终确认？", map: "对应：人类最终控制", why: "通知、花钱、预约、外出，必须由成年人确认后才能执行。" },
-];
-
-function Review({ fields, flow, setFlow, go }: Ctx) {
-  const before = flow.baseline ?? { activity: "", count: "", limits: "" };
-  const [open, setOpen] = useState<Record<string, boolean>>({});
-  const toggle = (id: string) =>
-    setFlow({
-      checks: flow.checks.includes(id)
-        ? flow.checks.filter((x) => x !== id)
-        : [...flow.checks, id],
-    });
-  const allChecked = CHECKLIST.every((c) => flow.checks.includes(c.id));
-
-  const Row = ({ label, a, b }: { label: string; a: string; b: string }) => (
-    <div className="rounded-2xl border-2 border-border p-3">
-      <p className="text-xs font-extrabold text-muted-foreground">{label}</p>
-      <p className="mt-1 text-sm line-through opacity-60">{a || "（第一版没写）"}</p>
-      <p className="mt-1 text-sm font-bold text-grass">{b || "（还没补上）"}</p>
-    </div>
-  );
-
-  return (
-    <Big>
-      <TaskBar active="human" />
-      <SlideTitle kicker="人类验收" title="✅ 方案符合任务说明吗？" />
-      <p className="mx-auto mb-5 max-w-3xl text-center text-sm font-bold text-muted-foreground">
-        智能体已经生成方案，但<b>方案不等于事实，也不等于授权</b>。请按你自己写的完成标准，逐项检查。
-      </p>
-      <div className="grid gap-5 lg:grid-cols-2">
-        <div className="card-pop space-y-3 p-6">
-          <p className="text-xl font-extrabold">任务说明卡：修订前 → 修订后</p>
-          <p className="text-xs font-bold text-muted-foreground">
-            改的是<b>输入信息和规则</b>，不是答案本身。
-          </p>
-          <Row label="任务目标" a={before.activity} b={fields.activity} />
-          <Row label="任务对象与规模" a={before.count} b={fields.count} />
-          <Row label="约束规则" a={before.limits} b={fields.limits} />
-          <div className="rounded-2xl border-2 border-border p-3">
-            <p className="text-xs font-extrabold text-muted-foreground">完成标准</p>
-            <p className="mt-1 text-sm font-bold text-grass">
-              {flow.standard || "（还没写完成标准，回到任务说明卡补上）"}
-            </p>
-          </div>
-        </div>
-
-        <div className="card-pop space-y-3 p-6">
-          <p className="text-xl font-extrabold">人类验收清单</p>
-          <p className="text-xs font-bold text-muted-foreground">
-            先点标题展开，看清这条在检查什么，再打勾。
-          </p>
-          {CHECKLIST.map((c) => {
-            const on = flow.checks.includes(c.id);
-            const opened = !!open[c.id];
-            return (
-              <div
-                key={c.id}
-                className={`rounded-2xl border-2 p-3 transition ${on ? "border-grass bg-grass/15" : "border-border"}`}
-              >
-                <button
-                  onClick={() => setOpen((o) => ({ ...o, [c.id]: !o[c.id] }))}
-                  className="flex w-full items-start gap-2 text-left"
-                >
-                  <Eye className="mt-0.5 size-5 shrink-0 text-primary" />
-                  <span className="flex-1 font-bold">{c.t}</span>
-                  <span className="text-xs font-extrabold text-primary">
-                    {opened ? "收起" : "展开"}
-                  </span>
-                </button>
-                <AnimatePresence>
-                  {opened && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="overflow-hidden"
-                    >
-                      <p className="mt-2 rounded-xl bg-secondary/60 p-2 text-sm">{c.why}</p>
-                      <p className="mt-1 text-xs font-extrabold text-muted-foreground">{c.map}</p>
-                      <motion.button
-                        whileTap={{ scale: 0.97 }}
-                        onClick={() => toggle(c.id)}
-                        className={`mt-2 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-extrabold ${
-                          on ? "bg-grass text-ink" : "bg-primary text-primary-foreground"
-                        }`}
-                      >
-                        {on ? (
-                          <>
-                            <CheckCircle2 className="size-4" /> 已检查（点一下取消）
-                          </>
-                        ) : (
-                          <>
-                            <ClipboardCheck className="size-4" /> 我读过了，这条通过
-                          </>
-                        )}
-                      </motion.button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                {!opened && (
-                  <p className="mt-1 pl-7 text-xs font-bold text-muted-foreground">
-                    {on ? "✅ 已检查" : <span className="inline-flex items-center gap-1"><AlertTriangle className="size-3.5" />还没检查</span>}
-                  </p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-        <button
-          onClick={() => go(SLIDE.commandCenter)}
-          className="rounded-full bg-secondary px-5 py-3 font-extrabold"
-        >
-          返回任务说明，补充信息或规则
-        </button>
-        <button
-          onClick={() => {
-            setFlow({ state: "rerunning" });
-            go(SLIDE.execution);
-          }}
-          className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 font-extrabold text-accent-foreground"
-        >
-          <RefreshCw className="size-5" /> 用修订后的任务说明重新运行
-        </button>
-        <button
-          onClick={() => {
-            if (!allChecked) {
-              toast.error("先把 5 项都展开读过并打勾，再交给老师 / 家长");
-              return;
-            }
-            setFlow({ approved: true, state: "approved", unlocked: SLIDE.homework });
-            toast.success("你已逐项检查，重要决定留给人类 🎉");
-            go(SLIDE.scenes);
-          }}
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)] disabled:opacity-50"
-        >
-          <Gavel className="size-5" /> 我已逐项检查，方案可以交给老师 / 家长确认
-        </button>
-      </div>
-      <p className="mt-3 text-center text-sm font-bold text-muted-foreground">
-        {flow.approved
-          ? "🎫 你完成的不是「给 AI 打分」，而是作为任务负责人确认方案达标，并把重要决定留给人类。"
-          : `已检查 ${flow.checks.length} / ${CHECKLIST.length} 项`}
-      </p>
     </Big>
   );
 }
@@ -2195,8 +1643,8 @@ function Scenes({ theme, applyTheme, go, flow }: Ctx) {
             onClick={() => {
               applyTheme(t);
               if (!flow.approved) {
-                toast.error("先去验收台点「我检查过了，通过」");
-                go(SLIDE.review);
+                toast.error("先在「办事过程」点「确认此方案」");
+                go(SLIDE.execution);
                 return;
               }
               toast.success(`已选择「${t.name}」，正在进入指令卡`);
@@ -2220,15 +1668,15 @@ function Scenes({ theme, applyTheme, go, flow }: Ctx) {
         <button
           onClick={() => {
             if (!flow.approved) {
-              toast.error("先去验收台点「我检查过了，通过」");
-              go(SLIDE.review);
+              toast.error("先在「办事过程」点「确认此方案」");
+              go(SLIDE.execution);
               return;
             }
             go(SLIDE.factory);
           }}
           className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-lg font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)]"
         >
-          {flow.approved ? "去创建智能体" : "🔒 先完成人类验收"} <ArrowRight className="size-5" />
+          {flow.approved ? "去创建智能体" : "🔒 先确认方案"} <ArrowRight className="size-5" />
         </button>
       </div>
     </Big>
@@ -2727,8 +2175,6 @@ export const SLIDES: { title: string; C: (ctx: Ctx) => React.ReactElement }[] = 
   { title: "概念小测", C: ConceptQuiz },
   { title: "指挥台", C: CommandCenter },
   { title: "办事过程", C: Execution },
-  { title: "侦探模式", C: Detective },
-  { title: "验收台", C: Review },
   { title: "场景创作", C: Scenes },
   { title: "智能体工厂", C: Factory },
   { title: "课程收束", C: () => <Recap /> },
