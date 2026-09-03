@@ -2143,7 +2143,7 @@ function Factory({ card, setCard, fields, theme, flow, setFlow, go }: Ctx) {
               onClick={() => go(SLIDE.homework)}
               className="rounded-full bg-secondary px-5 py-2.5 text-sm font-bold"
             >
-              回到挑战卡
+              回到课后挑战
             </button>
           </div>
         </div>
@@ -2151,12 +2151,12 @@ function Factory({ card, setCard, fields, theme, flow, setFlow, go }: Ctx) {
       {!editing && ch.retested && (
         <div className="card-soft mb-4 flex flex-wrap items-center gap-3 p-4">
           <CheckCircle2 className="size-5 text-grass" />
-          <p className="text-sm font-bold">规则已更新，和智能体再聊一次，然后回去生成挑战卡。</p>
+          <p className="text-sm font-bold">规则已更新，和智能体再聊一次，然后回去完成课后挑战。</p>
           <button
             onClick={() => go(SLIDE.homework)}
             className="rounded-full bg-secondary px-4 py-2 text-xs font-bold"
           >
-            回到挑战卡
+            回到课后挑战
           </button>
         </div>
       )}
