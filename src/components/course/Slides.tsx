@@ -1099,7 +1099,7 @@ function makeRun(fields: Fields, theme: AgentTheme, standard = ""): RunStep[] {
 /* ---------- 8b. 智能体自己的产出：方案草案 ---------- */
 
 type DraftTag = "fact" | "guess" | "confirm";
-type DraftItem = { label: string; text: string; tag: DraftTag; flaw?: string };
+type DraftItem = { label: string; text: string; tag: DraftTag; flaw?: string | undefined };
 export type AgentDraft = { title: string; items: DraftItem[]; flaws: string[]; verdict: string };
 
 const TAG_TEXT: Record<DraftTag, string> = {
