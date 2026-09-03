@@ -1396,8 +1396,7 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
               <button
                 onClick={() => {
                   if (!flow.doubt) {
-                    setShowDraft(true);
-                    toast.info("先看方案草案，并指出一个你要核实的地方 🔍");
+                    toast.info("先在上面的方案草案里指出一个你要核实的地方 🔍");
                     return;
                   }
                   go(SLIDE.detective);
