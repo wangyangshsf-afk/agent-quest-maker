@@ -167,20 +167,13 @@ export function AgentFactory({
     }
   };
 
-  // 启动：智能体先打招呼，从 0 开始一步一步问
+  // 启动：智能体先打招呼，从 0 开始一步一步问（不带入任何别的场景的数据）
   const boot = () => {
     const name = card.name || T.label;
-    const known = [
-      fields.activity && `活动是「${fields.activity}」`,
-      fields.count && `人数是「${fields.count}」`,
-      fields.limits && `限制是「${fields.limits}」`,
-    ]
-      .filter(Boolean)
-      .join("，");
-    const greet = known
-      ? `你好！我是你的「${name}」专属智能体 ${T.emoji}\n\n我已经知道：${known}。\n接下来我会一步一步问你几个小问题，问齐了才给方案。\n准备好了吗？回复我「开始」吧！`
-      : `你好！我是你的「${name}」专属智能体 ${T.emoji}\n\n我们从 0 开始：先告诉我，你想让我帮你办的那件事是什么？`;
+    const greet = `你好！我是你的「${name}」专属任务智能体 ${T.emoji}\n\n我会先收集关键信息，再给出方案并和你一起核对。\n\n先告诉我：${T.slots[0] ?? "你想让我帮你办的那件事是什么"}？`;
     setMsgs([{ role: "assistant", content: greet }]);
+    setLive(null);
+    setApproved(false);
   };
 
   const [stage, setStage] = useState<0 | 1 | 2>(startAtChat ? 1 : 0);
