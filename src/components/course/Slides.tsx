@@ -152,11 +152,11 @@ function copy(text: string, ok = "已复制到剪贴板 ✅") {
 function Cover({ go }: Ctx) {
   return (
     <Big>
-      <div className="card-pop relative overflow-hidden px-6 py-14 text-center sm:px-14">
+      <div className="card-pop relative flex min-h-[70vh] flex-col items-center justify-center overflow-hidden px-6 py-10 text-center sm:px-14">
         <motion.div
-          animate={{ y: [0, -10, 0] }}
+          animate={{ y: [0, -8, 0] }}
           transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
-          className="mx-auto mb-6 w-full max-w-md"
+          className="mx-auto mb-5 w-full max-w-[260px] sm:max-w-[300px]"
         >
           <img
             src={coverArt.url}
@@ -164,18 +164,18 @@ function Cover({ go }: Ctx) {
             className="mx-auto w-full rounded-3xl border-[3px] border-ink shadow-[6px_6px_0_0_var(--ink)]"
           />
         </motion.div>
-        <h1 className="text-5xl font-extrabold sm:text-7xl">什么是智能体？</h1>
-        <p className="mt-4 text-2xl font-bold text-primary sm:text-3xl">让 AI 帮我完成一件事</p>
-        <p className="mt-2 text-lg text-muted-foreground">45 分钟沉浸互动课件 · 适合 8-15 岁</p>
+        <h1 className="text-4xl font-extrabold sm:text-6xl">什么是智能体？</h1>
+        <p className="mt-3 text-xl font-bold text-primary sm:text-2xl">让 AI 帮我完成一件事</p>
+        <p className="mt-2 text-base text-muted-foreground">45 分钟沉浸互动课件 · 适合 8-15 岁</p>
         <motion.button
           onClick={() => go(1)}
           animate={{ scale: [1, 1.06, 1] }}
           transition={{ repeat: Infinity, duration: 1.6 }}
-          className="mt-10 inline-flex items-center gap-3 rounded-full bg-primary px-10 py-5 text-2xl font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)]"
+          className="mt-8 inline-flex items-center gap-3 rounded-full bg-primary px-10 py-4 text-xl font-extrabold text-primary-foreground shadow-[4px_4px_0_0_var(--ink)] sm:mt-10 sm:py-5 sm:text-2xl"
         >
-          <Play className="size-7" /> 开始上课
+          <Play className="size-6 sm:size-7" /> 开始上课
         </motion.button>
-        <p className="mt-6 text-sm text-muted-foreground">
+        <p className="mt-5 text-sm text-muted-foreground">
           提示：用 ← → 或空格翻页，也可以点下方圆点跳转
         </p>
       </div>
