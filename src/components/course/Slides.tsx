@@ -57,7 +57,7 @@ export type FlowState = "draft" | "running" | "needs_fix" | "detective" | "rerun
 
 export type IssueType = "missing_info" | "unreasonable_plan" | "rule_violation" | "unclear" | "custom";
 
-/** 课后挑战：选任务 → 试一试 → 找问题 → 修改并再试 → 挑战卡 */
+/** 课后挑战：选任务 → 试一试 → 找问题 → 修改并再试 */
 export type Challenge = {
   agentId: string;
   task: string;
