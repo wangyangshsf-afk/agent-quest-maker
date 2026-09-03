@@ -1718,7 +1718,7 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
     });
 }
 
-function Detective({ fields, theme, setField, go, setFlow }: Ctx) {
+function Detective({ fields, theme, setField, go, flow, setFlow }: Ctx) {
   const sig = `${fields.activity}|${fields.count}|${fields.limits}|${theme.id}`;
   const live: DCase[] = useMemo(() => makeCases(fields, theme), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
   // 一旦开始破案就冻结案件，避免写回指挥台后案件被重算、进度丢失
