@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import coverArt from "@/assets/cover-illustration.png.asset.json";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -1399,11 +1399,12 @@ type DCase = {
   fixLabel: string;
 };
 
-function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
+function makeCases(fields: Fields, theme: AgentTheme, standard = ""): DCase[] {
   const activity = fields.activity.trim() || theme.activity;
   const count = fields.count.trim() || theme.count;
   const limits = fields.limits.trim() || theme.limits;
-  const all = `${activity} ${count} ${limits}`;
+  const std = standard.trim();
+  const all = `${activity} ${count} ${limits} ${std}`;
 
   const num = Number((count.match(/\d+/) ?? ["0"])[0]) || 0;
   const moneyM = limits.match(/(\d+(?:\.\d+)?)\s*(?:元|块|¥)/);
@@ -1411,19 +1412,26 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
   const perHeadDeclared = /每人|人均/.test(limits) && money > 0;
   const perHead = money > 0 && num > 0 ? (perHeadDeclared ? money : money / num) : 0;
 
-  const hasPlace =
-    /地点|在.{0,6}(公园|馆|校|室|场|山|园|教室|操场)|公园|博物馆|操场|教室|图书|体育馆/.test(all);
-  const hasTime = /\d\s*(点|:|：|小时|分钟|天|周|号|月)|上午|下午|早上|晚上|当天|截止/.test(all);
-  const hasMoney = money > 0 || /预算|费用|元|块|免费|不花钱/.test(limits);
-  const hasHuman = /老师|家长|签字|确认|审核|批准|复核|值日|委员/.test(limits);
+  // 与第 9 页方案草案保持同一套推导（地点、时间点都取自你在指挥台写的内容）
+  const placeM = all.match(
+    /([\u4e00-\u9fa5]{2,10}(?:公园|博物馆|科技馆|美术馆|体育馆|图书馆|动物园|植物园|基地|广场|剧场|校区|教室|操场))/,
+  );
+  const hasPlace = !!placeM;
+  const placeGuess = placeM?.[1] ?? `${activity.slice(0, 6)}的场地`;
+  const clockM = all.match(/\d{1,2}\s*[:：]\s*\d{2}/g) ?? [];
+  const hasTime = clockM.length > 0 || /\d\s*(点|小时|分钟|天|周|号|月)|上午|下午|早上|晚上|当天|截止/.test(all);
+  const start = clockM[0] ?? "09:00";
+  const end = clockM[1] ?? "16:30";
+  const hasMoney = money > 0 || /预算|费用|元|块|免费|不花钱/.test(limits + std);
+  const hasHuman = /老师|家长|签字|确认|审核|批准|复核|值日|委员/.test(limits + std);
   const hasSafety = /安全|过敏|急救|受伤|晕车|应急|风险|防/.test(all);
   const hasGroup = /分组|小组|每组|人一组|组长|分工/.test(all);
-
-  const q = (s: string) => `「${s}」`;
-  const src = `你在指挥台写的是${q(`${activity}｜${count}｜${limits}`)}`;
+  const confirmer = /家长/.test(limits + std) ? "家长" : "老师";
+  const stdTail = std ? `；完成标准：${std}` : "";
 
   type Cand = { key: string; score: number; make: () => DCase };
   const pool: Cand[] = [];
+
 
   // 1. 缺地点
   pool.push({
@@ -1431,24 +1439,25 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
     score: hasPlace ? 10 : 100,
     make: () => ({
       title: "案件：消失的地点",
-      ai: `${activity}方案：${hasTime ? "按你说的时间" : "早上 8:00"}集合出发，中途休息用餐，结束后原路返回。参加人数 ${count}。`,
+      ai: `${activity}方案：${hasTime ? `按你写的 ${start} 集合出发` : "早上 8:00 集合出发"}，中途休息用餐，结束后原路返回。参加人数 ${count}。`,
       steps: [
         {
-          hint: "读一遍 AI 的方案。时间有吗？人数有吗？地点在哪里？",
-          answer: `🔍 AI 只说了时间和人数，没说地点。📍 没有地点，算不出路程和门票。`,
+          hint: `读一遍 AI 的方案。对照你写的「${activity}」，地点在哪里？`,
+          answer: `🔍 AI 只说了时间和人数，没说地点。📍 没有地点，算不出路程和${hasMoney ? "门票花费" : "路上时间"}。`,
         },
         {
           hint: "只问「去哪」不够。要让 AI 给可比较的答案，问题里还要加什么？",
-          answer: `❓ 问：「${activity}具体在哪里？给我 2 个备选，写清路程和门票。」`,
+          answer: `❓ 问：「${activity}具体在哪里？给我 2 个备选，写清路程、门票${perHead > 0 ? `，并控制在每人 ${Math.round(perHead)} 元内` : ""}。」`,
         },
         {
           hint: "把谈好的结果写回指挥台，方案才算改好。",
-          answer: "✏️ 把地点和路程时间补进限制条件。",
+          answer: `✏️ 把地点和路程时间补进限制条件（${count}都要去得了）。`,
         },
       ],
       fixField: "limits",
-      fixValue: `${limits}${limits ? "；" : ""}地点：城郊森林公园（车程 40 分钟，无门票）`,
-      fixLabel: "补上地点：城郊森林公园",
+      fixValue: `${limits}${limits ? "；" : ""}地点：${placeGuess}（写清车程与门票，${count}同行）${stdTail}`,
+      fixLabel: `补上地点：${placeGuess}`,
+
     }),
   });
 
@@ -1513,16 +1522,17 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
         },
         {
           hint: "AI 很能干，但最终决定权归谁？把它变成要求。",
-          answer: `❓ 问：「${activity}哪一步必须老师签字？请分『AI 能做』和『必须人确认』两栏。」`,
+          answer: `❓ 问：「${activity}哪一步必须${confirmer}签字？请分『AI 能做』和『必须人确认』两栏。」`,
         },
         {
           hint: "把人类确认规则写进指挥台。",
-          answer: "✏️ 加上：所有通知和花钱步骤，必须老师确认后执行。",
+          answer: `✏️ 加上：所有通知和花钱步骤，必须${confirmer}确认后执行。`,
         },
       ],
       fixField: "limits",
-      fixValue: `${limits}${limits ? "；" : ""}所有通知与花钱的步骤必须由老师确认后才执行`,
-      fixLabel: "补上：人类最终确认规则",
+      fixValue: `${limits}${limits ? "；" : ""}${activity}中所有通知与花钱的步骤，必须由${confirmer}确认后才执行${stdTail}`,
+      fixLabel: `补上：${confirmer}最终确认规则`,
+
     }),
   });
 
@@ -1540,16 +1550,17 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
         },
         {
           hint: "问「安全吗」太虚。要问：谁在什么时候做什么？",
-          answer: `❓ 问：「请列出 3 个风险场景。每个写清：谁负责、第一步做什么、联系谁。」`,
+          answer: `❓ 问：「${activity}请列出 3 个风险场景（${count}规模）。每个写清：谁负责、第一步做什么、联系谁。」`,
         },
         {
           hint: "把安全要求写回指挥台，下一版才会落实。",
-          answer: "✏️ 加上：登记过敏情况，写出走失/受伤/天气应急预案。",
+          answer: `✏️ 加上：登记过敏情况，写出走失/受伤/天气应急预案，由${confirmer}兜底。`,
         },
       ],
       fixField: "limits",
-      fixValue: `${limits}${limits ? "；" : ""}需提前登记过敏与身体情况，并写出走失/受伤/天气三种应急预案`,
-      fixLabel: "补上：安全与应急预案",
+      fixValue: `${limits}${limits ? "；" : ""}${activity}前登记过敏与身体情况，写出走失/受伤/天气三种应急预案，紧急时联系${confirmer}${stdTail}`,
+      fixLabel: `补上：${activity}的安全与应急预案`,
+
     }),
   });
 
@@ -1559,24 +1570,25 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
     score: num > 0 && !hasGroup ? 85 : 45,
     make: () => ({
       title: "案件：对不上的人数",
-      ai: `${activity}：把大家分成 4 组，每组 8 人，同时进行不同任务，人人都有事做。`,
+      ai: `${activity}：把${count}分成 2 组，每组约 ${num > 0 ? Math.ceil(num / 2) : "?"} 人，各由 1 位${confirmer}带队，同时进行不同任务。`,
       steps: [
         {
-          hint: "算一算：4 组 × 8 人 = 32 人。和你写的人数对得上吗？",
-          answer: `🔍 4×8=32 人。和你写的人数不一致。📊 分组错了，物资和分工都会错。`,
+          hint: `算一算：2 组带队够吗？每组 ${num > 0 ? Math.ceil(num / 2) : "?"} 人，一个人看得过来吗？`,
+          answer: `🔍 ${count}只分 2 组，每组约 ${num > 0 ? Math.ceil(num / 2) : "?"} 人。📊 人手不够，分工和物资都会错。`,
         },
         {
           hint: "让 AI 把分组算式写出来，自己检查。",
-          answer: `❓ 问：「请按 ${count} 重新分组。写出：组数×每组人数=总人数的算式。」`,
+          answer: `❓ 问：「请按 ${count} 重新分组，每组不超过 8 人。写出：组数×每组人数=总人数。」`,
         },
         {
           hint: "把分组规则写回指挥台。",
-          answer: "✏️ 加上：按实际人数分组，每组指定 1 名组长。",
+          answer: `✏️ 加上：${count}按每组不超过 8 人分组，每组 1 名组长。`,
         },
       ],
       fixField: "limits",
-      fixValue: `${limits}${limits ? "；" : ""}按 ${count} 分组，每组指定 1 名组长，并写出分组算式`,
-      fixLabel: "补上：分组与组长规则",
+      fixValue: `${limits}${limits ? "；" : ""}${count}按每组不超过 8 人分组（约 ${num > 0 ? Math.ceil(num / 8) : "?"} 组），每组指定 1 名组长并写出分组算式${stdTail}`,
+      fixLabel: `改成：${num > 0 ? Math.ceil(num / 8) : "?"} 组，每组不超过 8 人`,
+
     }),
   });
 
@@ -1594,21 +1606,21 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
         },
         {
           hint: "给 AI 一个时间格式，它才能输出你要的样子。",
-          answer: `❓ 问：「请做成时间表。每行写『几点—几点｜做什么｜谁负责』。」`,
+          answer: `❓ 问：「${activity}请做成时间表。每行写『几点—几点｜做什么｜谁负责』。」`,
         },
         {
           hint: "把确定的时间写回指挥台。",
-          answer: "✏️ 加上：开始与结束时间，再留 10 分钟机动。",
+          answer: `✏️ 加上：${start} 开始、${end} 前结束，再留 10 分钟机动。`,
         },
       ],
       fixField: "limits",
-      fixValue: `${limits}${limits ? "；" : ""}时间：09:00 开始，12:00 前结束（含 10 分钟机动）`,
-      fixLabel: "补上：具体起止时间",
+      fixValue: `${limits}${limits ? "；" : ""}时间：${start} 开始，${end} 前结束（含 10 分钟机动）${stdTail}`,
+      fixLabel: `补上时间：${start}—${end}`,
     }),
   });
 
   // 第 9 页方案草案里真实出现的破绽，优先成为案件（第 10 页要能追溯到第 9 页）
-  const fromDraft = makeDraft(fields, theme).flaws;
+  const fromDraft = makeDraft(fields, theme, std).flaws;
 
   return pool
     .map((c, idx) => ({ ...c, idx, score: c.score + (fromDraft.includes(c.key) ? 200 : 0) }))
@@ -1622,8 +1634,9 @@ function makeCases(fields: Fields, theme: AgentTheme): DCase[] {
 }
 
 function Detective({ fields, theme, setField, go, flow, setFlow }: Ctx) {
-  const sig = `${fields.activity}|${fields.count}|${fields.limits}|${theme.id}`;
-  const live: DCase[] = useMemo(() => makeCases(fields, theme), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
+  const sig = `${fields.activity}|${fields.count}|${fields.limits}|${flow.standard}|${theme.id}`;
+  const live: DCase[] = useMemo(() => makeCases(fields, theme, flow.standard), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // 一旦开始破案就冻结案件，避免写回指挥台后案件被重算、进度丢失
   const [frozen, setFrozen] = useState<DCase[] | null>(null);
   const cases = frozen ?? live;
@@ -1633,6 +1646,18 @@ function Detective({ fields, theme, setField, go, flow, setFlow }: Ctx) {
   const [done, setDone] = useState<Record<number, string>>({});
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
+  // 记录「因采纳修改而产生的那次变化」，其余任何指挥台改动都要让案件重新同步
+  const expectedSig = useRef<string | null>(null);
+  useEffect(() => {
+    if (frozen && expectedSig.current !== null && sig !== expectedSig.current) {
+      setFrozen(null);
+      setI(0);
+      setP(0);
+      setDone({});
+      setEditing(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sig]);
   useEffect(() => {
     if (frozen) return;
     setI(0);
@@ -1645,12 +1670,15 @@ function Detective({ fields, theme, setField, go, flow, setFlow }: Ctx) {
   const allDone = cases.every((_, k) => done[k]);
 
   const apply = (value: string, label: string) => {
+    const next = { ...fields, [c.fixField]: value } as Fields;
+    expectedSig.current = `${next.activity}|${next.count}|${next.limits}|${flow.standard}|${theme.id}`;
     setFrozen(cases);
     setField(c.fixField, value);
     setDone((d) => ({ ...d, [i]: label }));
     setEditing(false);
     toast.success("已写回指挥台 ✅");
   };
+
 
 
   return (
