@@ -1646,6 +1646,18 @@ function Detective({ fields, theme, setField, go, flow, setFlow }: Ctx) {
   const [done, setDone] = useState<Record<number, string>>({});
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
+  // 记录「因采纳修改而产生的那次变化」，其余任何指挥台改动都要让案件重新同步
+  const expectedSig = useRef<string | null>(null);
+  useEffect(() => {
+    if (frozen && expectedSig.current !== null && sig !== expectedSig.current) {
+      setFrozen(null);
+      setI(0);
+      setP(0);
+      setDone({});
+      setEditing(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sig]);
   useEffect(() => {
     if (frozen) return;
     setI(0);
@@ -1658,12 +1670,15 @@ function Detective({ fields, theme, setField, go, flow, setFlow }: Ctx) {
   const allDone = cases.every((_, k) => done[k]);
 
   const apply = (value: string, label: string) => {
+    const next = { ...fields, [c.fixField]: value } as Fields;
+    expectedSig.current = `${next.activity}|${next.count}|${next.limits}|${flow.standard}|${theme.id}`;
     setFrozen(cases);
     setField(c.fixField, value);
     setDone((d) => ({ ...d, [i]: label }));
     setEditing(false);
     toast.success("已写回指挥台 ✅");
   };
+
 
 
   return (
