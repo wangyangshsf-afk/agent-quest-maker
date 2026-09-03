@@ -27,7 +27,6 @@ import { toast } from "sonner";
 import { VoiceInput } from "./VoiceInput";
 import {
   THEMES,
-  detectConflicts,
   type AgentCard,
   type AgentTheme,
   type Fields,
@@ -886,14 +885,6 @@ const SAMPLE_STANDARD =
 
 
 export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
-  const warnings = detectConflicts(fields);
-  const missingWarn = warnings.filter((w) => w.startsWith("❓") || w.startsWith("📍"));
-  const conflictWarn = warnings.filter((w) => !missingWarn.includes(w));
-  const extraMissing: string[] = [];
-  if (!flow.standard.trim()) extraMissing.push("❓ 还缺少「完成标准」：不写清楚，就没法判断方案是否合格。");
-  if (fields.limits.trim() && !/老师|家长|确认|签字/.test(fields.limits + flow.standard))
-    extraMissing.push("❓ 还缺少「最终确认人」：谁来做最后确认？");
-  const missing = [...missingWarn, ...extraMissing];
   const filled = Object.values(fields).some((v) => v.trim());
   const complete = fields.activity.trim() && fields.count.trim() && fields.limits.trim();
   const confirmer = /家长/.test(fields.limits + flow.standard)
@@ -991,52 +982,6 @@ export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
         </div>
 
         <div className="space-y-4">
-          <div className="card-soft p-5">
-            <h3 className="flex items-center gap-2 text-xl font-extrabold">
-              <ShieldCheck className="size-6 text-primary" /> 任务说明完整度检查
-            </h3>
-            <p className="mt-2 text-xs font-extrabold text-muted-foreground">缺少信息</p>
-            <AnimatePresence mode="popLayout">
-              {missing.length === 0 ? (
-                <motion.p
-                  key="mok"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="mt-1 rounded-xl bg-grass/15 p-3 text-sm font-bold"
-                >
-                  {filled ? "✅ 四类信息都写了" : "先写一项，我来帮你检查 👀"}
-                </motion.p>
-              ) : (
-                <motion.ul key="mwarn" className="mt-1 space-y-2">
-                  {missing.map((w) => (
-                    <motion.li
-                      key={w}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="rounded-xl bg-secondary/70 p-3 text-sm font-medium"
-                    >
-                      {w}
-                    </motion.li>
-                  ))}
-                </motion.ul>
-              )}
-            </AnimatePresence>
-            <p className="mt-3 text-xs font-extrabold text-muted-foreground">规则冲突</p>
-            {conflictWarn.length === 0 ? (
-              <p className="mt-1 rounded-xl bg-grass/15 p-3 text-sm font-bold">
-                ✅ 暂时没发现规则冲突
-              </p>
-            ) : (
-              <ul className="mt-1 space-y-2">
-                {conflictWarn.map((w) => (
-                  <li key={w} className="rounded-xl bg-destructive/10 p-3 text-sm font-medium">
-                    {w}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
           {filled && (
             <div className="card-soft p-5">
               <p className="text-sm font-extrabold text-primary">任务说明摘要</p>
