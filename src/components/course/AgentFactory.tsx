@@ -19,7 +19,12 @@ import {
 import { toast } from "sonner";
 import { VoiceInput } from "@/components/course/VoiceInput";
 import { ChatMessage } from "@/components/course/ChatMessage";
-import { agentChat, type CardPayload } from "@/lib/agent-chat.functions";
+import {
+  agentChat,
+  type CardCheck,
+  type CardPayload,
+  type CardStage,
+} from "@/lib/agent-chat.functions";
 import {
   FACTORY_LIST,
   FACTORY_TYPES,
@@ -88,25 +93,28 @@ export function AgentFactory({
     }
     setTypeId(THEME_TO_TYPE[theme.id] ?? "custom");
     setAction("");
+  }, [theme.id]);
+
+  // 每次切换智能体，都开一段全新的会话：不复用上一个场景的任何业务数据
+  const sessionKey = useRef(typeId);
+  useEffect(() => {
+    if (sessionKey.current === typeId) return;
+    sessionKey.current = typeId;
     setMsgs([]);
+    setInput("");
     setLive(null);
     setApproved(false);
-  }, [theme.id]);
+    setBusy(false);
+  }, [typeId]);
 
   const T = FACTORY_TYPES[typeId];
 
   const actionText = action.trim() || card.steps.filter(Boolean).join("；") || T.defaultAction;
 
+  // 只用当前这一个智能体的配置构建上下文，不从课程页全局状态兜底取值
   const prompt = useMemo(
-    () =>
-      buildFactoryPrompt(
-        card.name,
-        card.goal || `${fields.activity}｜${fields.count}｜${fields.limits}`,
-        actionText,
-        card.check,
-        typeId,
-      ),
-    [card.name, card.goal, card.check, actionText, typeId, fields],
+    () => buildFactoryPrompt(card.name, card.goal, actionText, card.check, typeId),
+    [card.name, card.goal, card.check, actionText, typeId],
   );
 
   const shareUrl = useMemo(
@@ -159,20 +167,13 @@ export function AgentFactory({
     }
   };
 
-  // 启动：智能体先打招呼，从 0 开始一步一步问
+  // 启动：智能体先打招呼，从 0 开始一步一步问（不带入任何别的场景的数据）
   const boot = () => {
     const name = card.name || T.label;
-    const known = [
-      fields.activity && `活动是「${fields.activity}」`,
-      fields.count && `人数是「${fields.count}」`,
-      fields.limits && `限制是「${fields.limits}」`,
-    ]
-      .filter(Boolean)
-      .join("，");
-    const greet = known
-      ? `你好！我是你的「${name}」专属智能体 ${T.emoji}\n\n我已经知道：${known}。\n接下来我会一步一步问你几个小问题，问齐了才给方案。\n准备好了吗？回复我「开始」吧！`
-      : `你好！我是你的「${name}」专属智能体 ${T.emoji}\n\n我们从 0 开始：先告诉我，你想让我帮你办的那件事是什么？`;
+    const greet = `你好！我是你的「${name}」专属任务智能体 ${T.emoji}\n\n我会先收集关键信息，再给出方案并和你一起核对。\n\n先告诉我：${T.slots[0] ?? "你想让我帮你办的那件事是什么"}？`;
     setMsgs([{ role: "assistant", content: greet }]);
+    setLive(null);
+    setApproved(false);
   };
 
   const [stage, setStage] = useState<0 | 1 | 2>(startAtChat ? 1 : 0);
@@ -339,6 +340,7 @@ export function AgentFactory({
 
       {stage === 1 && (
         <div className="space-y-4">
+          <TaskProgress data={live} approved={approved} slots={T.slots} />
           <div className="card-soft relative flex h-[52vh] flex-col p-5">
             <div ref={scrollRef} className="flex-1 space-y-3 overflow-auto pr-1">
               {msgs.length === 0 && (
@@ -410,7 +412,7 @@ export function AgentFactory({
             approved={approved}
             onApprove={() => {
               setApproved(true);
-              toast.success("你已完成人类最终决定 ✅");
+              toast.success("已记录：你核对过这份成果卡 ✅ 花钱/外出仍要家长或老师确认");
             }}
             onReplay={() => setReplay((x) => x + 1)}
             shareUrl={shareUrl}
@@ -426,6 +428,134 @@ export function AgentFactory({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ---------- 任务进度：agentSession 的可视化状态 ---------- */
+
+function normalizeChecks(list: (string | CardCheck)[]): CardCheck[] {
+  return (list ?? []).map((c) =>
+    typeof c === "string"
+      ? { rule: c, status: "confirm" as const, reason: "" }
+      : {
+          rule: c.rule ?? "",
+          status: c.status === "pass" || c.status === "adjust" ? c.status : "confirm",
+          reason: c.reason ?? "",
+          ...(c.suggestion ? { suggestion: c.suggestion } : {}),
+        },
+  );
+}
+
+function deriveStage(data: CardPayload | null, approved: boolean): CardStage | "completed" {
+  if (approved) return "completed";
+  if (!data) return "collecting";
+  const valid: CardStage[] = ["collecting", "planning", "checking", "awaiting_student_confirmation"];
+  if (data.stage && valid.includes(data.stage)) return data.stage;
+  if ((data.missing?.length ?? 0) > 0) return "collecting";
+  if ((data.checks?.length ?? 0) === 0) return (data.plan?.length ?? 0) > 0 ? "planning" : "collecting";
+  return "awaiting_student_confirmation";
+}
+
+const PHASES: { key: CardStage; emoji: string; label: string }[] = [
+  { key: "collecting", emoji: "🔍", label: "收集信息" },
+  { key: "planning", emoji: "🗺️", label: "制定方案" },
+  { key: "checking", emoji: "🛡️", label: "规则检查" },
+  { key: "awaiting_student_confirmation", emoji: "🎁", label: "成果与确认" },
+];
+
+function TaskProgress({
+  data,
+  approved,
+  slots,
+}: {
+  data: CardPayload | null;
+  approved: boolean;
+  slots: string[];
+}) {
+  const [open, setOpen] = useState(false);
+  const stage = deriveStage(data, approved);
+  const idx = stage === "completed" ? PHASES.length : PHASES.findIndex((p) => p.key === stage);
+  const asking = data?.nextMissingField || data?.missing?.[0] || slots[0] || "";
+  const got = data?.collected ?? [];
+
+  const status = (i: number) =>
+    approved && i === PHASES.length - 1
+      ? { text: "已由学生核对", icon: "✅" }
+      : i < idx
+        ? { text: "已完成", icon: "✅" }
+        : i === idx
+          ? i === PHASES.length - 1
+            ? { text: "需要学生确认", icon: "🙋" }
+            : { text: "进行中", icon: "⏳" }
+          : { text: "未开始", icon: "⬜" };
+
+  return (
+    <div className="card-soft p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-extrabold">🧭 任务进度</p>
+          <p className="text-xs text-muted-foreground">它会按目标一步步办事，不是随便聊天。</p>
+        </div>
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="rounded-full bg-secondary px-3 py-1.5 text-xs font-bold sm:hidden"
+        >
+          {open ? "收起详情" : "展开详情"}
+        </button>
+      </div>
+
+      <ol className="mt-3 grid gap-2 sm:grid-cols-4">
+        {PHASES.map((p, i) => {
+          const s = status(i);
+          const active = i === idx;
+          return (
+            <li
+              key={p.key}
+              className={`rounded-2xl border-2 px-3 py-2 text-xs font-bold ${
+                active
+                  ? "border-primary bg-primary/10"
+                  : i < idx
+                    ? "border-grass/50 bg-grass/10"
+                    : "border-border bg-muted/50"
+              }`}
+            >
+              <span className="block">
+                {p.emoji} {i + 1}. {p.label}
+              </span>
+              <span className="text-muted-foreground">
+                {s.icon} {s.text}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+
+      <div className={`mt-3 space-y-2 text-xs ${open ? "" : "hidden sm:block"}`}>
+        <div>
+          <p className="font-extrabold">📥 已知信息</p>
+          {got.length ? (
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {got.map((c, i) => (
+                <span key={i} className="rounded-full bg-secondary px-2.5 py-1 font-bold">
+                  {c.key}：{c.value}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-1 text-muted-foreground">还没有，回答第一个问题就会出现在这里。</p>
+          )}
+        </div>
+        {stage === "collecting" && asking && (
+          <p className="rounded-xl bg-sun/25 px-3 py-2 font-bold">❓ 正在问你：{asking}</p>
+        )}
+        {data?.actionLog && (
+          <p className="rounded-xl bg-muted px-3 py-2">🧾 刚刚做了：{data.actionLog}</p>
+        )}
+        <p className="text-muted-foreground">
+          记忆只保留本次会话；刷新页面后这段对话就会重新开始。
+        </p>
+      </div>
     </div>
   );
 }
@@ -623,13 +753,24 @@ function ResultCard({
                   </div>
                 </Block>
               )}
-              {data.checks?.length > 0 && (
-                <Block delay={0.14} title="🛡️ 检查结论">
-                  <ul className="space-y-1 text-sm">
-                    {data.checks.map((c, i) => (
+          {data.checks?.length > 0 && (
+                <Block delay={0.14} title="🛡️ 规则检查（逐条写清依据）">
+                  <ul className="space-y-1.5 text-sm">
+                    {normalizeChecks(data.checks).map((c, i) => (
                       <li key={i} className="flex gap-2">
-                        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-grass" />
-                        <span>{c}</span>
+                        {c.status === "pass" ? (
+                          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-grass" />
+                        ) : (
+                          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-berry" />
+                        )}
+                        <span>
+                          <b>
+                            {c.status === "pass" ? "通过" : c.status === "adjust" ? "需调整" : "待确认"}
+                          </b>
+                          ：{c.rule}
+                          {c.reason ? <span className="text-muted-foreground">（{c.reason}）</span> : null}
+                          {c.suggestion ? <span className="block text-xs">💡 {c.suggestion}</span> : null}
+                        </span>
                       </li>
                     ))}
                   </ul>
@@ -686,7 +827,7 @@ function ResultCard({
 
       <div className="rounded-2xl bg-sun/25 p-4">
         <p className="flex items-center gap-2 font-extrabold">
-          <UserCheck className="size-5" /> 人类最终决定
+          <UserCheck className="size-5" /> 人类确认（学生核对 + 家长/老师确认）
         </p>
         <p className="mt-1 text-sm">{data.humanConfirm || "请检查这份方案后再执行。"}</p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -695,7 +836,7 @@ function ResultCard({
             disabled={approved}
             className="rounded-full bg-primary px-4 py-2 text-sm font-extrabold text-primary-foreground disabled:opacity-50"
           >
-            {approved ? "✅ 已由我确认通过" : "我检查过了，通过"}
+            {approved ? "✅ 已由学生核对" : "我已核对"}
           </button>
           <button
             onClick={() => downloadPng(data, approved)}
@@ -794,11 +935,17 @@ function downloadPng(d: CardPayload, approved: boolean) {
     "行动步骤",
     (d.plan ?? []).map((s, i) => `${i + 1}. ${s}`),
   );
-  sec("检查结论", d.checks ?? []);
+  sec(
+    "规则检查",
+    normalizeChecks(d.checks ?? []).map(
+      (c) =>
+        `${c.status === "pass" ? "通过" : c.status === "adjust" ? "需调整" : "待确认"}：${c.rule}${c.reason ? `（${c.reason}）` : ""}`,
+    ),
+  );
   sec("风险与冲突", d.risks ?? []);
   sec("人类最终决定", [
     d.humanConfirm || "需要本人或老师确认。",
-    approved ? "✅ 已由人类确认通过" : "⏳ 等待人类确认",
+    approved ? "✅ 已由学生核对（仍需家长/老师确认）" : "⏳ 等待学生核对",
   ]);
 
   const pad = 48;
