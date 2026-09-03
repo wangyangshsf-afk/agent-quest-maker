@@ -936,8 +936,8 @@ function makeRun(fields: Fields, theme: AgentTheme, standard = ""): RunStep[] {
 }
 
 function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
-  const sig = `${fields.activity}|${fields.count}|${fields.limits}|${theme.id}`;
-  const steps = useMemo(() => makeRun(fields, theme), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
+  const sig = `${fields.activity}|${fields.count}|${fields.limits}|${flow.standard}|${theme.id}`;
+  const steps = useMemo(() => makeRun(fields, theme, flow.standard), [sig]); // eslint-disable-line react-hooks/exhaustive-deps
   const [n, setN] = useState(0);
   useEffect(() => setN(0), [sig]);
   useEffect(() => {
@@ -951,6 +951,13 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
   // 进入本页时的版本判定，跑完后不会把第一版误标成第二版
   const [isRerun] = useState(flow.state === "rerunning" || flow.approved);
   const done = n >= steps.length;
+  const plan = steps[2]!.lines;
+  const needHuman = [
+    "通知同学和家长",
+    "任何花钱、预约或下单",
+    "外出路线与集合安排",
+    "安全与应急措施",
+  ];
 
   useEffect(() => {
     if (!done) return;
@@ -964,16 +971,47 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
 
   return (
     <Big>
-      <SlideTitle
-        kicker="办事过程"
-        title={isRerun ? "⚙️ 智能体正在跑第二版…" : "⚙️ 智能体正在办事…"}
-      />
+      <TaskBar active="run" />
+      <SlideTitle kicker="办事过程" title="⚙️ 智能体正在处理你的任务指令" />
+      <p className="mx-auto mb-5 max-w-3xl text-center text-sm font-bold text-muted-foreground">
+        它会读取你的任务说明、补齐缺失信息、制定计划、检查规则，再把方案交给人类确认。
+      </p>
       <div className="card-pop p-6">
         <p className="mb-4 rounded-xl bg-secondary p-3 text-base">
-          任务：<b>{fields.activity || theme.activity || "（未填写活动）"}</b>｜人数：
-          <b>{fields.count || theme.count || "（未填写）"}</b>｜限制：
-          <b>{fields.limits || theme.limits || "（未填写）"}</b>
+          任务目标：<b>{fields.activity || theme.activity || "（未填写）"}</b>｜对象与规模：
+          <b>{fields.count || theme.count || "（未填写）"}</b>｜约束规则：
+          <b>{fields.limits || theme.limits || "（未填写）"}</b>｜完成标准：
+          <b>{flow.standard || "（未填写）"}</b>
         </p>
+        <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-2xl bg-grass/15 p-3">
+            <p className="text-xs font-extrabold">已知信息</p>
+            <p className="mt-1 text-sm font-medium">
+              {[fields.activity, fields.count, fields.limits, flow.standard]
+                .filter((x) => x.trim())
+                .length}{" "}
+              类已读取
+            </p>
+          </div>
+          <div className="rounded-2xl bg-destructive/10 p-3">
+            <p className="text-xs font-extrabold text-destructive">缺少信息</p>
+            <p className="mt-1 text-sm font-medium">
+              {holes.length ? `${holes.length} 项要追问` : "暂时没有 ✅"}
+            </p>
+          </div>
+          <div className="rounded-2xl bg-secondary/70 p-3">
+            <p className="text-xs font-extrabold">当前计划</p>
+            <p className="mt-1 text-sm font-medium">{plan.length} 步（来自你的目标与约束）</p>
+          </div>
+          <div className="rounded-2xl bg-sun/25 p-3">
+            <p className="text-xs font-extrabold">等待人类确认的动作</p>
+            <ul className="mt-1 space-y-0.5 text-xs font-medium">
+              {needHuman.map((h) => (
+                <li key={h}>· {h}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
         <ol className="space-y-3">
           {steps.map((s, i) => (
             <motion.li
