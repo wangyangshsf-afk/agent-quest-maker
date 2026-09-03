@@ -487,22 +487,49 @@ function RoleVote() {
 /* ---------- 5. Chat vs Agent ---------- */
 
 function Compare() {
+  const rightListVariants = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.18, delayChildren: 0.25 } },
+  };
+
+  const rightItemVariants = {
+    hidden: { opacity: 0, x: 18 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.35 } },
+  };
+
   return (
     <Big>
       <SlideTitle kicker="角色对比" title="💬 聊天 AI vs 🤖 智能体" />
       <div className="grid gap-5 md:grid-cols-2">
-        {/* 普通聊天 AI：一问一答就结束 */}
-        <div className="card-soft border-t-8 border-t-muted-foreground/40 p-6">
-          <h3 className="flex items-center gap-2 text-2xl font-extrabold">
+        {/* 普通聊天 AI：一问一答就结束（先出现） */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45 }}
+          className="card-soft border-t-8 border-t-muted-foreground/40 p-6"
+        >
+          <motion.h3
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.15 }}
+            className="flex items-center gap-2 text-2xl font-extrabold"
+          >
             <MessageSquare className="size-7" /> 普通聊天 AI
-          </h3>
-          <p className="mt-1 text-sm font-bold text-muted-foreground">你问一句，它答一句</p>
+          </motion.h3>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.25 }}
+            className="mt-1 text-sm font-bold text-muted-foreground"
+          >
+            你问一句，它答一句
+          </motion.p>
 
           <div className="mt-5 space-y-3">
             <motion.div
               initial={{ opacity: 0, x: 16 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 }}
+              transition={{ delay: 0.4 }}
               className="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground"
             >
               🙋 帮我安排春游
@@ -510,7 +537,7 @@ function Compare() {
             <motion.div
               initial={{ opacity: 0, x: -16 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.6 }}
+              transition={{ delay: 0.8 }}
               className="w-fit max-w-[90%] rounded-2xl rounded-bl-sm bg-muted px-4 py-2.5 text-sm"
             >
               🤖 可以去公园、博物馆、动物园……
@@ -518,43 +545,72 @@ function Compare() {
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 1 }}
+              transition={{ delay: 1.2 }}
               className="flex items-center justify-center gap-2 pt-1 text-lg font-extrabold text-muted-foreground"
             >
               🔚 然后……就结束了
             </motion.div>
           </div>
 
-          <div className="mt-5 flex flex-wrap justify-center gap-3 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.5 }}
+            className="mt-5 flex flex-wrap justify-center gap-3 text-center"
+          >
             <MiniTag emoji="🤷" text="没说的它就猜" />
             <MiniTag emoji="📄" text="只回答，不动手" />
-          </div>
-          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+          </motion.div>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.7 }}
+            className="mt-3 text-xs leading-relaxed text-muted-foreground"
+          >
             这一页的聊天 AI 只负责回答问题；智能体还会追问、规划、执行和检查。
             现实中的聊天 AI 也可能连上工具去做事，这里只是用「只聊天模式」来做对比。
-          </p>
+          </motion.p>
+        </motion.div>
 
-        </div>
-
-        {/* 智能体：目标→追问→步骤→人类拍板 */}
-        <div className="card-pop border-t-8 border-t-primary p-6">
-          <h3 className="flex items-center gap-2 text-2xl font-extrabold">
+        {/* 智能体：目标→追问→步骤→人类拍板（后出现） */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 2, duration: 0.45 }}
+          className="card-pop border-t-8 border-t-primary p-6"
+        >
+          <motion.h3
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 2.2 }}
+            className="flex items-center gap-2 text-2xl font-extrabold"
+          >
             <Bot className="size-7 text-primary" /> AI 智能体 Agent
-          </h3>
-          <p className="mt-1 text-sm font-bold text-primary">主动把事办完，最后你拍板</p>
+          </motion.h3>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 2.3 }}
+            className="mt-1 text-sm font-bold text-primary"
+          >
+            主动把事办完，最后你拍板
+          </motion.p>
 
-          <div className="mt-5 space-y-2.5">
+          <motion.div
+            variants={rightListVariants}
+            initial="hidden"
+            animate="visible"
+            className="mt-5 space-y-2.5"
+          >
             {[
               { emoji: "🎯", text: "先问清：要什么结果？", c: "bg-sky/15" },
               { emoji: "❓", text: "主动追问：人数？预算？时间？", c: "bg-sun/25" },
               { emoji: "🪜", text: "拆步骤，一步步做", c: "bg-grass/15" },
               { emoji: "🛡️", text: "发现矛盾会喊停", c: "bg-berry/15" },
-            ].map((s, i) => (
+            ].map((s) => (
               <motion.div
                 key={s.emoji}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 + i * 0.25 }}
+                variants={rightItemVariants}
                 className={`flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-extrabold ${s.c}`}
               >
                 <span className="text-2xl">{s.emoji}</span>
@@ -562,15 +618,13 @@ function Compare() {
               </motion.div>
             ))}
             <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 1.3 }}
+              variants={rightItemVariants}
               className="flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-base font-extrabold text-primary-foreground"
             >
               <Gavel className="size-5" /> 最后交给人类拍板
             </motion.div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </div>
     </Big>
   );
