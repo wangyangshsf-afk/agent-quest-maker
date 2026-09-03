@@ -737,27 +737,8 @@ const SAMPLE: Fields = {
 const SAMPLE_STANDARD =
   "方案必须包含：集合点、路线、时间表、预算明细、安全预案；先由老师确认";
 
-const WHY: Record<string, string> = {
-  activity: "没有目标，智能体不知道要完成哪件事。",
-  count: "人数会影响分组、费用和通知范围。",
-  limits: "这些是它办事时不能违反的规则。",
-  standard: "没有标准，就不知道方案算不算合格。",
-};
 
-function WhyTip({ k }: { k: string }) {
-  const [on, setOn] = useState(false);
-  return (
-    <span className="inline-block">
-      <button
-        onClick={() => setOn((v) => !v)}
-        className="rounded-full bg-secondary px-2.5 py-1 text-xs font-extrabold text-secondary-foreground"
-      >
-        为什么要写？
-      </button>
-      {on && <span className="ml-2 text-xs font-bold text-primary">{WHY[k]}</span>}
-    </span>
-  );
-}
+
 
 export function CommandCenter({ fields, setField, go, flow, setFlow }: Ctx) {
   const warnings = detectConflicts(fields);
