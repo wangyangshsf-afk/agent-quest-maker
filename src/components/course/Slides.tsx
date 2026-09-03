@@ -2249,12 +2249,6 @@ const RECAP_CARDS = [
   },
 ];
 
-const RECAP_QUESTIONS = [
-  "我的目标是什么？",
-  "我需要提供哪些条件？",
-  "这个方案怎样才算完成？",
-  "哪些事情必须由大人确认？",
-];
 
 function Recap() {
   const [open, setOpen] = useState<string | null>(null);
