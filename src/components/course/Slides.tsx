@@ -2318,37 +2318,8 @@ function Homework({ card, flow, setFlow, go }: Ctx) {
   const [custom, setCustom] = useState(ch.customTask);
   const [issueText, setIssueText] = useState(ch.issueText);
 
-  const steps = ["选任务", "试一试", "找问题", "修改并再试", "挑战卡"];
-  const stepIdx = !task ? 0 : !ch.tested ? 1 : !ch.issueType ? 2 : !ch.retested ? 3 : 4;
-
-  const cardText = [
-    "我的智能体挑战卡",
-    "",
-    `我的智能体：${card.name || "我的智能体"}`,
-    `它要帮我完成：${card.goal}`,
-    `我今晚挑战的小事：${task || "（未选择）"}`,
-    "",
-    "1. 我告诉它的关键信息",
-    ...card.steps.slice(0, 2).map((s) => `- ${s}`),
-    "",
-    "2. 它给我的方案",
-    ...card.steps.map((s, i) => `${i + 1}. ${s}`),
-    "",
-    "3. 我发现的问题",
-    `- ${ISSUES.find((x) => x.id === ch.issueType)?.label ?? ""}${ch.issueText ? `：${ch.issueText}` : ""}`,
-    "",
-    "4. 我怎么修改它",
-    `- ${ch.applied}`,
-    "",
-    "5. 再试一次后的变化",
-    `- ${ch.field === "check" ? "它现在会先按新规则检查，再给方案。" : "它现在会先问清楚关键信息，再安排。"}`,
-    "",
-    "我的核对",
-    `${ch.checked ? "☑" : "□"} 我已经检查过这份方案。`,
-    `${ch.checked ? "☑" : "□"} 涉及外出、花钱、食物或安全时，我会和家长/老师一起确认。`,
-    "",
-    `日期：${new Date().toLocaleDateString("zh-CN")}`,
-  ].join("\n");
+  const steps = ["选任务", "试一试", "找问题", "修改并再试"];
+  const stepIdx = !task ? 0 : !ch.tested ? 1 : !ch.issueType ? 2 : 3;
 
   return (
     <Big>
