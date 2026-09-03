@@ -1260,9 +1260,7 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
                 animate={{ opacity: 1, y: 0 }}
                 className="card-soft space-y-4 p-5"
               >
-                <p className="text-2xl font-extrabold">
-                  {isRerun ? "🔁 第二版：待人类验收的方案草案" : "📄 待人类验收的方案草案（不等于已获批准）"}
-                </p>
+                <p className="text-2xl font-extrabold">🤖 智能体生成的方案</p>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <div className="rounded-2xl bg-destructive/10 p-3">
                     <p className="text-sm font-extrabold text-destructive">
@@ -1289,11 +1287,7 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
                 </div>
 
                 <div className="rounded-2xl border-2 border-ink bg-card p-4">
-                  <p className="text-lg font-extrabold">🤖 {draft.title}</p>
-                  <p className="mt-1 text-sm font-bold text-muted-foreground">
-                    下面是智能体自己边推测边写出来的初版方案，不一定正确，请检查。
-                  </p>
-                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-3">
+                  <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
                     <ul className="space-y-2">
                       {draft.items.map((it, k) => (
                         <motion.li
