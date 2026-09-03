@@ -1347,7 +1347,7 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
       state: holes.length + badChecks.length > 0 ? "needs_fix" : "rerunning",
       unlocked: Math.max(
         flow.unlocked,
-        isRerun ? SLIDE.review : flow.doubt ? SLIDE.detective : SLIDE.execution,
+        isRerun ? SLIDE.review : SLIDE.detective,
       ),
     });
 
