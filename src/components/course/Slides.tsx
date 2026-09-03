@@ -1222,70 +1222,36 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
         它会读取你的任务说明、补齐缺失信息、制定计划、检查规则，再把方案交给人类确认。
       </p>
       <div className="card-pop p-6">
-
-
-        <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl bg-grass/15 p-3">
-            <p className="text-xs font-extrabold">已知信息</p>
-            <p className="mt-1 text-sm font-medium">
-              {[fields.activity, fields.count, fields.limits, flow.standard]
-                .filter((x) => x.trim())
-                .length}{" "}
-              类已读取
-            </p>
-          </div>
-          <div className="rounded-2xl bg-destructive/10 p-3">
-            <p className="text-xs font-extrabold text-destructive">缺少信息</p>
-            <p className="mt-1 text-sm font-medium">
-              {holes.length ? `${holes.length} 项要追问` : "暂时没有 ✅"}
-            </p>
-            <p className="mt-1 text-[11px] font-bold text-muted-foreground">
-              为什么这项信息会影响方案：缺一项，路线、预算或安全就只能靠推测。
-            </p>
-          </div>
-          <div className="rounded-2xl bg-secondary/70 p-3">
-            <p className="text-xs font-extrabold">智能体生成的方案草案</p>
-            <p className="mt-1 text-sm font-medium">
-              {plan.length} 步，并说明每一步如何由任务目标和约束推导出来
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-sun/25 p-3">
-            <p className="text-xs font-extrabold">等待人类确认的动作</p>
-            <ul className="mt-1 space-y-0.5 text-xs font-medium">
-              {needHuman.map((h) => (
-                <li key={h}>· {h}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-        <ol className="space-y-3">
+        <ol className="space-y-2.5">
           {steps.map((s, i) => (
             <motion.li
               key={s.t}
-              animate={{ opacity: i < n ? 1 : 0.25, x: i < n ? 0 : -12 }}
-              className="rounded-2xl border-2 border-border p-4"
+              animate={{ opacity: i < n ? 1 : 0.3, x: i < n ? 0 : -10 }}
+              className="rounded-2xl border-2 border-border px-4 py-3"
             >
-              <div className="flex items-center gap-4">
-                <span className="text-3xl">{s.emoji}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{s.emoji}</span>
                 <div className="flex-1">
-                  <p className="text-xl font-extrabold">{s.t}</p>
-                  <p className="text-sm text-muted-foreground">{s.d}</p>
+                  <p className="text-base font-extrabold sm:text-lg">{s.t}</p>
+                  <p className="text-xs text-muted-foreground">{s.d}</p>
                 </div>
                 {i < n ? (
-                  <CheckCircle2 className="size-7 text-grass" />
+                  <CheckCircle2 className="size-5 text-grass" />
                 ) : (
-                  <span className="text-sm text-muted-foreground">等待中</span>
+                  <span className="text-xs text-muted-foreground">推测中…</span>
                 )}
               </div>
               {i < n && (
                 <motion.ul
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
-                  className="mt-3 space-y-1.5 overflow-hidden pl-12"
+                  className="mt-2 flex flex-wrap gap-1.5 overflow-hidden pl-9"
                 >
                   {s.lines.map((l) => (
-                    <li key={l} className="rounded-xl bg-muted px-3 py-2 text-sm font-medium">
+                    <li
+                      key={l}
+                      className="rounded-lg bg-muted px-2.5 py-1 text-xs font-medium leading-snug"
+                    >
                       {l}
                     </li>
                   ))}
@@ -1294,6 +1260,7 @@ function Execution({ fields, theme, go, flow, setFlow }: Ctx) {
             </motion.li>
           ))}
         </ol>
+
 
         {done && (
           <motion.div
