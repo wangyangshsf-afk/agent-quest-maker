@@ -1570,24 +1570,25 @@ function makeCases(fields: Fields, theme: AgentTheme, standard = ""): DCase[] {
     score: num > 0 && !hasGroup ? 85 : 45,
     make: () => ({
       title: "案件：对不上的人数",
-      ai: `${activity}：把大家分成 4 组，每组 8 人，同时进行不同任务，人人都有事做。`,
+      ai: `${activity}：把${count}分成 2 组，每组约 ${num > 0 ? Math.ceil(num / 2) : "?"} 人，各由 1 位${confirmer}带队，同时进行不同任务。`,
       steps: [
         {
-          hint: "算一算：4 组 × 8 人 = 32 人。和你写的人数对得上吗？",
-          answer: `🔍 4×8=32 人。和你写的人数不一致。📊 分组错了，物资和分工都会错。`,
+          hint: `算一算：2 组带队够吗？每组 ${num > 0 ? Math.ceil(num / 2) : "?"} 人，一个人看得过来吗？`,
+          answer: `🔍 ${count}只分 2 组，每组约 ${num > 0 ? Math.ceil(num / 2) : "?"} 人。📊 人手不够，分工和物资都会错。`,
         },
         {
           hint: "让 AI 把分组算式写出来，自己检查。",
-          answer: `❓ 问：「请按 ${count} 重新分组。写出：组数×每组人数=总人数的算式。」`,
+          answer: `❓ 问：「请按 ${count} 重新分组，每组不超过 8 人。写出：组数×每组人数=总人数。」`,
         },
         {
           hint: "把分组规则写回指挥台。",
-          answer: "✏️ 加上：按实际人数分组，每组指定 1 名组长。",
+          answer: `✏️ 加上：${count}按每组不超过 8 人分组，每组 1 名组长。`,
         },
       ],
       fixField: "limits",
-      fixValue: `${limits}${limits ? "；" : ""}按 ${count} 分组，每组指定 1 名组长，并写出分组算式`,
-      fixLabel: "补上：分组与组长规则",
+      fixValue: `${limits}${limits ? "；" : ""}${count}按每组不超过 8 人分组（约 ${num > 0 ? Math.ceil(num / 8) : "?"} 组），每组指定 1 名组长并写出分组算式${stdTail}`,
+      fixLabel: `改成：${num > 0 ? Math.ceil(num / 8) : "?"} 组，每组不超过 8 人`,
+
     }),
   });
 
